@@ -23,6 +23,7 @@ import { hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
 import { customerFullName } from "@/types/customer";
 import { LoanStatusBadge } from "@/features/loans/loan-status-badge";
+import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
 import { LoanActionsPanel } from "@/features/loans/loan-actions-panel";
 import { LoanSchedulePanel } from "@/features/loans/loan-schedule-panel";
 import { LoanTimelinePanel } from "@/features/loans/loan-timeline-panel";
@@ -68,6 +69,7 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="space-y-4">
+      <BreadcrumbLabel label={loan.loanNumber} />
       <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/loans"><ArrowLeft className="size-4" />Back to Loans</Link>} />
 
       <Card>

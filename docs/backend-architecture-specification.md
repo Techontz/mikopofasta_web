@@ -1082,3 +1082,94 @@ All previously open items are now resolved:
 - Clarified that `users.branch_id` is populated for every user including HQ-wide roles (they're based at the Head Office branch); cross-branch visibility is decided solely by the `branches.view_all` permission, never by a null branch assignment.
 
 This backend specification is considered final pending real-world implementation feedback. The Frontend Technical Specification is the next deliverable.
+
+---
+
+## Open Specification Conflicts
+
+Conflicts found during frontend implementation that are **not resolved unilaterally** — each must be settled before backend integration.
+
+### OSC-1 — Penalty accrual posting references an undefined account
+
+**Status:** Open. Raised during Phase 5 (Repayments & Collections).
+
+**The conflict.** §7 (Repayment Engine) states the `penalty:apply` job "posts the Dr Loan Arrears / Cr Expected Schedule entry". Two problems:
+
+1. **"Expected Schedule" is not a defined account.** §5 fixes the chart of accounts at 18 system accounts plus dynamic expense/bank/branch-cash accounts. No account by that name exists, and no rule in §5 authorises creating one.
+2. **Posting on accrual would double-count penalty income.** §5's canonical repayment posting already credits **Penalty Income** when a penalty is *collected*. Recognising penalty income (or an equivalent receivable) again at accrual time would count the same penalty twice.
+
+**What was implemented.** The penalty run performs only the parts §2.6/§7 define unambiguously:
+
+- updates `loan_schedules.penalty_due` (idempotent — re-running tops up to the computed figure rather than stacking),
+- flips affected loans `active → arrears` with a `loan_status_history` row,
+- writes a `penalty_runs` row.
+
+It posts **no journal entry**. Penalty income is recognised on collection, exactly as §5 specifies. No new ledger account was introduced.
+
+**Consequence if left unresolved.** Accrued-but-uncollected penalties are visible on the loan schedule and in `penalty_runs`, but do not appear as a ledger balance. Any arrears report built on ledger balances alone would understate accrued penalties; one built on `loan_schedules` is correct.
+
+**Options to resolve (backend team decision):**
+
+| Option | Effect |
+|---|---|
+| **A — No accrual posting** (current behaviour) | Penalty income recognised on collection only. Cash-basis for penalties. Requires no schema change. |
+| **B — Accrue against a defined control account** | Add a penalty-receivable account to §5's chart, post `Dr <Penalty Receivable> / Cr Penalty Income` on accrual, and change the collection posting to `Dr Cash / Cr <Penalty Receivable>` so income is recognised once. Accrual-basis; requires amending §5. |
+
+Option B is the accounting-conventional choice but **changes §5's canonical repayment posting**, so it is deliberately left to the backend team rather than assumed here.
+
+**Code reference:** `runOverdueProcess()` in `features/repayments/actions.ts` (marked `TODO(OSC-1)`).
+
+---
+
+## Implementation Addenda (Phases 4–7)
+
+Refinements discovered while building the frontend against this spec. None change a
+documented rule; each makes an existing rule enforceable. Recorded here so the backend
+implements the same shape.
+
+### A-1 — Granular permissions added under §14
+
+§14 defines roles and the *authority* each holds, but named only a subset of permission
+strings. Enforcing separation of duties in code required these additional granular
+permissions. Each is a subdivision of authority §14 already grants — no role gained power
+it did not have.
+
+| Permission | Granted to | Enforces |
+|---|---|---|
+| `customers.approve` | Admin, Branch Manager | Approving a registration in a category with `requires_extra_approval` |
+| `loans.create` | Admin, Branch Manager, Loan Officer | "Create loan application" (§14 Loan Officer) |
+| `loans.credit_review` | Credit Officer | "Telco verification step, modify/reject at credit review" |
+| `loans.disburse` | Finance | "All disbursements execute through Finance regardless of who prepared the batch" |
+| `repayments.cash_entry` | Teller, Finance, Admin | "Cash payment entry only" (§14 Teller) |
+| `repayments.reconcile` | Finance | "Bank reconciliation" (§14 Finance); explicitly **not** Teller |
+| `treasury.manage` | Finance | Capital injection and dividend distribution |
+
+`loans.review_cross_branch` remains, per Decision 1, granted to no role by default.
+
+### A-2 — Finance must reach the payroll module without holding `hr.view`
+
+§14 assigns payroll **generation** to HR and **finalization** to Finance, but Finance does
+not hold `hr.view`. Gating the payroll screens on `hr.view` alone made finalization
+unreachable — the separation of duties was unimplementable.
+
+Resolution: `/hr/payroll` and `/hr/staff-advances` require **any of**
+`[hr.view, payroll.finalize]`, the same any-of pattern §14 already implies for
+`/admin/audit-logs` (Auditor reaches it without `admin.org_settings`). Backend policies
+must allow the equivalent: Finance can read and act on payroll runs and staff advances
+without gaining HR's staff-registration rights.
+
+### A-3 — Income accounts can hold a net debit after a cross-period reversal
+
+Reversing a repayment **after** month-end close has already swept income to the Profit
+Account leaves the income account with a net debit (a negative balance), because the
+reversal debits income that was already closed out. This is arithmetically correct
+double-entry behaviour, not a defect: the trial balance stays exactly in balance.
+
+Real-world resolution is the next month-end close re-sweeping the (now negative) income
+into Profit. Reporting must therefore not assume income balances are non-negative, and a
+month-end close must be idempotent with respect to already-swept periods.
+
+### A-4 — `penalty_runs` is the only record of accrued-but-uncollected penalties
+
+Follows from OSC-1 above. Until that conflict is resolved, arrears reporting must read
+accrued penalties from `loan_schedules.penalty_due`, not from a ledger balance.

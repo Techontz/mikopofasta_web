@@ -498,6 +498,16 @@ export async function reconcileDeposit(depositId: string, paymentIds: string[]):
 // Overdue / penalty run — POST /loans/overdue/process
 // ---------------------------------------------------------------------------
 
+/**
+ * TODO(OSC-1): §7 says this job should also post "Dr Loan Arrears / Cr
+ * Expected Schedule", but "Expected Schedule" is not one of the accounts
+ * defined in §5, and §5 already credits Penalty Income when a penalty is
+ * *collected* — so posting on accrual as well would double-count penalty
+ * income. Deliberately posting nothing here: penalty income is recognised on
+ * collection only, and no undefined ledger account is invented. See
+ * docs/backend-architecture-specification.md → "Open Specification
+ * Conflicts" → OSC-1. Resolve with the backend team before integration.
+ */
 export async function runOverdueProcess(): Promise<ActionResult> {
   const actor = await requirePermission(PERMISSIONS.REPAYMENTS_MANAGE);
   if (isDenied(actor)) return actor;

@@ -17,6 +17,9 @@ const BRANCH_PROFIT: Record<string, { profit: number; lossCarryForward: number }
   "br-kakonko": { profit: 1_200_000, lossCarryForward: 0 },
   "br-missenyi": { profit: 900_000, lossCarryForward: 0 },
   "br-lindi": { profit: 600_000, lossCarryForward: 100_000 },
+  // Still working off a prior loss — exercises §11's hard rule that no
+  // commission may be created while distributable profit is not positive.
+  "br-kalenge": { profit: 150_000, lossCarryForward: 400_000 },
 };
 
 export const MOCK_COMMISSION_POOLS: CommissionPool[] = Object.entries(BRANCH_PROFIT).map(([branchId, { profit, lossCarryForward }], i) => {

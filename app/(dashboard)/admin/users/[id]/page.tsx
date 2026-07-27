@@ -14,6 +14,7 @@ import { MOCK_STAFF_PROFILES } from "@/lib/mock-data/staff-profiles";
 import { ROLE_LABELS, getEffectivePermissions } from "@/config/permissions";
 import { UserFormDialog } from "@/features/admin/users/user-form-dialog";
 import { UserStatusAction } from "@/features/admin/users/user-status-action";
+import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
 
 export default async function UserProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -28,6 +29,7 @@ export default async function UserProfilePage({ params }: { params: Promise<{ id
 
   return (
     <div className="space-y-4">
+      <BreadcrumbLabel label={user.name} />
       <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/admin/users"><ArrowLeft className="size-4" />Back to Staff List</Link>} />
 
       <div className="grid gap-4 lg:grid-cols-3">

@@ -18,6 +18,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
 import { ConfirmPaymentButton } from "@/features/repayments/confirm-payment-button";
+import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
 
 export default async function PaymentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -52,6 +53,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="space-y-4">
+      <BreadcrumbLabel label={payment.paymentReference} />
       <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/repayments"><ArrowLeft className="size-4" />Back to Repayments</Link>} />
 
       <Card>

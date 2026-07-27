@@ -41,6 +41,7 @@ export const PERMISSIONS = {
   LEDGER_REVERSE_REQUEST: "ledger.reverse.request",
   LEDGER_REVERSE_APPROVE: "ledger.reverse.approve",
   TREASURY_VIEW: "treasury.view",
+  TREASURY_MANAGE: "treasury.manage",
   HR_VIEW: "hr.view",
   HR_MANAGE: "hr.manage",
   PAYROLL_GENERATE: "payroll.generate",

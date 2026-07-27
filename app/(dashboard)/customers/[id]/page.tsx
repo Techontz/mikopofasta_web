@@ -24,7 +24,9 @@ import { buildCustomerTimeline } from "@/lib/domain/customer-timeline";
 import { getCurrentUser } from "@/lib/auth/session";
 import { hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
+import { customerFullName } from "@/types/customer";
 import { CustomerHeader } from "@/features/customers/profile/customer-header";
+import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
 import { OverviewPanel } from "@/features/customers/profile/overview-panel";
 import { TimelinePanel } from "@/features/customers/profile/timeline-panel";
 import { KycChecklistPanel } from "@/features/customers/profile/kyc-checklist-panel";
@@ -65,6 +67,7 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
 
   return (
     <div className="space-y-4">
+      <BreadcrumbLabel label={customerFullName(customer)} />
       <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/customers"><ArrowLeft className="size-4" />Back to Customers</Link>} />
 
       <Card>

@@ -17,6 +17,10 @@ import { PERMISSIONS, type Permission } from "@/types/auth";
 export const ROUTE_PERMISSIONS: { prefix: string; permission: Permission | Permission[] }[] = [
   { prefix: "/admin/audit-logs", permission: [PERMISSIONS.ADMIN_ORG_SETTINGS, PERMISSIONS.AUDIT_VIEW] },
   { prefix: "/admin", permission: PERMISSIONS.ADMIN_ORG_SETTINGS },
+  // Finance must reach payroll to finalise/pay it and advances to disburse them
+  // (§14) without holding hr.view — same any-of pattern as /admin/audit-logs.
+  { prefix: "/hr/payroll", permission: [PERMISSIONS.HR_VIEW, PERMISSIONS.PAYROLL_FINALIZE] },
+  { prefix: "/hr/staff-advances", permission: [PERMISSIONS.HR_VIEW, PERMISSIONS.PAYROLL_FINALIZE] },
   { prefix: "/hr", permission: PERMISSIONS.HR_VIEW },
   { prefix: "/ledger", permission: PERMISSIONS.LEDGER_VIEW },
   { prefix: "/treasury", permission: PERMISSIONS.TREASURY_VIEW },

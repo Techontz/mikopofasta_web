@@ -211,3 +211,40 @@ Notably **no** `NEXT_PUBLIC_API_URL` — the browser never talks to Laravel dire
 - **Component/unit:** the shared `<DataTable>`, dynamic form renderer, and API client's envelope/error unwrapping are the highest-leverage things to unit test, since every module reuses them.
 - **Proxy testing:** Next 16's `next/experimental/testing/server` (`unstable_doesProxyMatch`) verifies `proxy.ts` matchers actually cover every `(dashboard)` path and don't accidentally exclude a route that should be guarded.
 - **E2E golden paths** (once built): login → create customer → KYC complete → loan application → approval → disbursement (mocked) → repayment allocation, run against a seeded Laravel test database — this is the single flow that exercises the most cross-module integration and is worth automating first.
+
+---
+
+## Implementation Addenda (Phases 1–7)
+
+### F-1 — Breadcrumb labels come from a client-side registry, not the layout
+
+Detail pages publish their entity's display name to a small external store
+(`lib/breadcrumb-store.ts`) which the header breadcrumb reads via `useSyncExternalStore`.
+
+A server-resolved trail in the dashboard layout was rejected: App Router layouts are not
+re-rendered on client-side navigation, so the label would go stale as soon as the user
+moved between two detail pages. The store is keyed by pathname so a label can never leak
+onto a different route, and each detail page clears it on unmount.
+
+Pre-hydration, an entity segment falls back to a parent-derived noun ("Customer", "Entry")
+rather than a mangled id ("Cust 1", "Je 14").
+
+### F-2 — Responsive contract for the app shell
+
+Three rules the shell must keep, each of which was violated at some point and is now
+regression-tested at 390 / 768 / 1400 px across every route:
+
+1. **Header controls collapse to icons below `lg`, not `sm`.** The desktop sidebar appears
+   at `md` (256 px); expanding the search box and branch switcher at `sm` left no room
+   between 768–1023 px.
+2. **`SidebarInset` carries `min-w-0`.** Without it a wide table cannot shrink below its
+   intrinsic width and pushes the whole page past the viewport instead of scrolling.
+3. **Wide content scrolls inside its own container** — `overflow-x-auto` on the
+   `<DataTable>` wrapper and on any hand-rolled table or tab strip.
+
+### F-3 — Reports are read-models over the operational data
+
+Every report is computed from the same arrays the operational modules mutate — there is no
+parallel reporting store, no denormalised snapshot, and no report-only seed data. Report
+totals are therefore guaranteed to agree with the module screens and, where the report is
+financial, with the trial balance.
