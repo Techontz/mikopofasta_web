@@ -76,7 +76,7 @@ function SuspenseCard({ item, loans }: { item: SuspenseRow; loans: LoanOption[] 
         <div className="flex flex-wrap items-end gap-2">
           <div className="min-w-56 flex-1 space-y-1.5">
             <Select value={loanId || NONE} onValueChange={(v) => setLoanId(v === NONE ? "" : (v ?? ""))}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger aria-label="Allocate to loan" className="w-full">
                 <SelectValue placeholder="Allocate to loan…">
                   {(v: string) => loans.find((l) => l.id === v)?.label ?? "Allocate to loan…"}
                 </SelectValue>

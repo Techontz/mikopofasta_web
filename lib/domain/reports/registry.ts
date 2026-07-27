@@ -25,7 +25,7 @@ import {
   commissionReport,
   zoneCommissionReport,
 } from "@/lib/domain/reports/operations-reports";
-import type { ReportDefinition, ReportEnvelope, ReportFilters } from "@/lib/domain/reports/types";
+import type { ReportDefinition } from "@/lib/domain/reports/types";
 
 /** The 21 reports named in backend §15.6 — no more, no fewer. */
 export const REPORTS: ReportDefinition[] = [
@@ -64,13 +64,3 @@ export function reportsByGroup(): { group: string; reports: ReportDefinition[] }
   );
 }
 
-/** Preserves backend §15.6's `{ data, meta }` envelope so the shape is portable. */
-export function runReport(slug: string, filters: ReportFilters): ReportEnvelope | undefined {
-  const report = findReport(slug);
-  if (!report) return undefined;
-  const result = report.compute(filters);
-  return {
-    data: result.rows,
-    meta: { generatedAt: new Date().toISOString(), filtersApplied: filters },
-  };
-}

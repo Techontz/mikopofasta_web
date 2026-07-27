@@ -48,7 +48,7 @@ export function AddressStep({
               setValue("streetId", null);
             }}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger aria-label="Region" className="w-full">
               <SelectValue placeholder="Select region">{(v: string) => regions.find((r) => r.id === v)?.name ?? "Select region"}</SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -76,7 +76,7 @@ export function AddressStep({
             }}
             disabled={!regionId}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger aria-label="District" className="w-full">
               <SelectValue placeholder={regionId ? "Select district" : "Select region first"}>
                 {(v: string) => districts.find((d) => d.id === v)?.name ?? (regionId ? "Select district" : "Select region first")}
               </SelectValue>
@@ -104,7 +104,7 @@ export function AddressStep({
             }}
             disabled={!districtId}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger aria-label="Ward" className="w-full">
               <SelectValue placeholder={districtId ? "Select ward" : "Select district first"}>
                 {(v: string) => wards.find((w) => w.id === v)?.name ?? (districtId ? "Select ward" : "Select district first")}
               </SelectValue>
@@ -125,7 +125,7 @@ export function AddressStep({
         <div className="space-y-1.5">
           <Label>Street</Label>
           <Select value={watch("streetId") ?? NONE} onValueChange={(v) => setValue("streetId", v === NONE ? null : v)} disabled={!wardId}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger aria-label="Street" className="w-full">
               <SelectValue placeholder={wardId ? "Select street" : "Select ward first"}>
                 {(v: string) => streets.find((s) => s.id === v)?.name ?? (wardId ? "Select street" : "Select ward first")}
               </SelectValue>
@@ -149,7 +149,7 @@ export function AddressStep({
             value={watch("residenceType") ?? NONE}
             onValueChange={(v) => setValue("residenceType", v === NONE ? null : (v as WizardValues["residenceType"]), { shouldValidate: true })}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger aria-label="Residence Type" className="w-full">
               <SelectValue placeholder="Owned or rented?">{(v: string) => (v === NONE ? "Owned or rented?" : v)}</SelectValue>
             </SelectTrigger>
             <SelectContent>

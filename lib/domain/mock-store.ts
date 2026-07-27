@@ -29,8 +29,3 @@ export function removeById<T extends { id: string }>(collection: T[], id: string
   return true;
 }
 
-export function findByIdOrThrow<T extends { id: string }>(collection: T[], id: string, label: string): T {
-  const item = collection.find((x) => x.id === id);
-  if (!item) throw new Error(`${label} not found: ${id}`);
-  return item;
-}

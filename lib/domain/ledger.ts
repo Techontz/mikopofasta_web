@@ -1,6 +1,5 @@
 import { round2 } from "@/lib/domain/money";
 import type { AccountType } from "@/types/enums";
-import type { JournalEntryLine } from "@/types/ledger";
 
 export interface LedgerLineDraft {
   accountId: string;
@@ -36,24 +35,3 @@ export function netBalance(type: AccountType, debitTotal: number, creditTotal: n
   return DEBIT_NORMAL.includes(type) ? round2(debitTotal - creditTotal) : round2(creditTotal - debitTotal);
 }
 
-/** Aggregates journalEntryLines into a per-account (optionally per-branch) balance map. */
-export function computeBalances(
-  lines: Pick<JournalEntryLine, "accountId" | "debitAmount" | "creditAmount" | "branchId">[],
-  accountTypeOf: (accountId: string) => AccountType,
-  scopeByBranch = false
-): Map<string, number> {
-  const totals = new Map<string, { debit: number; credit: number }>();
-  for (const line of lines) {
-    const key = scopeByBranch ? `${line.accountId}:${line.branchId ?? ""}` : line.accountId;
-    const entry = totals.get(key) ?? { debit: 0, credit: 0 };
-    entry.debit += line.debitAmount;
-    entry.credit += line.creditAmount;
-    totals.set(key, entry);
-  }
-  const balances = new Map<string, number>();
-  for (const [key, { debit, credit }] of totals) {
-    const accountId = scopeByBranch ? key.split(":")[0] : key;
-    balances.set(key, netBalance(accountTypeOf(accountId), debit, credit));
-  }
-  return balances;
-}

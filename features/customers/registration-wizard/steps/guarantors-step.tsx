@@ -48,7 +48,7 @@ export function GuarantorsStep() {
                 value={watch(`guarantors.${index}.relationship`)}
                 onValueChange={(v) => v && setValue(`guarantors.${index}.relationship`, v as WizardValues["guarantors"][number]["relationship"])}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger aria-label="Relationship" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

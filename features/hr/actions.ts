@@ -2,11 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { MOCK_PAYROLL_RUNS, MOCK_PAYROLL_LINES, MOCK_ALLOWANCES, MOCK_DEDUCTIONS } from "@/lib/mock-data/payroll";
-import { MOCK_COMMISSION_POOLS, MOCK_COMMISSION_DISTRIBUTIONS, ZONE_WEST_OVERRIDE_AMOUNT } from "@/lib/mock-data/commission";
+import { MOCK_COMMISSION_DISTRIBUTIONS, ZONE_WEST_OVERRIDE_AMOUNT } from "@/lib/mock-data/commission";
 import { MOCK_STAFF_PROFILES } from "@/lib/mock-data/staff-profiles";
 import { MOCK_STAFF_LOANS } from "@/lib/mock-data/staff-loans";
 import { MOCK_STAFF_ADVANCES } from "@/lib/mock-data/staff-advances";
-import { MOCK_STAFF_PERFORMANCE_RECORDS } from "@/lib/mock-data/staff-performance";
 import { MOCK_USERS } from "@/lib/mock-data/users";
 import { postEntry } from "@/lib/mock-data/journal-entries";
 import {
@@ -26,7 +25,6 @@ import { hasPermission } from "@/config/permissions";
 import { PERMISSIONS, type AuthenticatedUser } from "@/types/auth";
 import type { ActionResult } from "@/lib/domain/action-result";
 import type { LedgerLineDraft } from "@/lib/domain/ledger";
-import type { PerformanceRating } from "@/types/enums";
 
 const STAFF_FUND_ACCOUNT_ID = SYSTEM_ACCOUNTS.find((a) => a.name === "Staff Fund Account")!.id;
 
@@ -301,57 +299,4 @@ export async function disburseStaffAdvance(advanceId: string): Promise<ActionRes
 // Performance
 // ---------------------------------------------------------------------------
 
-export async function recordPerformance(
-  staffProfileId: string,
-  period: string,
-  achieved: { loans_disbursed: number; collection_rate_pct: number; new_customers: number },
-  rating: PerformanceRating
-): Promise<ActionResult> {
-  const actor = await requirePermission(PERMISSIONS.HR_MANAGE);
-  if (isDenied(actor)) return actor;
-  if (!/^\d{4}-\d{2}$/.test(period)) return { ok: false, message: "Period must be in YYYY-MM format." };
 
-  const staff = MOCK_STAFF_PROFILES.find((s) => s.id === staffProfileId);
-  if (!staff) return { ok: false, message: "Staff member not found." };
-  if (MOCK_STAFF_PERFORMANCE_RECORDS.some((r) => r.staffProfileId === staffProfileId && r.period === period)) {
-    return { ok: false, message: `A record for ${period} already exists for this staff member.` };
-  }
-
-  MOCK_STAFF_PERFORMANCE_RECORDS.push({
-    id: nextId("perf"),
-    staffProfileId,
-    period,
-    targets: { loans_disbursed: 12, collection_rate_pct: 95, new_customers: 8 },
-    achieved,
-    rating,
-    recordedBy: actor.id,
-  });
-
-  revalidateHr();
-  return { ok: true, message: "Performance record saved." };
-}
-
-/**
- * Commission pools are computed from branch profit; §11 forbids creating any
- * distribution while distributable profit is not positive (the loss must be
- * offset first), which is enforced here rather than only in the UI.
- */
-export async function recomputeCommission(period: string): Promise<ActionResult> {
-  const actor = await requirePermission(PERMISSIONS.PAYROLL_GENERATE);
-  if (isDenied(actor)) return actor;
-
-  const pools = MOCK_COMMISSION_POOLS.filter((p) => p.period === period);
-  if (pools.length === 0) return { ok: false, message: `No commission pools exist for ${period}.` };
-
-  const blocked = pools.filter((p) => p.distributableProfit <= 0);
-  const distributed = pools.length - blocked.length;
-
-  revalidateHr();
-  return {
-    ok: true,
-    message:
-      blocked.length > 0
-        ? `${distributed} pool(s) distributable; ${blocked.length} blocked — a branch loss must be offset before commission can be created.`
-        : `All ${distributed} pool(s) are distributable for ${period}.`,
-  };
-}

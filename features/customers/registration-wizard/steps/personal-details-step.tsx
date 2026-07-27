@@ -164,7 +164,7 @@ export function PersonalDetailsStep({
             value={watch("maritalStatus") ?? NONE}
             onValueChange={(v) => setValue("maritalStatus", v === NONE ? null : (v as WizardValues["maritalStatus"]), { shouldValidate: true })}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger aria-label="Marital Status" className="w-full">
               <SelectValue placeholder="Select marital status">{(v: string) => (v === NONE ? "Select marital status" : v)}</SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -184,7 +184,7 @@ export function PersonalDetailsStep({
         <div className="space-y-1.5">
           <Label>Branch</Label>
           <Select value={watch("branchId")} onValueChange={(v) => v && setValue("branchId", v, { shouldValidate: true })} disabled={branchLocked}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger aria-label="Branch" className="w-full">
               <SelectValue placeholder="Select branch">{(v: string) => branches.find((b) => b.id === v)?.name ?? "Select branch"}</SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -201,7 +201,7 @@ export function PersonalDetailsStep({
         <div className="space-y-1.5 sm:col-span-2">
           <Label>Customer Category</Label>
           <Select value={watch("customerCategoryId")} onValueChange={(v) => v && setValue("customerCategoryId", v, { shouldValidate: true })}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger aria-label="Customer Category" className="w-full">
               <SelectValue placeholder="Select the customer's segment">
                 {(v: string) => categories.find((c) => c.id === v)?.name ?? "Select the customer's segment"}
               </SelectValue>

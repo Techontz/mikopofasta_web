@@ -34,7 +34,7 @@ export function RequestAdvanceForm({ staff }: { staff: { id: string; label: stri
       <div className="space-y-1.5 sm:col-span-2">
         <Label>Staff member</Label>
         <Select value={staffId || NONE} onValueChange={(v) => setStaffId(v === NONE ? "" : (v ?? ""))}>
-          <SelectTrigger className="w-full">
+          <SelectTrigger aria-label="Staff member" className="w-full">
             <SelectValue placeholder="Select staff">{(v: string) => staff.find((s) => s.id === v)?.label ?? "Select staff"}</SelectValue>
           </SelectTrigger>
           <SelectContent>

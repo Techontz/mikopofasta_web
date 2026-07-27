@@ -1,6 +1,6 @@
+import type { User } from "@/types/user";
 import type { AuthenticatedUser } from "@/types/auth";
 import { PERMISSIONS } from "@/types/auth";
-import type { UserStatus } from "@/types/enums";
 
 /**
  * Seed credential + profile records for mock authentication (Phase 1 only).
@@ -17,13 +17,15 @@ import type { UserStatus } from "@/types/enums";
  * purely by the BRANCHES_VIEW_ALL permission (see BranchSwitcher), never by
  * branchId being absent.
  */
-export interface MockCredential extends AuthenticatedUser {
+/**
+ * The seeded users table plus the two session-only fields. Derives from the
+ * domain `User` record so the mock can never drift from the schema in
+ * types/user.ts (backend §2.1).
+ */
+export interface MockCredential extends User {
   password: string;
-  email: string | null;
-  status: UserStatus;
-  lastLoginAt: string | null;
-  createdBy: string | null;
-  deletedAt: string | null;
+  extraPermissions: AuthenticatedUser["extraPermissions"];
+  avatarInitials: string;
 }
 
 type SeedUser = Omit<MockCredential, "email" | "status" | "lastLoginAt" | "createdBy" | "deletedAt">;

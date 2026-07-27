@@ -141,7 +141,7 @@ export function LoanApplicationForm({ customers, products, schedules, formulas, 
                 setScheduleId("");
               }}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger aria-label="Customer" className="w-full">
                 <SelectValue placeholder="Select a KYC-completed customer">
                   {(v: string) => {
                     const c = customers.find((x) => x.id === v);
@@ -175,7 +175,7 @@ export function LoanApplicationForm({ customers, products, schedules, formulas, 
               }}
               disabled={!customer}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger aria-label="Loan product" className="w-full">
                 <SelectValue placeholder={customer ? "Select product" : "Select a customer first"}>
                   {(v: string) => products.find((p) => p.id === v)?.name ?? (customer ? "Select product" : "Select a customer first")}
                 </SelectValue>
@@ -199,7 +199,7 @@ export function LoanApplicationForm({ customers, products, schedules, formulas, 
           <div className="space-y-1.5">
             <Label>Repayment Schedule</Label>
             <Select value={scheduleId || NONE} onValueChange={(v) => setScheduleId(v === NONE ? "" : (v ?? ""))} disabled={!product}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger aria-label="Repayment Schedule" className="w-full">
                 <SelectValue placeholder={product ? "Select schedule" : "Select a product first"}>
                   {(v: string) => schedules.find((s) => s.id === v)?.name ?? (product ? "Select schedule" : "Select a product first")}
                 </SelectValue>

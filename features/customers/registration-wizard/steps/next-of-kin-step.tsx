@@ -43,7 +43,7 @@ export function NextOfKinStep() {
                 value={watch(`nextOfKin.${index}.relationship`)}
                 onValueChange={(v) => v && setValue(`nextOfKin.${index}.relationship`, v as WizardValues["nextOfKin"][number]["relationship"])}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger aria-label="Relationship" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

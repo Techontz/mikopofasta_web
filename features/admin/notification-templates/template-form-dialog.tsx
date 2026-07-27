@@ -104,7 +104,7 @@ export function TemplateFormDialog({ template }: { template?: NotificationTempla
             <div className="space-y-1.5">
               <Label>Trigger event</Label>
               <Select value={watch("triggerEvent")} onValueChange={(v) => setValue("triggerEvent", v as FormValues["triggerEvent"])}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger aria-label="Trigger event" className="w-full">
                   <SelectValue className="capitalize">{(v: string) => v.replace(/_/g, " ")}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
@@ -119,7 +119,7 @@ export function TemplateFormDialog({ template }: { template?: NotificationTempla
             <div className="space-y-1.5">
               <Label>Channel</Label>
               <Select value={channel} onValueChange={(v) => setValue("channel", v as FormValues["channel"])}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger aria-label="Channel" className="w-full">
                   <SelectValue className="uppercase" />
                 </SelectTrigger>
                 <SelectContent>

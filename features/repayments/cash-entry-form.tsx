@@ -67,7 +67,7 @@ export function CashEntryForm({ loans }: { loans: RepayableLoan[] }) {
           <div className="space-y-1.5 sm:col-span-2">
             <Label>Loan</Label>
             <Select value={loanId || NONE} onValueChange={(v) => setLoanId(v === NONE ? "" : (v ?? ""))}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger aria-label="Loan" className="w-full">
                 <SelectValue placeholder="Select a disbursed loan">
                   {(v: string) => {
                     const l = loans.find((x) => x.id === v);

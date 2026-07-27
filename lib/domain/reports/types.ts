@@ -62,11 +62,3 @@ export interface ReportDefinition {
   compute: (filters: ReportFilters) => ReportResult;
 }
 
-/** Response envelope from backend §15.6, preserved so the shape is portable. */
-export interface ReportEnvelope {
-  data: ReportRow[];
-  meta: {
-    generatedAt: string;
-    filtersApplied: ReportFilters;
-  };
-}

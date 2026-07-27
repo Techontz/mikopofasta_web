@@ -55,7 +55,7 @@ export function CashDepositForm({ banks, pendingCashTotal }: { banks: BankOption
           <div className="space-y-1.5">
             <Label>Bank account</Label>
             <Select value={bankId} onValueChange={(v) => v && setBankId(v)}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger aria-label="Bank account" className="w-full">
                 <SelectValue>{(v: string) => banks.find((b) => b.id === v)?.label ?? "Select bank"}</SelectValue>
               </SelectTrigger>
               <SelectContent>

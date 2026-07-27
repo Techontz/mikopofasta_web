@@ -4,11 +4,17 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * The scroll container is focusable (tabIndex 0) because a horizontally
+ * scrollable region must be reachable by keyboard — axe rule
+ * `scrollable-region-focusable`, WCAG 2.1.1.
+ */
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <div
       data-slot="table-container"
       className="relative w-full overflow-x-auto"
+      tabIndex={0}
     >
       <table
         data-slot="table"

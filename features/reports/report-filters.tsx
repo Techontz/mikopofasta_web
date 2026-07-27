@@ -68,7 +68,7 @@ export function ReportFiltersBar({
               apply(next);
             }}
           >
-            <SelectTrigger className="w-52">
+            <SelectTrigger aria-label="Branch" className="w-52">
               <SelectValue>{(v: string) => branches.find((b) => b.id === v)?.name ?? "All branches"}</SelectValue>
             </SelectTrigger>
             <SelectContent>

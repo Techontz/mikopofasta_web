@@ -90,7 +90,7 @@ export function CompanyProfileForm({ profile, branches, canEdit }: { profile: Co
               value={watch("headquartersBranchId")}
               onValueChange={(v) => v && setValue("headquartersBranchId", v, { shouldDirty: true })}
             >
-              <SelectTrigger className="w-full sm:w-80">
+              <SelectTrigger aria-label="Headquarters branch" className="w-full sm:w-80">
                 <SelectValue>{(v: string) => branches.find((b) => b.id === v)?.name ?? "Select branch"}</SelectValue>
               </SelectTrigger>
               <SelectContent>

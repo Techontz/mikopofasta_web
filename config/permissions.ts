@@ -119,8 +119,6 @@ export function setRolePermissions(role: Role, permissions: Permission[]): { ok:
   return { ok: true };
 }
 
-export const ALL_PERMISSIONS: Permission[] = Object.values(PERMISSIONS);
-
 /** Groups the flat permission list for the Permission Matrix UI. */
 export const PERMISSION_GROUPS: { label: string; permissions: Permission[] }[] = [
   { label: "Customers", permissions: [PERMISSIONS.CUSTOMERS_VIEW, PERMISSIONS.CUSTOMERS_MANAGE, PERMISSIONS.CUSTOMERS_APPROVE] },

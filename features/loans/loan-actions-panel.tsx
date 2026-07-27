@@ -147,7 +147,7 @@ export function LoanActionsPanel({
           <div className="space-y-1.5">
             <Label>Channel</Label>
             <Select value={channel} onValueChange={(v) => v && setChannel(v as DisbursementChannel)}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger aria-label="Channel" className="w-40">
                 <SelectValue className="capitalize" />
               </SelectTrigger>
               <SelectContent>

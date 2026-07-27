@@ -8,6 +8,8 @@ import { MOCK_LOAN_SCHEDULES, MOCK_PAYMENTS } from "@/lib/mock-data/payments";
 import { MOCK_CUSTOMERS } from "@/lib/mock-data/customers";
 import { MOCK_BRANCHES } from "@/lib/mock-data/branches";
 import { OPEN_BOOK_STATUSES } from "@/lib/domain/loan-status-machine";
+import { dpdBucket } from "@/types/report";
+import type { DpdBucket } from "@/types/enums";
 import type { ReportFilters } from "@/lib/domain/reports/types";
 import type { Loan, LoanSchedule } from "@/types/loan";
 import type { Payment } from "@/types/repayment";
@@ -84,24 +86,33 @@ export function daysPastDue(loan: Loan, asOf = new Date()): number {
   return Math.max(0, Math.floor((asOf.getTime() - new Date(overdue[0].dueDate).getTime()) / 86_400_000));
 }
 
-export const DPD_BUCKETS = [
-  { label: "Current", min: 0, max: 0 },
-  { label: "1–30", min: 1, max: 30 },
-  { label: "31–60", min: 31, max: 60 },
-  { label: "61–90", min: 61, max: 90 },
-  { label: "90+", min: 91, max: Infinity },
-] as const;
+/**
+ * DPD bucketing is defined once, in the domain layer (types/enums.ts +
+ * types/report.ts) — 0 / 1–7 / 8–30 / 30+. Reports must not invent their own
+ * boundaries, or the same loan lands in different buckets on different
+ * screens.
+ */
+export const DPD_BUCKET_LABELS: Record<DpdBucket, string> = {
+  on_time: "On time",
+  slight_delay: "1–7 days",
+  risk: "8–30 days",
+  default: "30+ days",
+};
 
-export function bucketFor(dpd: number): string {
-  return DPD_BUCKETS.find((b) => dpd >= b.min && dpd <= b.max)?.label ?? "Current";
+export function bucketFor(dpd: number): DpdBucket {
+  return dpdBucket(dpd);
 }
 
-/** A/B/C/D behaviour score from days past due — backend §15.6. */
+/** A/B/C/D scoring (§15.6), aligned to the same bucket boundaries. */
+const RATING_BY_BUCKET: Record<DpdBucket, "A" | "B" | "C" | "D"> = {
+  on_time: "A",
+  slight_delay: "B",
+  risk: "C",
+  default: "D",
+};
+
 export function behaviourRating(dpd: number): "A" | "B" | "C" | "D" {
-  if (dpd === 0) return "A";
-  if (dpd <= 30) return "B";
-  if (dpd <= 90) return "C";
-  return "D";
+  return RATING_BY_BUCKET[dpdBucket(dpd)];
 }
 
 // ---------------------------------------------------------------------------
@@ -122,9 +133,6 @@ export function journalLines(filters: ReportFilters) {
   });
 }
 
-export function accountBalance(filters: ReportFilters, code: string): number {
-  return trialBalance(filters).rows.find((r) => r.code === code)?.balance ?? 0;
-}
 
 /**
  * Trial balance over branch-tagged lines only. Month-end close entries carry

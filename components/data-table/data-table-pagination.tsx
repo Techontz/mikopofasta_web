@@ -22,7 +22,7 @@ export function DataTablePagination<TData>({ table }: DataTablePaginationProps<T
         <div className="flex items-center gap-2">
           <p className="text-sm text-muted-foreground">Rows</p>
           <Select value={String(pageSize)} onValueChange={(v) => table.setPageSize(Number(v))}>
-            <SelectTrigger size="sm" className="w-16">
+            <SelectTrigger aria-label="Rows per page" size="sm" className="w-16">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -38,16 +38,16 @@ export function DataTablePagination<TData>({ table }: DataTablePaginationProps<T
           Page {total === 0 ? 0 : pageIndex + 1} of {table.getPageCount()}
         </p>
         <div className="flex items-center gap-1">
-          <Button variant="outline" size="icon-sm" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
+          <Button variant="outline" size="icon-sm" aria-label="First page" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
             <ChevronsLeft />
           </Button>
-          <Button variant="outline" size="icon-sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+          <Button variant="outline" size="icon-sm" aria-label="Previous page" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
             <ChevronLeft />
           </Button>
-          <Button variant="outline" size="icon-sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+          <Button variant="outline" size="icon-sm" aria-label="Next page" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
             <ChevronRight />
           </Button>
-          <Button variant="outline" size="icon-sm" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>
+          <Button variant="outline" size="icon-sm" aria-label="Last page" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>
             <ChevronsRight />
           </Button>
         </div>

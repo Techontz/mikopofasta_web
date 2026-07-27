@@ -6,7 +6,7 @@ import { PERMISSIONS } from "@/types/auth";
 import { MOCK_CUSTOMER_CATEGORIES } from "@/lib/mock-data/customer-categories";
 import { MOCK_LOAN_PRODUCTS } from "@/lib/mock-data/loan-products";
 import {
-  DPD_BUCKETS,
+  DPD_BUCKET_LABELS,
   behaviourRating,
   bucketFor,
   branchName,
@@ -109,7 +109,7 @@ export const arrearsReport: ReportDefinition = {
           branch: branchName(loan.branchId),
           status: LOAN_STATUS_LABELS[loan.status],
           daysPastDue: dpd,
-          bucket: bucketFor(dpd),
+          bucket: DPD_BUCKET_LABELS[bucketFor(dpd)],
           overdue: overdueAmount,
           outstanding: loanOutstanding(loan),
         };
@@ -152,11 +152,11 @@ export const ageAnalysisReport: ReportDefinition = {
     const loans = openBookLoans(filters);
     const totalOutstanding = round2(loans.reduce((s, l) => s + loanOutstanding(l), 0));
 
-    const rows = DPD_BUCKETS.map((bucket) => {
-      const inBucket = loans.filter((l) => bucketFor(daysPastDue(l)) === bucket.label);
+    const rows = (Object.keys(DPD_BUCKET_LABELS) as (keyof typeof DPD_BUCKET_LABELS)[]).map((bucket) => {
+      const inBucket = loans.filter((l) => bucketFor(daysPastDue(l)) === bucket);
       const amount = round2(inBucket.reduce((s, l) => s + loanOutstanding(l), 0));
       return {
-        bucket: bucket.label,
+        bucket: DPD_BUCKET_LABELS[bucket],
         loans: inBucket.length,
         outstanding: amount,
         share: totalOutstanding > 0 ? round2((amount / totalOutstanding) * 100) : 0,
@@ -173,7 +173,16 @@ export const ageAnalysisReport: ReportDefinition = {
       rows,
       totals: { bucket: "Total", loans: loans.length, outstanding: totalOutstanding, share: totalOutstanding > 0 ? 100 : 0 },
       summary: [
-        { label: "Portfolio at Risk (30+)", value: formatMoney(round2(rows.filter((r) => r.bucket !== "Current" && r.bucket !== "1–30").reduce((s, r) => s + r.outstanding, 0))) },
+        {
+          label: "Portfolio at Risk (8+ days)",
+          value: formatMoney(
+            round2(
+              rows
+                .filter((r) => r.bucket === DPD_BUCKET_LABELS.risk || r.bucket === DPD_BUCKET_LABELS.default)
+                .reduce((s, r) => s + r.outstanding, 0)
+            )
+          ),
+        },
         { label: "Total Outstanding", value: formatMoney(totalOutstanding) },
       ],
       emptyMessage: "No disbursed loans to age.",

@@ -22,10 +22,3 @@ export async function mockRequest<T>(resolver: () => T, options?: { delayMs?: nu
   }
 }
 
-export function paginate<T>(items: T[], page = 1, perPage = 20): { items: T[]; meta: ApiSuccess<T[]>["meta"] } {
-  const start = (page - 1) * perPage;
-  return {
-    items: items.slice(start, start + perPage),
-    meta: { pagination: { page, perPage, total: items.length } },
-  };
-}

@@ -82,7 +82,7 @@ export function InboundPaymentDialog() {
           <div className="space-y-1.5">
             <Label>Channel</Label>
             <Select value={channel} onValueChange={(v) => v && setChannel(v as PaymentChannel)}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger aria-label="Channel" className="w-full">
                 <SelectValue className="capitalize">{(v: string) => v.replace(/_/g, " ")}</SelectValue>
               </SelectTrigger>
               <SelectContent>

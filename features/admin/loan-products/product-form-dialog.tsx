@@ -135,7 +135,7 @@ export function ProductFormDialog({ product, formulas, schedules, productSchedul
               <div className="space-y-1.5">
                 <Label>Interest formula</Label>
                 <Select value={watch("interestFormulaId")} onValueChange={(v) => v && setValue("interestFormulaId", v)}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger aria-label="Interest formula" className="w-full">
                     <SelectValue placeholder="Select formula">
                       {(v: string) => formulas.find((f) => f.id === v)?.name ?? "Select formula"}
                     </SelectValue>
@@ -178,7 +178,7 @@ export function ProductFormDialog({ product, formulas, schedules, productSchedul
               <div className="space-y-1.5">
                 <Label>Penalty type</Label>
                 <Select value={watch("penaltyType")} onValueChange={(v) => setValue("penaltyType", v as FormValues["penaltyType"])}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger aria-label="Penalty type" className="w-full">
                     <SelectValue className="capitalize">{(v: string) => v.replace(/_/g, " ")}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -216,7 +216,7 @@ export function ProductFormDialog({ product, formulas, schedules, productSchedul
               <div className="space-y-1.5">
                 <Label>Status</Label>
                 <Select value={watch("status")} onValueChange={(v) => setValue("status", v as FormValues["status"])}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger aria-label="Status" className="w-full">
                     <SelectValue className="capitalize" />
                   </SelectTrigger>
                   <SelectContent>

@@ -52,7 +52,7 @@ export function GuarantorsPanel({ customerId, guarantors }: { customerId: string
         <div className="space-y-1.5">
           <Label>Relationship</Label>
           <Select value={form.relationship} onValueChange={(v) => v && setForm({ ...form, relationship: v as GuarantorRelationship })}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger aria-label="Relationship" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

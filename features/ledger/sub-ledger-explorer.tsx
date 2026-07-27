@@ -92,7 +92,7 @@ export function SubLedgerExplorer({
                 setSelectedId("");
               }}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger aria-label="Dimension" className="w-full">
                 <SelectValue>{(v: string) => DIMENSION_LABELS[v as SubLedgerDimension]}</SelectValue>
               </SelectTrigger>
               <SelectContent>
@@ -107,7 +107,7 @@ export function SubLedgerExplorer({
           <div className="space-y-1.5">
             <Label>{DIMENSION_LABELS[dimension]}</Label>
             <Select value={selectedId || "__none__"} onValueChange={(v) => setSelectedId(v === "__none__" ? "" : (v ?? ""))}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger aria-label={`${DIMENSION_LABELS[dimension]}`} className="w-full">
                 <SelectValue placeholder={`Select a ${DIMENSION_LABELS[dimension].toLowerCase()}`}>
                   {(v: string) => currentOptions.find((o) => o.id === v)?.label ?? `Select a ${DIMENSION_LABELS[dimension].toLowerCase()}`}
                 </SelectValue>

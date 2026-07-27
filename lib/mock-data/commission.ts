@@ -1,10 +1,9 @@
 import type { CommissionPool, CommissionDistribution } from "@/types/commission";
 import { round2 } from "@/lib/domain/money";
+import { computeCommissionPool, distributePool } from "@/lib/domain/payroll-engine";
 import { MOCK_STAFF_PROFILES } from "@/lib/mock-data/staff-profiles";
 
 const PERIOD = "2026-06";
-const HQ_HOLD_PCT = 0.02;
-const POOL_PCT = 0.2;
 
 /**
  * Pure data — no ledger posting here. lib/mock-data/payroll.ts is what
@@ -23,19 +22,18 @@ const BRANCH_PROFIT: Record<string, { profit: number; lossCarryForward: number }
 };
 
 export const MOCK_COMMISSION_POOLS: CommissionPool[] = Object.entries(BRANCH_PROFIT).map(([branchId, { profit, lossCarryForward }], i) => {
-  const hqHoldAmount = round2(profit * HQ_HOLD_PCT);
-  const distributableProfit = round2(profit - lossCarryForward - hqHoldAmount);
-  const poolAmount = round2(Math.max(0, distributableProfit) * POOL_PCT);
+  // §11 pool maths lives in the domain engine — the seed must not restate it.
+  const computed = computeCommissionPool(profit, lossCarryForward);
   return {
     id: `cpool-${i + 1}`,
     branchId,
     period: PERIOD,
-    branchProfit: profit,
-    lossCarryForward,
-    hqHoldAmount,
-    distributableProfit,
-    poolPercentage: POOL_PCT * 100,
-    poolAmount,
+    branchProfit: computed.branchProfit,
+    lossCarryForward: computed.lossCarryForward,
+    hqHoldAmount: computed.hqHoldAmount,
+    distributableProfit: computed.distributableProfit,
+    poolPercentage: computed.poolPercentage,
+    poolAmount: computed.poolAmount,
   };
 });
 
@@ -43,15 +41,13 @@ export const MOCK_COMMISSION_DISTRIBUTIONS: CommissionDistribution[] = [];
 let distSeq = 0;
 for (const pool of MOCK_COMMISSION_POOLS) {
   const eligibleStaff = MOCK_STAFF_PROFILES.filter((s) => s.branchId === pool.branchId && s.commissionEligible);
-  const totalBase = eligibleStaff.reduce((sum, s) => sum + s.baseSalary, 0);
-  if (totalBase === 0) continue;
-  for (const staff of eligibleStaff) {
+  for (const share of distributePool(pool.poolAmount, eligibleStaff)) {
     distSeq++;
     MOCK_COMMISSION_DISTRIBUTIONS.push({
       id: `cdist-${distSeq}`,
       commissionPoolId: pool.id,
-      staffProfileId: staff.id,
-      shareAmount: round2(pool.poolAmount * (staff.baseSalary / totalBase)),
+      staffProfileId: share.staffProfileId,
+      shareAmount: share.shareAmount,
     });
   }
 }

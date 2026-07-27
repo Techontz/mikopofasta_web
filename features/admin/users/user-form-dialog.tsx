@@ -133,7 +133,7 @@ export function UserFormDialog({ user, branches, zones, regions }: UserFormDialo
             <div className="space-y-1.5">
               <Label>Role</Label>
               <Select value={role} onValueChange={(v) => setValue("role", v as Role)}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger aria-label="Role" className="w-full">
                   <SelectValue>{(v: Role) => ROLE_LABELS[v]}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
@@ -148,7 +148,7 @@ export function UserFormDialog({ user, branches, zones, regions }: UserFormDialo
             <div className="space-y-1.5">
               <Label>Home branch</Label>
               <Select value={watch("branchId") ?? NONE} onValueChange={(v) => setValue("branchId", v === NONE ? null : v)}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger aria-label="Home branch" className="w-full">
                   <SelectValue>{(v: string) => branches.find((b) => b.id === v)?.name ?? "None"}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
@@ -165,7 +165,7 @@ export function UserFormDialog({ user, branches, zones, regions }: UserFormDialo
               <div className="space-y-1.5">
                 <Label>Zone oversight</Label>
                 <Select value={watch("zoneId") ?? NONE} onValueChange={(v) => setValue("zoneId", v === NONE ? null : v)}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger aria-label="Zone oversight" className="w-full">
                     <SelectValue>{(v: string) => zones.find((z) => z.id === v)?.name ?? "None"}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -183,7 +183,7 @@ export function UserFormDialog({ user, branches, zones, regions }: UserFormDialo
               <div className="space-y-1.5">
                 <Label>Region oversight</Label>
                 <Select value={watch("regionId") ?? NONE} onValueChange={(v) => setValue("regionId", v === NONE ? null : v)}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger aria-label="Region oversight" className="w-full">
                     <SelectValue>{(v: string) => regions.find((r) => r.id === v)?.name ?? "None"}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>

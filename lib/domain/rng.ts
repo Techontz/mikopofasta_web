@@ -18,15 +18,6 @@ export function pick<T>(rng: () => number, items: readonly T[]): T {
   return items[Math.floor(rng() * items.length)];
 }
 
-export function pickWeighted<T>(rng: () => number, items: readonly [T, number][]): T {
-  const total = items.reduce((sum, [, weight]) => sum + weight, 0);
-  let roll = rng() * total;
-  for (const [item, weight] of items) {
-    roll -= weight;
-    if (roll <= 0) return item;
-  }
-  return items[items.length - 1][0];
-}
 
 export function intBetween(rng: () => number, min: number, max: number): number {
   return Math.floor(rng() * (max - min + 1)) + min;
@@ -46,6 +37,3 @@ export function daysFromNow(n: number, from: Date = new Date()): string {
   return daysAgo(-n, from);
 }
 
-export function dateOnlyDaysFromNow(n: number, from: Date = new Date()): string {
-  return daysFromNow(n, from).slice(0, 10);
-}

@@ -70,7 +70,7 @@ export function CategoryDataStep({ category }: { category: CustomerCategory | un
                   value={String(value) || NONE}
                   onValueChange={(v) => setValue("dynamicFormData", { ...dynamicFormData, [field.key]: !v || v === NONE ? "" : v })}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger aria-label={`${field.label}`} className="w-full">
                     <SelectValue placeholder={`Select ${field.label.toLowerCase()}`}>
                       {(v: string) => (v === NONE ? `Select ${field.label.toLowerCase()}` : v)}
                     </SelectValue>

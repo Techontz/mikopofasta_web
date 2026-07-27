@@ -128,7 +128,7 @@ export function CategoryFormDialog({ category }: { category?: CustomerCategory }
               <div className="space-y-1.5">
                 <Label>Risk tier</Label>
                 <Select value={watch("riskTier")} onValueChange={(v) => setValue("riskTier", v as FormValues["riskTier"])}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger aria-label="Risk tier" className="w-full">
                     <SelectValue className="capitalize" />
                   </SelectTrigger>
                   <SelectContent>
@@ -143,7 +143,7 @@ export function CategoryFormDialog({ category }: { category?: CustomerCategory }
               <div className="space-y-1.5">
                 <Label>Sector</Label>
                 <Select value={watch("sector")} onValueChange={(v) => v && setValue("sector", v as FormValues["sector"])}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger aria-label="Sector" className="w-full">
                     <SelectValue className="capitalize" />
                   </SelectTrigger>
                   <SelectContent>
@@ -195,7 +195,7 @@ export function CategoryFormDialog({ category }: { category?: CustomerCategory }
                       value={watch(`dynamicFormSchema.${index}.type`)}
                       onValueChange={(v) => setValue(`dynamicFormSchema.${index}.type`, v as (typeof FIELD_TYPES)[number])}
                     >
-                      <SelectTrigger className="col-span-3 w-full">
+                      <SelectTrigger aria-label="Field type" className="col-span-3 w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>

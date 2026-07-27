@@ -100,10 +100,12 @@ export function checkLoanApplication(input: ApplicationCheckInput): EligibilityV
 }
 
 /**
- * Top-up eligibility — a read-model check (backend spec §6): the customer
- * must have paid down at least `minPaidPercent` of the loan and hold no
- * arrears. Exposed separately so the UI can hide the "Top Up" button
- * rather than letting a user submit something that will be rejected.
+ * Top-up eligibility — a read-model check (backend spec §6/§15.2).
+ *
+ * NOT YET WIRED TO A SCREEN: frontend spec §10 lists `/loans/[id]/topup`,
+ * which has not been built. Retained because it is specified domain logic the
+ * top-up screen and `GET /loans/{id}/topup-eligibility` will both need; see
+ * the frontend readiness report's "Known gaps" section.
  */
 export interface TopupEligibility {
   eligible: boolean;

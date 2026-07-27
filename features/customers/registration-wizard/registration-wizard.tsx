@@ -81,6 +81,9 @@ export function RegistrationWizard({
     } catch {
       // Corrupt/incompatible draft — ignore and start fresh.
     }
+    // Mount-only by design: a saved draft is restored exactly once, and the
+    // restoredRef guard makes any re-run a no-op. Including `reset` in the deps
+    // would re-run this on every RHF identity change and clobber user edits.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

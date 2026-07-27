@@ -58,7 +58,7 @@ export function CapitalContributionForm({ banks }: { banks: BankOption[] }) {
           <div className="space-y-1.5">
             <Label>Received into</Label>
             <Select value={bankId} onValueChange={(v) => v && setBankId(v)}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger aria-label="Received into" className="w-full">
                 <SelectValue>{(v: string) => banks.find((b) => b.id === v)?.label ?? "Select bank"}</SelectValue>
               </SelectTrigger>
               <SelectContent>

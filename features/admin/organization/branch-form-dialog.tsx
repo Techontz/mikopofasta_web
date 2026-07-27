@@ -115,7 +115,7 @@ export function BranchFormDialog({ branch, regions, zones, branches }: BranchFor
             <div className="space-y-1.5">
               <Label>Branch type</Label>
               <Select value={type} onValueChange={(v) => setValue("type", v as FormValues["type"])}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger aria-label="Branch type" className="w-full">
                   <SelectValue className="capitalize" />
                 </SelectTrigger>
                 <SelectContent>
@@ -127,7 +127,7 @@ export function BranchFormDialog({ branch, regions, zones, branches }: BranchFor
             <div className="space-y-1.5">
               <Label>Region</Label>
               <Select value={watch("regionId") ?? NONE} onValueChange={(v) => setValue("regionId", v === NONE ? null : v)}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger aria-label="Region" className="w-full">
                   <SelectValue>{(v: string) => regions.find((r) => r.id === v)?.name ?? "None"}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
@@ -143,7 +143,7 @@ export function BranchFormDialog({ branch, regions, zones, branches }: BranchFor
             <div className="space-y-1.5">
               <Label>Zone</Label>
               <Select value={watch("zoneId") ?? NONE} onValueChange={(v) => setValue("zoneId", v === NONE ? null : v)}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger aria-label="Zone" className="w-full">
                   <SelectValue>{(v: string) => zones.find((z) => z.id === v)?.name ?? "None"}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
@@ -160,7 +160,7 @@ export function BranchFormDialog({ branch, regions, zones, branches }: BranchFor
               <div className="space-y-1.5">
                 <Label>Parent branch</Label>
                 <Select value={watch("parentBranchId") ?? NONE} onValueChange={(v) => setValue("parentBranchId", v === NONE ? null : v)}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger aria-label="Parent branch" className="w-full">
                     <SelectValue>{(v: string) => branches.find((b) => b.id === v)?.name ?? "None"}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -179,7 +179,7 @@ export function BranchFormDialog({ branch, regions, zones, branches }: BranchFor
             <div className="space-y-1.5">
               <Label>Status</Label>
               <Select value={watch("status")} onValueChange={(v) => setValue("status", v as FormValues["status"])}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger aria-label="Status" className="w-full">
                   <SelectValue className="capitalize" />
                 </SelectTrigger>
                 <SelectContent>

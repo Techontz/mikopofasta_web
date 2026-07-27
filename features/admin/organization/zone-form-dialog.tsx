@@ -88,7 +88,7 @@ export function ZoneFormDialog({ zone, managers }: { zone?: Zone; managers: Pick
               value={watch("zoneManagerId") ?? UNASSIGNED}
               onValueChange={(v) => setValue("zoneManagerId", v === UNASSIGNED ? null : v)}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger aria-label="Zone Manager" className="w-full">
                 <SelectValue>{(v: string) => managers.find((m) => m.id === v)?.name ?? "Unassigned"}</SelectValue>
               </SelectTrigger>
               <SelectContent>

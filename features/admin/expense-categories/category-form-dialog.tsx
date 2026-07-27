@@ -81,7 +81,7 @@ export function ExpenseCategoryFormDialog({ category }: { category?: ExpenseCate
           <div className="space-y-1.5">
             <Label>Scope</Label>
             <Select value={watch("scope")} onValueChange={(v) => setValue("scope", v as FormValues["scope"])}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger aria-label="Scope" className="w-full">
                 <SelectValue>{(v: string) => (v === "hq" ? "HQ" : "Branch")}</SelectValue>
               </SelectTrigger>
               <SelectContent>
