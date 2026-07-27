@@ -1169,6 +1169,31 @@ Real-world resolution is the next month-end close re-sweeping the (now negative)
 into Profit. Reporting must therefore not assume income balances are non-negative, and a
 month-end close must be idempotent with respect to already-swept periods.
 
+### A-5 — Month-end close is not branch-tagged, so branch P&L is pre-close
+
+The month-end profit sweep (§8) posts `Dr Income / Cr Profit` with no `branch_id`,
+because it is an HQ-level entry. Consequently:
+
+- **Branch P&L** (built from `journal_entry_lines.branch_id`) shows each branch's income
+  and expense **activity for the period**.
+- The **system-wide trial balance** shows the **post-close position**, where swept income
+  nets to zero.
+
+Both are correct; they measure different points in the cycle. Per-branch figures therefore
+will not sum to the system-wide net balances after a close has run — they sum exactly to
+the branch-tagged subset of the ledger, which is what `scripts/verify-reports.ts` asserts.
+
+If the backend wants branch P&L to be comparable to the system-wide position, the close
+entry must be split per branch. That is a change to §8 and is **not** assumed here.
+
+### A-6 — "Profit" on a financial statement must distinguish retained from un-closed
+
+Because expenses recognised after a close are not yet swept, a naive
+`income − expense` reads as a large loss. The Financial Statements report therefore shows
+**Retained (Profit Account)** and **un-closed income/expense** as separate figures rather
+than a single misleading "Profit" line. Any backend financial-statement endpoint should do
+the same.
+
 ### A-4 — `penalty_runs` is the only record of accrued-but-uncollected penalties
 
 Follows from OSC-1 above. Until that conflict is resolved, arrears reporting must read
