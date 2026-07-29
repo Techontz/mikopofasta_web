@@ -7,58 +7,79 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { EmptyState } from "@/components/feedback/empty-state";
-import { MOCK_LOANS, MOCK_LOAN_STATUS_HISTORY, MOCK_E_MANDATES, MOCK_TELCO_VERIFICATIONS, MOCK_DISBURSEMENT_BATCHES } from "@/lib/mock-data/loans";
-import { MOCK_LOAN_SCHEDULES } from "@/lib/mock-data/payments";
-import { MOCK_CUSTOMERS } from "@/lib/mock-data/customers";
-import { MOCK_BRANCHES } from "@/lib/mock-data/branches";
-import { MOCK_LOAN_PRODUCTS } from "@/lib/mock-data/loan-products";
-import { MOCK_REPAYMENT_SCHEDULES } from "@/lib/mock-data/repayment-schedules";
+import {
+  getLoan,
+  getLoanHistory,
+  getLoanProduct,
+  getRepaymentSchedules,
+  getTopupEligibility,
+} from "@/lib/api/loans";
+import { ApiError } from "@/lib/api/errors";
 import { MOCK_USERS } from "@/lib/mock-data/users";
 import { MOCK_AUDIT_LOGS } from "@/lib/mock-data/audit-logs";
 import { buildLoanTimeline } from "@/lib/domain/loan-timeline";
+import { LOAN_STATUS_LABELS } from "@/lib/domain/loan-status-machine";
 import { formatMoney } from "@/lib/domain/money";
 import { formatPenaltyRate } from "@/lib/domain/penalty";
 import { getCurrentUser } from "@/lib/auth/session";
 import { hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
-import { customerFullName } from "@/types/customer";
 import { LoanStatusBadge } from "@/features/loans/loan-status-badge";
 import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
 import { LoanActionsPanel } from "@/features/loans/loan-actions-panel";
 import { LoanSchedulePanel } from "@/features/loans/loan-schedule-panel";
 import { LoanTimelinePanel } from "@/features/loans/loan-timeline-panel";
 import { AuditTrailPanel } from "@/features/customers/profile/audit-trail-panel";
-import { loanOutstanding } from "@/features/loans/queries";
+import type { LoanStatus } from "@/types/enums";
+
+/** The §10 transitions each tab reports on, since neither has an endpoint of its own. */
+const MANDATE_STATUSES: LoanStatus[] = ["mandate_pending_otp", "mandate_active", "mandate_failed"];
+const DISBURSEMENT_EVENT_STATUSES: LoanStatus[] = ["awaiting_disbursement", "disbursement_failed", "escalated", "active"];
 
 export default async function LoanDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const loan = MOCK_LOANS.find((l) => l.id === id && l.deletedAt === null);
-  if (!loan) notFound();
+
+  // Outside this officer's branch scope comes back 403, missing comes back 404.
+  // Both mean "no such loan, for you" and belong on the not-found page.
+  let loan;
+  try {
+    loan = await getLoan(id);
+  } catch (error) {
+    if (error instanceof ApiError && (error.status === 404 || error.status === 403)) notFound();
+    throw error;
+  }
 
   const user = await getCurrentUser();
   if (!user) return <AccessDeniedState />;
 
-  // Branch scoping — backend §13.
-  const seesAllBranches = hasPermission(user, PERMISSIONS.BRANCHES_VIEW_ALL);
-  const crossBranch = loan.branchId !== user.branchId;
-  if (crossBranch && !seesAllBranches && !hasPermission(user, PERMISSIONS.LOANS_REVIEW_CROSS_BRANCH)) {
-    return <AccessDeniedState />;
-  }
+  const [history, product, schedules, topup] = await Promise.all([
+    getLoanHistory(id),
+    getLoanProduct(loan.loanProductId),
+    getRepaymentSchedules(),
+    // Only a loan on the book can be topped up, so the check is only worth
+    // making once it is there.
+    loan.status === "active" || loan.status === "arrears"
+      ? getTopupEligibility(id).catch(() => null)
+      : Promise.resolve(null),
+  ]);
 
-  const customer = MOCK_CUSTOMERS.find((c) => c.id === loan.customerId);
-  const branch = MOCK_BRANCHES.find((b) => b.id === loan.branchId);
-  const product = MOCK_LOAN_PRODUCTS.find((p) => p.id === loan.loanProductId);
-  const schedule = MOCK_REPAYMENT_SCHEDULES.find((s) => s.id === loan.repaymentScheduleId);
-  const schedules = MOCK_LOAN_SCHEDULES.filter((s) => s.loanId === loan.id);
-  const history = MOCK_LOAN_STATUS_HISTORY.filter((h) => h.loanId === loan.id);
-  const mandates = MOCK_E_MANDATES.filter((m) => m.loanId === loan.id);
-  const telco = MOCK_TELCO_VERIFICATIONS.filter((t) => t.loanId === loan.id);
-  const batches = MOCK_DISBURSEMENT_BATCHES.filter((b) => b.loanId === loan.id);
+  const schedule = schedules.find((s) => s.id === loan.repaymentScheduleId);
   const auditLogs = MOCK_AUDIT_LOGS.filter((l) => l.auditableType === "loan" && l.auditableId === loan.id);
 
+  // The API resolves no names for officer/approver/actor ids, and /users needs
+  // `users.manage`, which the roles that work loans do not hold — so these read
+  // "—" for API-created loans until the Users module is integrated.
   const userNames = Object.fromEntries(MOCK_USERS.map((u) => [u.id, u.name]));
-  const timeline = buildLoanTimeline(history, mandates, telco, batches);
-  const outstanding = loanOutstanding(loan.id);
+
+  // Mandates, telco runs and disbursement batches have no list endpoint, so all
+  // three tabs are projections of loan_status_history — which is the API's own
+  // record of every one of those events.
+  const timeline = buildLoanTimeline(history, [], [], []);
+  const mandateEvents = history.filter((h) => MANDATE_STATUSES.includes(h.toStatus));
+  const disbursementEvents = history.filter((h) => DISBURSEMENT_EVENT_STATUSES.includes(h.toStatus));
+  const creditReviewEvents = history.filter(
+    (h) => h.fromStatus === "pending_credit_review" || h.toStatus === "pending_credit_review"
+  );
 
   const permissions = {
     canApprove: hasPermission(user, PERMISSIONS.LOANS_APPROVE),
@@ -81,14 +102,10 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
               {loan.requiresMandateSnapshot && <Badge variant="outline">E-Mandate</Badge>}
             </div>
             <p className="text-sm text-muted-foreground">
-              {customer ? (
-                <Link href={`/customers/${customer.id}`} className="hover:underline">
-                  {customerFullName(customer)}
-                </Link>
-              ) : (
-                "Unknown customer"
-              )}{" "}
-              · {branch?.name ?? "—"} · {product?.name ?? "—"}
+              <Link href={`/customers/${loan.customerId}`} className="hover:underline">
+                {loan.customerName ?? "Unknown customer"}
+              </Link>{" "}
+              · {loan.branchName ?? "—"} · {loan.productName ?? "—"}
             </p>
           </div>
           <div className="grid grid-cols-2 gap-4 sm:text-right">
@@ -98,7 +115,7 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Outstanding</p>
-              <p className="font-tabular font-semibold">{outstanding > 0 ? formatMoney(outstanding) : "—"}</p>
+              <p className="font-tabular font-semibold">{loan.outstanding > 0 ? formatMoney(loan.outstanding) : "—"}</p>
             </div>
           </div>
         </CardContent>
@@ -110,35 +127,46 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
         </div>
       )}
 
+      {topup && (
+        <div
+          className={
+            topup.eligible
+              ? "rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm"
+              : "rounded-lg border px-4 py-3 text-sm text-muted-foreground"
+          }
+        >
+          <span className="font-medium text-foreground">Top-up eligibility:</span>{" "}
+          {topup.eligible ? `Eligible — ${topup.paidPercent}% repaid.` : topup.reasons.join(" ")}
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Available Actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <LoanActionsPanel loanId={loan.id} status={loan.status} outstanding={outstanding} permissions={permissions} />
+          <LoanActionsPanel loanId={loan.id} status={loan.status} outstanding={loan.outstanding} permissions={permissions} />
         </CardContent>
       </Card>
 
       <Tabs defaultValue="overview">
         <TabsList className="max-w-full justify-start overflow-x-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="schedule">Schedule ({schedules.length})</TabsTrigger>
+          <TabsTrigger value="schedule">Schedule ({loan.schedules.length})</TabsTrigger>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
           <TabsTrigger value="verification">Verification</TabsTrigger>
-          <TabsTrigger value="disbursement">Disbursement ({batches.length})</TabsTrigger>
+          <TabsTrigger value="disbursement">Disbursement ({disbursementEvents.length})</TabsTrigger>
           <TabsTrigger value="audit">Audit Trail</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
           <Card>
             <CardContent className="grid gap-4 pt-6 sm:grid-cols-3">
-              <Field label="Product">{product?.name ?? "—"}</Field>
+              <Field label="Product">{loan.productName ?? "—"}</Field>
               <Field label="Repayment schedule">{schedule ? `${schedule.name} (every ${schedule.frequencyDays}d)` : "—"}</Field>
               <Field label="Tenure">{loan.tenureDays} days</Field>
               <Field label="Interest rate (snapshot)">{loan.interestRateSnapshot}%</Field>
-              <Field label="Penalty rate (snapshot)">
-                {product ? formatPenaltyRate(product.penaltyType, loan.penaltyRateSnapshot) : loan.penaltyRateSnapshot}
-              </Field>
+              <Field label="Penalty rate (snapshot)">{formatPenaltyRate(product.penaltyType, loan.penaltyRateSnapshot)}</Field>
               <Field label="E-Mandate required">{loan.requiresMandateSnapshot ? "Yes" : "No"}</Field>
               <Field label="Officer">{userNames[loan.officerId] ?? "—"}</Field>
               <Field label="Approved by">{loan.approvedBy ? (userNames[loan.approvedBy] ?? "—") : "—"}</Field>
@@ -146,6 +174,8 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
               <Field label="Disbursed on">{loan.disbursementDate ?? "—"}</Field>
               <Field label="Expected completion">{loan.expectedCompletionDate ?? "—"}</Field>
               <Field label="Closed at">{loan.closedAt ? new Date(loan.closedAt).toLocaleDateString() : "—"}</Field>
+              <Field label="Total payable">{loan.totalPayable > 0 ? formatMoney(loan.totalPayable) : "—"}</Field>
+              <Field label="Cooldown until">{loan.frozenUntil ?? "—"}</Field>
             </CardContent>
           </Card>
         </TabsContent>
@@ -153,7 +183,7 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
         <TabsContent value="schedule">
           <Card>
             <CardContent className="pt-6">
-              <LoanSchedulePanel schedules={schedules} />
+              <LoanSchedulePanel schedules={loan.schedules} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -171,20 +201,26 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
             <CardContent className="space-y-6 pt-6">
               <section className="space-y-2">
                 <h3 className="text-sm font-semibold">E-Mandate</h3>
-                {mandates.length === 0 ? (
+                {mandateEvents.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    {loan.requiresMandateSnapshot ? "No mandate created yet." : "This product does not require an E-Mandate."}
+                    {loan.requiresMandateSnapshot ? "No mandate activity yet." : "This product does not require an E-Mandate."}
                   </p>
                 ) : (
                   <ul className="space-y-2">
-                    {mandates.map((m) => (
-                      <li key={m.id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
-                        <div>
-                          <p className="font-medium">{m.bankName}</p>
-                          {m.failureReason && <p className="text-xs text-destructive">{m.failureReason}</p>}
+                    {mandateEvents.map((event) => (
+                      <li key={event.id} className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm">
+                        <div className="min-w-0">
+                          <p className="font-medium">{LOAN_STATUS_LABELS[event.toStatus]}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(event.createdAt).toLocaleString()}
+                            {event.reason ? ` · ${event.reason}` : ""}
+                          </p>
                         </div>
-                        <Badge variant={m.status === "active" ? "default" : m.status === "failed" ? "destructive" : "secondary"} className="capitalize">
-                          {m.status.replace(/_/g, " ")}
+                        <Badge
+                          variant={event.toStatus === "mandate_active" ? "default" : event.toStatus === "mandate_failed" ? "destructive" : "secondary"}
+                          className="shrink-0"
+                        >
+                          {event.toStatus === "mandate_active" ? "Verified" : event.toStatus === "mandate_failed" ? "Failed" : "Pending"}
                         </Badge>
                       </li>
                     ))}
@@ -194,18 +230,24 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
 
               <section className="space-y-2">
                 <h3 className="text-sm font-semibold">Telco Verification</h3>
-                {telco.length === 0 ? (
+                {creditReviewEvents.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Not yet run.</p>
                 ) : (
                   <ul className="space-y-2">
-                    {telco.map((t) => (
-                      <li key={t.id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
-                        <div>
-                          <p className="font-medium capitalize">{t.provider}</p>
-                          <p className="text-xs text-muted-foreground">{t.verifiedAt ? new Date(t.verifiedAt).toLocaleString() : "—"}</p>
+                    {creditReviewEvents.map((event) => (
+                      <li key={event.id} className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm">
+                        <div className="min-w-0">
+                          <p className="font-medium">{LOAN_STATUS_LABELS[event.toStatus]}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(event.createdAt).toLocaleString()}
+                            {event.reason ? ` · ${event.reason}` : ""}
+                          </p>
                         </div>
-                        <Badge variant={t.status === "success" ? "default" : t.status === "failed" ? "destructive" : "secondary"} className="capitalize">
-                          {t.status}
+                        <Badge
+                          variant={event.toStatus === "pending_finance" ? "default" : event.toStatus === "rejected" ? "destructive" : "secondary"}
+                          className="shrink-0"
+                        >
+                          {event.toStatus === "pending_finance" ? "Passed" : event.toStatus === "rejected" ? "Failed" : "In review"}
                         </Badge>
                       </li>
                     ))}
@@ -219,31 +261,31 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
         <TabsContent value="disbursement">
           <Card>
             <CardContent className="pt-6">
-              {batches.length === 0 ? (
+              {disbursementEvents.length === 0 ? (
                 <EmptyState title="No disbursement attempts yet" description="Finance prepares a batch once credit review passes." />
               ) : (
                 <ul className="space-y-2">
-                  {[...batches]
-                    .sort((a, b) => b.attemptNumber - a.attemptNumber)
-                    .map((b) => (
-                      <li key={b.id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
-                        <div>
-                          <p className="font-medium">
-                            Attempt #{b.attemptNumber} · {b.batchReference}
-                          </p>
-                          <p className="text-xs text-muted-foreground capitalize">
-                            {b.channel} · requested {new Date(b.requestedAt).toLocaleString()}
-                          </p>
-                          {b.failureReason && <p className="text-xs text-destructive">{b.failureReason}</p>}
-                        </div>
-                        <Badge
-                          variant={b.status === "success" ? "default" : b.status === "failed" || b.status === "escalated" ? "destructive" : "secondary"}
-                          className="capitalize"
-                        >
-                          {b.status}
-                        </Badge>
-                      </li>
-                    ))}
+                  {[...disbursementEvents].reverse().map((event) => (
+                    <li key={event.id} className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm">
+                      <div className="min-w-0">
+                        <p className="font-medium">{LOAN_STATUS_LABELS[event.toStatus]}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(event.createdAt).toLocaleString()}</p>
+                        {event.reason && <p className="text-xs text-destructive">{event.reason}</p>}
+                      </div>
+                      <Badge
+                        variant={
+                          event.toStatus === "active"
+                            ? "default"
+                            : event.toStatus === "disbursement_failed" || event.toStatus === "escalated"
+                              ? "destructive"
+                              : "secondary"
+                        }
+                        className="shrink-0"
+                      >
+                        {event.toStatus === "active" ? "Settled" : event.toStatus === "awaiting_disbursement" ? "In flight" : "Failed"}
+                      </Badge>
+                    </li>
+                  ))}
                 </ul>
               )}
             </CardContent>

@@ -5,16 +5,19 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { getCurrentUser } from "@/lib/auth/session";
 import { hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
-import { reportsByGroup } from "@/lib/domain/reports/registry";
+import { getReportsByGroup } from "@/lib/api/reports";
 
 export default async function ReportsPage() {
   const user = await getCurrentUser();
   if (!user || !hasPermission(user, PERMISSIONS.REPORTS_VIEW)) return <AccessDeniedState />;
 
-  const groups = reportsByGroup().map((g) => ({
-    ...g,
-    reports: g.reports.filter((r) => hasPermission(user, r.permission)),
-  }));
+  /*
+   * The catalogue comes from the same registry that serves the reports, so this
+   * list can never drift from what actually exists. There is no per-report
+   * permission to filter on either: §15.6 puts every report behind the single
+   * `reports.view` grant and decides what a caller may *see* by branch scope.
+   */
+  const groups = await getReportsByGroup();
   const total = groups.reduce((s, g) => s + g.reports.length, 0);
 
   return (

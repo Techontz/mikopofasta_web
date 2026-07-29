@@ -3,7 +3,7 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { getCurrentUser } from "@/lib/auth/session";
 import { hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
-import { MOCK_STAFF_PROFILES } from "@/lib/mock-data/staff-profiles";
+import { getAllStaff } from "@/lib/api/hr";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { hrNavFor } from "@/features/hr/nav-items";
 import { StaffTable } from "@/features/hr/staff-table";
@@ -13,7 +13,9 @@ export default async function StaffPage() {
   const user = await getCurrentUser();
   if (!user || !hasPermission(user, PERMISSIONS.HR_VIEW)) return <AccessDeniedState />;
 
-  const rows = MOCK_STAFF_PROFILES.filter((s) => s.deletedAt === null).map(toStaffRow);
+  // HR is an HQ function, so this is not branch-scoped (§14) — every employee,
+  // with name, role and branch already resolved by the API.
+  const rows = (await getAllStaff()).filter((s) => s.deletedAt === null).map(toStaffRow);
 
   return (
     <div className="space-y-6">

@@ -196,19 +196,38 @@ export const ROLE_DESCRIPTIONS: Record<Role, string> = {
   auditor: "Read-only, cross-branch access to ledger, treasury, HR, and the full audit trail.",
 };
 
-export function getEffectivePermissions(user: Pick<AuthenticatedUser, "role" | "extraPermissions">): Permission[] {
+/**
+ * The permissions a user actually holds.
+ *
+ * When the API has supplied a resolved set — every real session does, from
+ * `POST /auth/login` and `GET /auth/me` — that set is authoritative and is
+ * returned as-is. The §14 matrix is editable at runtime, so the moment an
+ * administrator changes it the server's answer is the only correct one; a
+ * locally recomputed set would be a stale second opinion about what someone is
+ * allowed to do.
+ *
+ * The local ROLE_PERMISSIONS fallback remains for the mock-data screens that
+ * have not been integrated yet, where there is no session to ask.
+ */
+export function getEffectivePermissions(
+  user: Pick<AuthenticatedUser, "role" | "extraPermissions"> & Partial<Pick<AuthenticatedUser, "permissions">>
+): Permission[] {
+  if (user.permissions && user.permissions.length > 0) {
+    return user.permissions;
+  }
+
   return Array.from(new Set([...ROLE_PERMISSIONS[user.role], ...user.extraPermissions]));
 }
 
 export function hasPermission(
-  user: Pick<AuthenticatedUser, "role" | "extraPermissions">,
+  user: Pick<AuthenticatedUser, "role" | "extraPermissions"> & Partial<Pick<AuthenticatedUser, "permissions">>,
   permission: Permission
 ): boolean {
   return getEffectivePermissions(user).includes(permission);
 }
 
 export function hasAnyPermission(
-  user: Pick<AuthenticatedUser, "role" | "extraPermissions">,
+  user: Pick<AuthenticatedUser, "role" | "extraPermissions"> & Partial<Pick<AuthenticatedUser, "permissions">>,
   permissions: Permission[]
 ): boolean {
   const effective = getEffectivePermissions(user);

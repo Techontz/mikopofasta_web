@@ -10,7 +10,8 @@ import { EmptyState } from "@/components/feedback/empty-state";
 import { addCustomerNote } from "@/features/customers/actions";
 import type { CustomerNote } from "@/types/customer-note";
 
-export function NotesPanel({ customerId, notes, authorNames }: { customerId: string; notes: CustomerNote[]; authorNames: Record<string, string> }) {
+/** The API resolves `authorName` with the note, so no local user list is needed. */
+export function NotesPanel({ customerId, notes }: { customerId: string; notes: CustomerNote[] }) {
   const [note, setNote] = React.useState("");
   const [pending, startTransition] = useTransition();
 
@@ -31,8 +32,15 @@ export function NotesPanel({ customerId, notes, authorNames }: { customerId: str
   return (
     <div className="space-y-4">
       <div className="flex gap-2">
-        <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add a note about this customer…" rows={2} />
-        <Button size="icon" onClick={handleAdd} disabled={pending || !note.trim()}>
+        <Textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="Add a note about this customer…"
+          aria-label="Note"
+          rows={2}
+        />
+        {/* Icon-only, so it needs a name of its own — nothing inside it is text. */}
+        <Button size="icon" aria-label="Add note" onClick={handleAdd} disabled={pending || !note.trim()}>
           <Send className="size-4" />
         </Button>
       </div>
@@ -45,7 +53,7 @@ export function NotesPanel({ customerId, notes, authorNames }: { customerId: str
             <li key={n.id} className="rounded-lg border p-3">
               <p className="text-sm">{n.note}</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {authorNames[n.authorId] ?? "Unknown"} · {new Date(n.createdAt).toLocaleString()}
+                {n.authorName ?? "Unknown"} · {new Date(n.createdAt).toLocaleString()}
               </p>
             </li>
           ))}

@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createCashDeposit } from "@/features/repayments/actions";
+import { createCashDeposit } from "@/features/repayments/deposit-actions";
 
 export interface BankOption {
   id: string;

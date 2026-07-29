@@ -5,9 +5,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
 import { formatMoney } from "@/lib/domain/money";
-import { buildTrialBalance } from "@/lib/domain/trial-balance";
-import { CHART_OF_ACCOUNTS } from "@/lib/mock-data/chart-of-accounts";
-import { MOCK_JOURNAL_ENTRIES, MOCK_JOURNAL_ENTRY_LINES } from "@/lib/mock-data/journal-entries";
+import { getAllJournalEntries, getTrialBalance } from "@/lib/api/ledger";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { ledgerNavFor } from "@/features/ledger/nav-items";
 import { AccountsTable, type AccountRow } from "@/features/ledger/accounts-table";
@@ -16,7 +14,10 @@ export default async function LedgerPage() {
   const user = await getCurrentUser();
   if (!user || !hasPermission(user, PERMISSIONS.LEDGER_VIEW)) return <AccessDeniedState />;
 
-  const trial = buildTrialBalance(CHART_OF_ACCOUNTS, MOCK_JOURNAL_ENTRY_LINES);
+  // The trial balance is the API's own computation — debits, credits and the
+  // balanced verdict all come from it, exact rather than within a tolerance.
+  const [trial, entries] = await Promise.all([getTrialBalance(), getAllJournalEntries()]);
+
   const rows: AccountRow[] = trial.rows.map((r) => ({
     accountId: r.accountId,
     code: r.code,
@@ -28,7 +29,7 @@ export default async function LedgerPage() {
     balance: r.balance,
   }));
 
-  const reversalCount = MOCK_JOURNAL_ENTRIES.filter((e) => e.isReversal).length;
+  const reversalCount = entries.filter((e) => e.isReversal).length;
 
   return (
     <div className="space-y-6">
@@ -59,7 +60,7 @@ export default async function LedgerPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Total Debits" value={formatMoney(trial.totalDebits)} />
         <Stat label="Total Credits" value={formatMoney(trial.totalCredits)} />
-        <Stat label="Journal Entries" value={String(MOCK_JOURNAL_ENTRIES.length)} />
+        <Stat label="Journal Entries" value={String(entries.length)} />
         <Stat label="Reversal Entries" value={String(reversalCount)} />
       </div>
 

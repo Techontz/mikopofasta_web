@@ -57,6 +57,9 @@ export const PERMISSIONS = {
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 
+/** Mirrors `users.status` (backend §2.1). */
+export type UserStatus = "active" | "suspended";
+
 export interface AuthenticatedUser {
   id: string;
   name: string;
@@ -79,5 +82,18 @@ export interface AuthenticatedUser {
    * additional, visible grant.
    */
   extraPermissions: Permission[];
+  /**
+   * The effective set, already resolved by the API as role grants ∪
+   * extraPermissions.
+   *
+   * This is authoritative and the local ROLE_PERMISSIONS map is not: the §14
+   * matrix is editable at runtime through the permission-matrix screen, so
+   * once an administrator changes it the server's answer is the only correct
+   * one. See getEffectivePermissions in config/permissions.ts.
+   */
+  permissions: Permission[];
   avatarInitials: string;
+  email: string | null;
+  status: UserStatus;
+  lastLoginAt: string | null;
 }

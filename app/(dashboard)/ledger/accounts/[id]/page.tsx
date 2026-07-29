@@ -11,10 +11,10 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
 import { formatMoney } from "@/lib/domain/money";
-import { ACCOUNT_TYPE_LABELS, buildAccountLedger } from "@/lib/domain/trial-balance";
-import { CHART_OF_ACCOUNTS } from "@/lib/mock-data/chart-of-accounts";
-import { MOCK_JOURNAL_ENTRIES, MOCK_JOURNAL_ENTRY_LINES } from "@/lib/mock-data/journal-entries";
-import { MOCK_BRANCHES } from "@/lib/mock-data/branches";
+import { ACCOUNT_TYPE_LABELS } from "@/lib/domain/trial-balance";
+import { getAccountLedger } from "@/lib/api/ledger";
+import { getBranches } from "@/lib/api/organization";
+import { ApiError } from "@/lib/api/errors";
 import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
 
 export default async function AccountLedgerPage({ params }: { params: Promise<{ id: string }> }) {
@@ -22,16 +22,29 @@ export default async function AccountLedgerPage({ params }: { params: Promise<{ 
   const user = await getCurrentUser();
   if (!user || !hasPermission(user, PERMISSIONS.LEDGER_VIEW)) return <AccessDeniedState />;
 
-  const account = CHART_OF_ACCOUNTS.find((a) => a.id === id && a.deletedAt === null);
+  /*
+   * The general ledger for one account, running balance and all, is the API's
+   * own computation — it accumulates on the account's normal side so the figure
+   * reads the way an accountant expects rather than as a raw Dr−Cr.
+   */
+  let ledger;
+  try {
+    ledger = await getAccountLedger(id);
+  } catch (error) {
+    if (error instanceof ApiError && (error.status === 404 || error.status === 403)) notFound();
+    throw error;
+  }
+
+  const account = ledger.account;
   if (!account) notFound();
 
-  const entryIndex = new Map(MOCK_JOURNAL_ENTRIES.map((e) => [e.id, e]));
-  const rows = buildAccountLedger(account, MOCK_JOURNAL_ENTRY_LINES, (eid) => entryIndex.get(eid));
-  const branch = account.branchId ? MOCK_BRANCHES.find((b) => b.id === account.branchId) : undefined;
+  const rows = ledger.rows;
+  const branches = await getBranches().catch(() => []);
+  const branch = account.branchId ? branches.find((b) => b.id === account.branchId) : undefined;
 
   const debitTotal = rows.reduce((s, r) => s + r.debit, 0);
   const creditTotal = rows.reduce((s, r) => s + r.credit, 0);
-  const closing = rows.length > 0 ? rows[rows.length - 1].runningBalance : 0;
+  const closing = rows.length > 0 ? rows[rows.length - 1].runningBalance : account.balance;
 
   return (
     <div className="space-y-4">

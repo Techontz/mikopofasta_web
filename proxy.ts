@@ -30,7 +30,11 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  const user = session?.user;
+  // Both halves are required — see getCurrentUser in lib/auth/session.ts. A
+  // cookie holding a profile but no token would otherwise be waved through
+  // here *and* bounced off /login by the redirect below, leaving the user
+  // trapped on a dashboard that 401s and with no way back to the login form.
+  const user = session?.token ? session.user : undefined;
   const isLoginRoute = pathname === "/login";
 
   if (!user && !isLoginRoute) {

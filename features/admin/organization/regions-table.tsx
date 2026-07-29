@@ -4,7 +4,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { MapPin } from "lucide-react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DataTable } from "@/components/data-table/data-table";
+import { SettingsTable } from "@/components/settings/table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { ConfirmDeleteDialog } from "@/components/data-table/confirm-delete-dialog";
 import { RegionFormDialog } from "@/features/admin/organization/region-form-dialog";
@@ -45,7 +45,7 @@ export function RegionsTable({ regions, branches }: { regions: Region[]; branche
   ];
 
   return (
-    <DataTable
+    <SettingsTable
       columns={columns}
       data={regions}
       searchFields={["name"]}

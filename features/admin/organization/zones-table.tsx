@@ -3,8 +3,8 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { Map, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { DataTable } from "@/components/data-table/data-table";
+import { StatusBadge } from "@/components/settings";
+import { SettingsTable } from "@/components/settings/table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { ConfirmDeleteDialog } from "@/components/data-table/confirm-delete-dialog";
 import { ZoneFormDialog } from "@/features/admin/organization/zone-form-dialog";
@@ -21,7 +21,7 @@ export function ZonesTable({ zones, managers, branches }: { zones: Zone[]; manag
       id: "manager",
       header: "Zone Manager",
       cell: ({ row }) =>
-        row.original.zoneManagerId ? managerName(row.original.zoneManagerId) : <Badge variant="secondary">Unassigned</Badge>,
+        row.original.zoneManagerId ? managerName(row.original.zoneManagerId) : <StatusBadge tone="warning">Unassigned</StatusBadge>,
     },
     {
       id: "branchCount",
@@ -50,7 +50,7 @@ export function ZonesTable({ zones, managers, branches }: { zones: Zone[]; manag
   ];
 
   return (
-    <DataTable
+    <SettingsTable
       columns={columns}
       data={zones}
       searchFields={["name"]}

@@ -34,6 +34,7 @@ export const ZoneCommissionDistributionSchema = z.object({
   totalPoolBase: z.number().nonnegative(),
   overridePercentage: z.number().nonnegative(),
   overrideAmount: z.number().nonnegative(),
-  journalEntryId: z.string(),
+  /** Null until the override is actually posted — a computed row precedes its entry. */
+  journalEntryId: z.string().nullable(),
 });
 export type ZoneCommissionDistribution = z.infer<typeof ZoneCommissionDistributionSchema>;

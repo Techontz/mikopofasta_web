@@ -2,13 +2,32 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import { History } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { DataTable } from "@/components/data-table/data-table";
+import { StatusBadge } from "@/components/settings";
+import { SettingsTable } from "@/components/settings/table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import type { AuditLog } from "@/types/audit";
 import type { MockCredential } from "@/lib/mock-data/users";
 
 const AUGMENTED_KEY = "__searchable" as const;
+
+/*
+ * Pinned locale and timezone.
+ *
+ * A bare toLocaleString() resolves against whatever each runtime defaults to —
+ * Node renders en-US on the server, the browser renders its own — so the two
+ * passes disagree and hydration fails (React #418). An audit trail is also the
+ * one table where the reader must not have to guess whose clock a timestamp is
+ * on, so it is stated: Dar es Salaam, day first.
+ */
+const AUDIT_TIMESTAMP = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Africa/Dar_es_Salaam",
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
 
 export function AuditLogsTable({ logs, users }: { logs: AuditLog[]; users: MockCredential[] }) {
   const userName = (id: string | null) => (id ? users.find((u) => u.id === id)?.name ?? "System" : "System");
@@ -20,13 +39,17 @@ export function AuditLogsTable({ logs, users }: { logs: AuditLog[]; users: MockC
     {
       accessorKey: "createdAt",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Timestamp" />,
-      cell: ({ row }) => new Date(row.original.createdAt).toLocaleString(),
+      cell: ({ row }) => (
+        <span className="whitespace-nowrap font-tabular">
+          {AUDIT_TIMESTAMP.format(new Date(row.original.createdAt))}
+        </span>
+      ),
     },
     { id: "user", header: "User", cell: ({ row }) => userName(row.original.userId) },
     {
       accessorKey: "action",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Action" />,
-      cell: ({ row }) => <Badge variant="outline" className="font-mono text-xs">{row.original.action}</Badge>,
+      cell: ({ row }) => <StatusBadge tone="neutral" dot={false} className="font-mono">{row.original.action}</StatusBadge>,
       filterFn: "arrIncludesSome",
     },
     {
@@ -41,7 +64,7 @@ export function AuditLogsTable({ logs, users }: { logs: AuditLog[]; users: MockC
   ];
 
   return (
-    <DataTable
+    <SettingsTable
       columns={columns}
       data={rows}
       searchFields={[AUGMENTED_KEY]}

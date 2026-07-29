@@ -3,10 +3,14 @@ import type { AuthenticatedUser } from "@/types/auth";
 import { PERMISSIONS } from "@/types/auth";
 
 /**
- * Seed credential + profile records for mock authentication (Phase 1 only).
- * `password` is plaintext on purpose — this is a dev-only mock login and is
- * replaced entirely by real Sanctum authentication per
- * docs/frontend-technical-specification.md §2.
+ * Seed profile records for the modules still on mock data.
+ *
+ * Authentication no longer reads this file: login goes through
+ * `POST /api/v1/auth/login` and the credential lookup that lived here has been
+ * removed. The `password` field is retained only because it documents the
+ * shared demo password the API also seeds ("password"), and because the Users
+ * admin screen still renders these rows until the Organization module is
+ * integrated.
  *
  * One user per role — see docs/demo-accounts.md for the full roster with
  * credentials and permission summaries kept in sync with this file.
@@ -175,7 +179,3 @@ export const MOCK_USERS: MockCredential[] = SEED_USERS.map((u, i) => ({
   createdBy: i === 0 ? null : "u-super-admin",
   deletedAt: null,
 }));
-
-export function findUserByPhone(phone: string): MockCredential | undefined {
-  return MOCK_USERS.find((u) => u.phone === phone && u.status === "active");
-}

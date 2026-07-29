@@ -3,13 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { BranchSchema } from "@/types/branch";
-import { MOCK_BRANCHES } from "@/lib/mock-data/branches";
-import { MOCK_CUSTOMERS } from "@/lib/mock-data/customers";
-import { MOCK_LOANS } from "@/lib/mock-data/loans";
-import { nextId, upsert, removeById } from "@/lib/domain/mock-store";
-import { getCurrentUser } from "@/lib/auth/session";
-import { hasPermission } from "@/config/permissions";
-import { PERMISSIONS } from "@/types/auth";
+import {
+  createBranchRequest,
+  deleteBranchRequest,
+  setHeadOfficeRequest,
+  updateBranchRequest,
+} from "@/lib/api/organization";
+import { describeError } from "@/lib/api/errors";
 import type { ActionResult } from "@/lib/domain/action-result";
 
 const BranchInputSchema = BranchSchema.pick({
@@ -22,60 +22,71 @@ const BranchInputSchema = BranchSchema.pick({
   status: true,
 });
 
-async function requirePermission(): Promise<ActionResult | null> {
-  const user = await getCurrentUser();
-  if (!user || !hasPermission(user, PERMISSIONS.ADMIN_ORG_SETTINGS)) {
-    return { ok: false, message: "You don't have permission to do that." };
-  }
-  return null;
-}
-
+/**
+ * Branches — `POST/PUT/DELETE /api/v1/branches` and §12's head-office move.
+ *
+ * Every rule that used to be re-implemented here now lives where it belongs:
+ *
+ *   - `admin.org_settings` is checked by the API.
+ *   - "can't delete a branch with customers or loans" is a 409 from the API,
+ *     which can see the whole book rather than one in-memory array.
+ *   - "can't delete the Head Office" is likewise the API's, and its message
+ *     names the branch.
+ *   - Setting a new head office is a single endpoint, so the "exactly one HQ"
+ *     invariant is one transaction rather than a loop over a local array that
+ *     could half-apply.
+ */
 export async function createBranch(input: z.infer<typeof BranchInputSchema>): Promise<ActionResult> {
-  const denied = await requirePermission();
-  if (denied) return denied;
   const parsed = BranchInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid input." };
 
-  upsert(MOCK_BRANCHES, { id: nextId("branch"), ...parsed.data, isHeadOffice: false, createdBy: null, deletedAt: null });
+  try {
+    await createBranchRequest(parsed.data);
+  } catch (error) {
+    return { ok: false, message: describeError(error) };
+  }
+
   revalidatePath("/admin/organization");
   return { ok: true, message: "Branch created." };
 }
 
-export async function updateBranch(id: string, input: z.infer<typeof BranchInputSchema>): Promise<ActionResult> {
-  const denied = await requirePermission();
-  if (denied) return denied;
+export async function updateBranch(
+  id: string,
+  input: z.infer<typeof BranchInputSchema>
+): Promise<ActionResult> {
   const parsed = BranchInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid input." };
 
-  const existing = MOCK_BRANCHES.find((b) => b.id === id);
-  if (!existing) return { ok: false, message: "Branch not found." };
+  try {
+    await updateBranchRequest(id, parsed.data);
+  } catch (error) {
+    return { ok: false, message: describeError(error) };
+  }
 
-  upsert(MOCK_BRANCHES, { ...existing, ...parsed.data });
   revalidatePath("/admin/organization");
   return { ok: true, message: "Branch updated." };
 }
 
 export async function setHeadOffice(id: string): Promise<ActionResult> {
-  const denied = await requirePermission();
-  if (denied) return denied;
-  const target = MOCK_BRANCHES.find((b) => b.id === id);
-  if (!target) return { ok: false, message: "Branch not found." };
+  let branch;
 
-  for (const branch of MOCK_BRANCHES) branch.isHeadOffice = branch.id === id;
+  try {
+    branch = await setHeadOfficeRequest(id);
+  } catch (error) {
+    return { ok: false, message: describeError(error) };
+  }
+
   revalidatePath("/admin/organization");
-  return { ok: true, message: `${target.name} is now the Head Office.` };
+  return { ok: true, message: `${branch.name} is now the Head Office.` };
 }
 
 export async function deleteBranch(id: string): Promise<ActionResult> {
-  const denied = await requirePermission();
-  if (denied) return denied;
-
-  const branch = MOCK_BRANCHES.find((b) => b.id === id);
-  if (branch?.isHeadOffice) return { ok: false, message: "Can't delete the Head Office branch." };
-  if (MOCK_CUSTOMERS.some((c) => c.branchId === id) || MOCK_LOANS.some((l) => l.branchId === id)) {
-    return { ok: false, message: "Can't delete — this branch has customers or loans on record." };
+  try {
+    await deleteBranchRequest(id);
+  } catch (error) {
+    return { ok: false, message: describeError(error) };
   }
-  removeById(MOCK_BRANCHES, id);
+
   revalidatePath("/admin/organization");
   return { ok: true, message: "Branch deleted." };
 }

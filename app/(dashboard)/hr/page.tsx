@@ -7,26 +7,30 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
 import { formatMoney, round2 } from "@/lib/domain/money";
-import { MOCK_STAFF_PROFILES } from "@/lib/mock-data/staff-profiles";
-import { MOCK_PAYROLL_RUNS, MOCK_PAYROLL_LINES } from "@/lib/mock-data/payroll";
-import { MOCK_COMMISSION_POOLS } from "@/lib/mock-data/commission";
-import { MOCK_STAFF_ADVANCES } from "@/lib/mock-data/staff-advances";
-import { MOCK_STAFF_LOANS } from "@/lib/mock-data/staff-loans";
+import { getAllPayrollRuns, getAllStaff, getCommission, getStaffAdvances, getStaffLoans } from "@/lib/api/hr";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { hrNavFor } from "@/features/hr/nav-items";
-import { staffName } from "@/features/hr/queries";
 
 export default async function HrPage() {
   const user = await getCurrentUser();
   if (!user || !hasPermission(user, PERMISSIONS.HR_VIEW)) return <AccessDeniedState />;
 
-  const active = MOCK_STAFF_PROFILES.filter((s) => s.deletedAt === null && s.employmentStatus === "active");
-  const monthlySalary = round2(active.reduce((s, p) => s + p.baseSalary, 0));
-  const openAdvances = MOCK_STAFF_ADVANCES.filter((a) => ["requested", "approved", "disbursed"].includes(a.status));
-  const poolTotal = round2(MOCK_COMMISSION_POOLS.reduce((s, p) => s + p.poolAmount, 0));
+  const [staff, runs, commission, advances, loans] = await Promise.all([
+    getAllStaff(),
+    getAllPayrollRuns(),
+    getCommission(),
+    getStaffAdvances(),
+    getStaffLoans(),
+  ]);
 
-  const runs = [...MOCK_PAYROLL_RUNS].sort((a, b) => b.period.localeCompare(a.period));
-  const blockedPools = MOCK_COMMISSION_POOLS.filter((p) => p.distributableProfit <= 0);
+  const active = staff.filter((s) => s.deletedAt === null && s.employmentStatus === "active");
+  const monthlySalary = round2(active.reduce((s, p) => s + p.baseSalary, 0));
+  const openAdvances = advances.filter((a) => ["requested", "approved", "disbursed"].includes(a.status));
+  const poolTotal = commission.totalPool;
+
+  // §11's hard rule, as the API states it: a branch that made a loss pays no
+  // commission until the loss is offset.
+  const blockedPools = commission.pools.filter((p) => !p.distributable);
 
   const tiles = [
     { label: "Active Staff", value: String(active.length), icon: UsersRound },
@@ -74,8 +78,6 @@ export default async function HrPage() {
           <CardContent>
             <ul className="space-y-2">
               {runs.map((run) => {
-                const lines = MOCK_PAYROLL_LINES.filter((l) => l.payrollRunId === run.id);
-                const net = round2(lines.reduce((s, l) => s + l.netSalary, 0));
                 return (
                   <li key={run.id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
                     <div>
@@ -83,7 +85,7 @@ export default async function HrPage() {
                         {run.period}
                       </Link>
                       <p className="text-xs text-muted-foreground">
-                        {lines.length} staff · {formatMoney(net)} net
+                        {run.lineCount} staff · {formatMoney(run.netTotal)} net
                       </p>
                     </div>
                     <Badge variant="outline" className="capitalize">
@@ -102,10 +104,10 @@ export default async function HrPage() {
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
-              {MOCK_STAFF_LOANS.map((l) => (
+              {loans.map((l) => (
                 <li key={l.id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
                   <div>
-                    <p className="font-medium">{staffName(l.staffProfileId)}</p>
+                    <p className="font-medium">{l.staffName ?? l.staffProfileId}</p>
                     <p className="text-xs text-muted-foreground">Staff loan · {l.disbursedAt}</p>
                   </div>
                   <span className="font-tabular">{formatMoney(l.amount)}</span>
@@ -114,7 +116,7 @@ export default async function HrPage() {
               {openAdvances.map((a) => (
                 <li key={a.id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
                   <div>
-                    <p className="font-medium">{staffName(a.staffProfileId)}</p>
+                    <p className="font-medium">{a.staffName ?? a.staffProfileId}</p>
                     <p className="text-xs capitalize text-muted-foreground">Advance · {a.status}</p>
                   </div>
                   <span className="font-tabular">{formatMoney(a.amount)}</span>

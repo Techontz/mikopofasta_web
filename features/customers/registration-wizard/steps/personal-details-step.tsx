@@ -77,8 +77,10 @@ export function PersonalDetailsStep({
       toast.error(result.message ?? "OTP verification failed.");
       return;
     }
-    setVerification((v) => ({ ...v, otpVerifiedAt: new Date().toISOString() }));
-    toast.success("OTP verified.");
+    // The API's own timestamp, not the browser's — it is the value the
+    // registration payload is validated against.
+    setVerification((v) => ({ ...v, otpVerifiedAt: result.verifiedAt ?? new Date().toISOString() }));
+    toast.success(result.message ?? "OTP verified.");
   }
 
   function handleCaptureFace() {

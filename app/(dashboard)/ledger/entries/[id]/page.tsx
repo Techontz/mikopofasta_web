@@ -9,14 +9,12 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { getCurrentUser } from "@/lib/auth/session";
 import { hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
-import { formatMoney, round2 } from "@/lib/domain/money";
-import { CHART_OF_ACCOUNTS } from "@/lib/mock-data/chart-of-accounts";
-import { MOCK_JOURNAL_ENTRIES, MOCK_JOURNAL_ENTRY_LINES } from "@/lib/mock-data/journal-entries";
-import { MOCK_REVERSAL_REQUESTS } from "@/lib/mock-data/reversals";
-import { MOCK_BRANCHES } from "@/lib/mock-data/branches";
+import { formatMoney } from "@/lib/domain/money";
+import { getJournalEntry, getReversals } from "@/lib/api/ledger";
+import { getBranches } from "@/lib/api/organization";
+import { ApiError } from "@/lib/api/errors";
 import { MOCK_USERS } from "@/lib/mock-data/users";
 import { RequestReversalDialog } from "@/features/ledger/request-reversal-dialog";
-import { entryState } from "@/features/ledger/queries";
 import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
 
 export default async function JournalEntryPage({ params }: { params: Promise<{ id: string }> }) {
@@ -24,22 +22,56 @@ export default async function JournalEntryPage({ params }: { params: Promise<{ i
   const user = await getCurrentUser();
   if (!user || !hasPermission(user, PERMISSIONS.LEDGER_VIEW)) return <AccessDeniedState />;
 
-  const entry = MOCK_JOURNAL_ENTRIES.find((e) => e.id === id);
-  if (!entry) notFound();
+  let entry;
+  try {
+    entry = await getJournalEntry(id);
+  } catch (error) {
+    if (error instanceof ApiError && (error.status === 404 || error.status === 403)) notFound();
+    throw error;
+  }
 
-  const lines = MOCK_JOURNAL_ENTRY_LINES.filter((l) => l.journalEntryId === entry.id);
-  const debits = round2(lines.reduce((s, l) => s + l.debitAmount, 0));
-  const credits = round2(lines.reduce((s, l) => s + l.creditAmount, 0));
-  const balanced = Math.abs(debits - credits) < 0.01;
+  // Each line arrives with its account code and name resolved; branches are a
+  // separate lookup because a line carries only the id.
+  const [reversals, branches, reversedOriginal] = await Promise.all([
+    getReversals().catch(() => []),
+    getBranches().catch(() => []),
+    // A reversal entry names the id it reverses but not that entry's number,
+    // so it is fetched to render a recognisable reference rather than a raw id.
+    entry.reversedEntryId ? getJournalEntry(entry.reversedEntryId).catch(() => null) : Promise.resolve(null),
+  ]);
+
+  const lines = entry.lines;
+  const debits = entry.totalDebits;
+  const credits = entry.totalCredits;
+  const balanced = entry.balanced;
 
   const userNames = Object.fromEntries(MOCK_USERS.map((u) => [u.id, u.name]));
-  const accountOf = (aid: string) => CHART_OF_ACCOUNTS.find((a) => a.id === aid);
-  const branchOf = (bid: string | null) => (bid ? MOCK_BRANCHES.find((b) => b.id === bid)?.name : null);
+  const branchNames = new Map(branches.map((b) => [b.id, b.name]));
+  const branchOf = (bid: string | null) => (bid ? (branchNames.get(bid) ?? null) : null);
 
-  const state = entryState(entry);
-  const reversedBy = MOCK_JOURNAL_ENTRIES.find((e) => e.reversedEntryId === entry.id);
-  const original = entry.reversedEntryId ? MOCK_JOURNAL_ENTRIES.find((e) => e.id === entry.reversedEntryId) : undefined;
-  const pendingRequest = MOCK_REVERSAL_REQUESTS.find((r) => r.journalEntryId === entry.id && r.status === "pending");
+  /*
+   * "Reversed" means some other entry points back at this one. The entry
+   * resource does not carry that, and there is no "find the entry that
+   * reversed X" endpoint — but an approved reversal request names both sides,
+   * so the reversals queue answers it without walking the whole journal.
+   */
+  const approvedAgainst = reversals.find((r) => r.journalEntryId === entry.id && r.status === "approved");
+  const pendingRequest = reversals.find((r) => r.journalEntryId === entry.id && r.status === "pending");
+
+  const state: "Posted" | "Reversal" | "Reversed" = entry.isReversal
+    ? "Reversal"
+    : approvedAgainst
+      ? "Reversed"
+      : "Posted";
+
+  const reversedBy =
+    approvedAgainst?.reversalEntryId !== null && approvedAgainst?.reversalEntryId !== undefined
+      ? { id: approvedAgainst.reversalEntryId, entryNumber: approvedAgainst.reversalEntryNumber ?? "the reversal entry" }
+      : undefined;
+
+  const original = entry.reversedEntryId
+    ? { id: entry.reversedEntryId, entryNumber: reversedOriginal?.entryNumber ?? `entry #${entry.reversedEntryId}` }
+    : undefined;
 
   const canRequest =
     hasPermission(user, PERMISSIONS.LEDGER_REVERSE_REQUEST) && state === "Posted" && !pendingRequest;
@@ -134,7 +166,6 @@ export default async function JournalEntryPage({ params }: { params: Promise<{ i
               </TableHeader>
               <TableBody>
                 {lines.map((l) => {
-                  const account = accountOf(l.accountId);
                   const dims = [
                     branchOf(l.branchId) && `Branch: ${branchOf(l.branchId)}`,
                     l.customerId && `Customer: ${l.customerId}`,
@@ -145,7 +176,7 @@ export default async function JournalEntryPage({ params }: { params: Promise<{ i
                     <TableRow key={l.id}>
                       <TableCell>
                         <Link href={`/ledger/accounts/${l.accountId}`} className="hover:underline">
-                          <span className="font-tabular">{account?.code ?? "—"}</span> {account?.name ?? l.accountId}
+                          <span className="font-tabular">{l.accountCode ?? "—"}</span> {l.accountName ?? l.accountId}
                         </Link>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">{dims.length > 0 ? dims.join(" · ") : "—"}</TableCell>

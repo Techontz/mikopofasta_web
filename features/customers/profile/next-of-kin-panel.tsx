@@ -19,6 +19,14 @@ export function NextOfKinPanel({ customerId, records }: { customerId: string; re
   const [form, setForm] = React.useState(EMPTY);
   const [pending, startTransition] = useTransition();
 
+  function handleRemove(id: string) {
+    startTransition(async () => {
+      const result = await removeNextOfKin(id, customerId);
+      if (result.ok) toast.success(result.message);
+      else toast.error(result.message);
+    });
+  }
+
   function handleAdd() {
     startTransition(async () => {
       const result = await addNextOfKin(customerId, {
@@ -86,7 +94,14 @@ export function NextOfKinPanel({ customerId, records }: { customerId: string; re
                   {k.relationship} · {k.phone}
                 </p>
               </div>
-              <Button variant="ghost" size="icon-sm" className="text-destructive hover:text-destructive" onClick={() => removeNextOfKin(k.id, customerId)}>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="text-destructive hover:text-destructive"
+                aria-label={`Remove ${k.name}`}
+                disabled={pending}
+                onClick={() => handleRemove(k.id)}
+              >
                 <Trash2 className="size-4" />
               </Button>
             </li>

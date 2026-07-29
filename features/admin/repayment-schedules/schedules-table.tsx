@@ -3,7 +3,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { CalendarClock, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DataTable } from "@/components/data-table/data-table";
+import { SettingsTable } from "@/components/settings/table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { ConfirmDeleteDialog } from "@/components/data-table/confirm-delete-dialog";
 import { ScheduleFormDialog } from "@/features/admin/repayment-schedules/schedule-form-dialog";
@@ -41,7 +41,7 @@ export function SchedulesTable({ schedules }: { schedules: RepaymentSchedule[] }
   ];
 
   return (
-    <DataTable
+    <SettingsTable
       columns={columns}
       data={schedules}
       searchFields={["name", "code"]}

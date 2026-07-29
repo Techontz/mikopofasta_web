@@ -9,8 +9,9 @@ import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
 import { getCurrentUser } from "@/lib/auth/session";
 import { hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
-import { MOCK_BRANCHES } from "@/lib/mock-data/branches";
-import { findReport } from "@/lib/domain/reports/registry";
+import { getBranches } from "@/lib/api/organization";
+import { getReport } from "@/lib/api/reports";
+import { ApiError } from "@/lib/api/errors";
 import { ReportFiltersBar } from "@/features/reports/report-filters";
 import { ReportTable } from "@/features/reports/report-table";
 import type { ReportFilters } from "@/lib/domain/reports/types";
@@ -25,49 +26,45 @@ export default async function ReportPage({
   const { slug } = await params;
   const query = await searchParams;
 
-  const report = findReport(slug);
-  if (!report) notFound();
-
   const user = await getCurrentUser();
-  if (!user || !hasPermission(user, report.permission)) return <AccessDeniedState />;
+  if (!user || !hasPermission(user, PERMISSIONS.REPORTS_VIEW)) return <AccessDeniedState />;
 
   const single = (key: string) => {
     const v = query[key];
     return typeof v === "string" && v.length > 0 ? v : undefined;
   };
 
-  // Only honour the filters this report declares — an unsupported param is
-  // ignored rather than silently changing the result.
+  /*
+   * Every filter in the query string is passed through as-is. Two things that
+   * used to happen here no longer do, because the API owns them:
+   *
+   *   - Discarding a filter the report does not declare. The server drops it,
+   *     and the echoed `filters_applied` shows exactly what survived.
+   *   - Pinning the branch for a user without cross-branch visibility (§13).
+   *     The server forces it, so asking for another branch cannot widen the
+   *     result — and the echo below reports the branch it actually used.
+   */
   const requested: ReportFilters = {
-    branchId: report.filters.includes("branchId") ? single("branch_id") : undefined,
-    period: report.filters.includes("period") ? single("period") : undefined,
-    from: report.filters.includes("from") ? single("from") : undefined,
-    to: report.filters.includes("to") ? single("to") : undefined,
+    branchId: single("branch_id"),
+    period: single("period"),
+    from: single("from"),
+    to: single("to"),
   };
-  const filtersApplied = Object.fromEntries(Object.entries(requested).filter(([, v]) => v !== undefined)) as ReportFilters;
 
-  // meta.filters_applied echoes the wire names from §15.6, not our internal
-  // camelCase keys, so what is displayed matches what the API contract uses.
-  const WIRE_NAMES: Record<string, string> = { branchId: "branch_id", period: "period", from: "from", to: "to" };
-  const filtersAppliedWire = Object.fromEntries(
-    Object.entries(filtersApplied).map(([k, v]) => [WIRE_NAMES[k] ?? k, v])
-  );
+  let payload;
+  try {
+    payload = await getReport(slug, requested);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) notFound();
+    throw error;
+  }
 
-  // Branch scoping — a user without BRANCHES_VIEW_ALL only ever sees their own
-  // branch, regardless of what the query string asks for (backend §13).
+  const { report, result, generatedAt, filtersApplied } = payload;
+
   const seesAllBranches = hasPermission(user, PERMISSIONS.BRANCHES_VIEW_ALL);
-  const effective: ReportFilters =
-    seesAllBranches || !report.filters.includes("branchId")
-      ? filtersApplied
-      : { ...filtersApplied, branchId: user.branchId ?? undefined };
-
-  const result = report.compute(effective);
-  const generatedAt = new Date();
-
-  const branches = MOCK_BRANCHES.filter((b) => b.deletedAt === null && (seesAllBranches || b.id === user.branchId)).map((b) => ({
-    id: b.id,
-    name: b.name,
-  }));
+  const branches = (await getBranches().catch(() => []))
+    .filter((b) => b.deletedAt === null && (seesAllBranches || b.id === user.branchId))
+    .map((b) => ({ id: b.id, name: b.name }));
 
   return (
     <div className="space-y-4">
@@ -128,10 +125,12 @@ export default async function ReportPage({
       )}
 
       {/* meta.generated_at / filters_applied from the §15.6 envelope, surfaced so
-          a figure on screen is traceable to a specific computation. */}
+          a figure on screen is traceable to a specific computation — and both
+          are now the server's own values rather than this page's account of
+          what it asked for. */}
       <p className="text-xs text-muted-foreground">
-        Generated {generatedAt.toLocaleString()} · filters applied:{" "}
-        {Object.keys(filtersAppliedWire).length === 0 ? "none" : JSON.stringify(filtersAppliedWire)}
+        Generated {new Date(generatedAt).toLocaleString()} · filters applied:{" "}
+        {Object.keys(filtersApplied).length === 0 ? "none" : JSON.stringify(filtersApplied)}
         {!seesAllBranches && report.filters.includes("branchId") && " (branch forced by your permissions)"}
       </p>
     </div>

@@ -21,6 +21,13 @@ export default async function CapitalPage() {
   if (!user || !hasPermission(user, PERMISSIONS.TREASURY_VIEW)) return <AccessDeniedState />;
   const canManage = hasPermission(user, PERMISSIONS.TREASURY_MANAGE);
 
+  /*
+   * STILL ON MOCK DATA, deliberately. Capital injection and dividend
+   * distribution have no API — the backend exposes no treasury routes at all,
+   * though `treasury.manage` exists as a permission. This page posts to the
+   * mock journal, which is a different book from the one /ledger reads.
+   * See features/ledger/treasury-actions.ts.
+   */
   const trial = buildTrialBalance(CHART_OF_ACCOUNTS, MOCK_JOURNAL_ENTRY_LINES);
   const income = trial.rows.filter((r) => r.type === "income").reduce((s, r) => s + r.balance, 0);
   const expense = trial.rows.filter((r) => r.type === "expense").reduce((s, r) => s + r.balance, 0);

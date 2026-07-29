@@ -4,8 +4,8 @@ import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Users as UsersIcon } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { DataTable } from "@/components/data-table/data-table";
+import { StatusBadge } from "@/components/settings";
+import { SettingsTable } from "@/components/settings/table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { UserFormDialog } from "@/features/admin/users/user-form-dialog";
 import { UserStatusAction } from "@/features/admin/users/user-status-action";
@@ -36,7 +36,7 @@ export function UsersTable({ users, branches, zones, regions }: { users: MockCre
     {
       accessorKey: "role",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Role" />,
-      cell: ({ row }) => <Badge variant="secondary">{ROLE_LABELS[row.original.role]}</Badge>,
+      cell: ({ row }) => <StatusBadge tone="neutral" dot={false}>{ROLE_LABELS[row.original.role]}</StatusBadge>,
       filterFn: "arrIncludesSome",
     },
     { id: "branch", header: "Branch", cell: ({ row }) => branchName(row.original.branchId) },
@@ -44,9 +44,9 @@ export function UsersTable({ users, branches, zones, regions }: { users: MockCre
       accessorKey: "status",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
       cell: ({ row }) => (
-        <Badge variant={row.original.status === "active" ? "default" : "secondary"} className="capitalize">
+        <StatusBadge tone={row.original.status === "active" ? "active" : "inactive"} className="capitalize">
           {row.original.status}
-        </Badge>
+        </StatusBadge>
       ),
       filterFn: "arrIncludesSome",
     },
@@ -62,7 +62,7 @@ export function UsersTable({ users, branches, zones, regions }: { users: MockCre
   ];
 
   return (
-    <DataTable
+    <SettingsTable
       columns={columns}
       data={users}
       searchFields={["name", "phone", "email"]}

@@ -8,19 +8,21 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
 import { formatMoney } from "@/lib/domain/money";
-import { MOCK_COMMISSION_POOLS, MOCK_COMMISSION_DISTRIBUTIONS } from "@/lib/mock-data/commission";
-import { MOCK_ZONE_COMMISSION_DISTRIBUTIONS } from "@/lib/mock-data/payroll";
-import { MOCK_BRANCHES } from "@/lib/mock-data/branches";
-import { ZONES } from "@/lib/mock-data/zones";
+import { getCommission } from "@/lib/api/hr";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { hrNavFor } from "@/features/hr/nav-items";
-import { staffName } from "@/features/hr/queries";
 
 export default async function CommissionPage() {
   const user = await getCurrentUser();
   if (!user || !hasPermission(user, PERMISSIONS.HR_VIEW)) return <AccessDeniedState />;
 
-  const branchName = (id: string) => MOCK_BRANCHES.find((b) => b.id === id)?.name ?? id;
+  // Branch and staff names travel with the pools; the zone overrides carry
+  // their own zone name. Nothing here needs a second lookup.
+  const commission = await getCommission();
+  const pools = commission.pools;
+  const distributions = pools.flatMap((p) => p.distributions.map((d) => ({ ...d, pool: p })));
+  const zoneOverrides = commission.zoneOverrides;
+  const branchName = (id: string) => pools.find((p) => p.branchId === id)?.branchName ?? id;
 
   return (
     <div className="space-y-6">
@@ -35,7 +37,7 @@ export default async function CommissionPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Branch Pools ({MOCK_COMMISSION_POOLS.length})</CardTitle>
+          <CardTitle className="text-base">Branch Pools ({pools.length})</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto rounded-lg border">
@@ -52,7 +54,7 @@ export default async function CommissionPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {MOCK_COMMISSION_POOLS.map((p) => (
+                {pools.map((p) => (
                   <TableRow key={p.id}>
                     <TableCell className="font-medium">{branchName(p.branchId)}</TableCell>
                     <TableCell>{p.period}</TableCell>
@@ -78,10 +80,10 @@ export default async function CommissionPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Staff Distributions ({MOCK_COMMISSION_DISTRIBUTIONS.length})</CardTitle>
+          <CardTitle className="text-base">Staff Distributions ({distributions.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          {MOCK_COMMISSION_DISTRIBUTIONS.length === 0 ? (
+          {distributions.length === 0 ? (
             <EmptyState title="No distributions" description="Distribution happens once a pool has positive distributable profit." />
           ) : (
             <div className="overflow-x-auto rounded-lg border">
@@ -94,16 +96,15 @@ export default async function CommissionPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {MOCK_COMMISSION_DISTRIBUTIONS.map((d) => {
-                    const pool = MOCK_COMMISSION_POOLS.find((p) => p.id === d.commissionPoolId);
+                  {distributions.map((d) => {
                     return (
                       <TableRow key={d.id}>
                         <TableCell>
                           <Link href={`/hr/staff/${d.staffProfileId}`} className="font-medium hover:underline">
-                            {staffName(d.staffProfileId)}
+                            {(d.staffName ?? d.staffProfileId)}
                           </Link>
                         </TableCell>
-                        <TableCell>{pool ? branchName(pool.branchId) : "—"}</TableCell>
+                        <TableCell>{d.pool.branchName ?? branchName(d.pool.branchId)}</TableCell>
                         <TableCell className="font-tabular text-right">{formatMoney(d.shareAmount)}</TableCell>
                       </TableRow>
                     );
@@ -117,17 +118,17 @@ export default async function CommissionPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Zone Manager Overrides ({MOCK_ZONE_COMMISSION_DISTRIBUTIONS.length})</CardTitle>
+          <CardTitle className="text-base">Zone Manager Overrides ({zoneOverrides.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          {MOCK_ZONE_COMMISSION_DISTRIBUTIONS.length === 0 ? (
+          {zoneOverrides.length === 0 ? (
             <EmptyState title="No zone overrides" />
           ) : (
             <ul className="space-y-2">
-              {MOCK_ZONE_COMMISSION_DISTRIBUTIONS.map((z) => (
+              {zoneOverrides.map((z) => (
                 <li key={z.id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
                   <div>
-                    <p className="font-medium">{ZONES.find((x) => x.id === z.zoneId)?.name ?? z.zoneId}</p>
+                    <p className="font-medium">{z.zoneName ?? z.zoneId}</p>
                     <p className="text-xs text-muted-foreground">
                       {z.period} · {z.overridePercentage}% of {formatMoney(z.totalPoolBase)} pool base
                     </p>

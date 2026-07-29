@@ -2,28 +2,28 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import { HandCoins, Trash2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/settings";
 import { Button } from "@/components/ui/button";
-import { DataTable } from "@/components/data-table/data-table";
+import { SettingsTable } from "@/components/settings/table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { ConfirmDeleteDialog } from "@/components/data-table/confirm-delete-dialog";
 import { ProductFormDialog } from "@/features/admin/loan-products/product-form-dialog";
 import { deleteLoanProduct } from "@/features/admin/loan-products/actions";
 import { formatMoney } from "@/lib/domain/money";
-import type { LoanProduct, InterestFormula, RepaymentSchedule, LoanProductRepaymentSchedule } from "@/types/loan-product";
+import type { LoanProductWithConfig } from "@/lib/api/loans";
+import type { InterestFormula, RepaymentSchedule } from "@/types/loan-product";
 
 interface ProductsTableProps {
-  products: LoanProduct[];
+  products: LoanProductWithConfig[];
   formulas: InterestFormula[];
   schedules: RepaymentSchedule[];
-  pivot: LoanProductRepaymentSchedule[];
 }
 
-export function ProductsTable({ products, formulas, schedules, pivot }: ProductsTableProps) {
+/** Allowed cadences come with the product (`allowedRepaymentScheduleIds`), so there is no pivot to join. */
+export function ProductsTable({ products, formulas, schedules }: ProductsTableProps) {
   const formulaName = (id: string) => formulas.find((f) => f.id === id)?.name ?? "—";
-  const scheduleIdsFor = (productId: string) => pivot.filter((p) => p.loanProductId === productId).map((p) => p.repaymentScheduleId);
 
-  const columns: ColumnDef<LoanProduct>[] = [
+  const columns: ColumnDef<LoanProductWithConfig>[] = [
     { accessorKey: "name", header: ({ column }) => <DataTableColumnHeader column={column} title="Name" /> },
     { id: "formula", header: "Interest Formula", cell: ({ row }) => formulaName(row.original.interestFormulaId) },
     {
@@ -35,15 +35,15 @@ export function ProductsTable({ products, formulas, schedules, pivot }: Products
     {
       id: "mandate",
       header: "Mandate",
-      cell: ({ row }) => (row.original.requiresMandate ? <Badge variant="outline">Required</Badge> : "—"),
+      cell: ({ row }) => (row.original.requiresMandate ? <StatusBadge tone="info" dot={false}>Required</StatusBadge> : "—"),
     },
     {
       accessorKey: "status",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
       cell: ({ row }) => (
-        <Badge variant={row.original.status === "active" ? "default" : "secondary"} className="capitalize">
+        <StatusBadge tone={row.original.status === "active" ? "active" : "inactive"} className="capitalize">
           {row.original.status}
-        </Badge>
+        </StatusBadge>
       ),
       filterFn: "arrIncludesSome",
     },
@@ -51,7 +51,7 @@ export function ProductsTable({ products, formulas, schedules, pivot }: Products
       id: "actions",
       cell: ({ row }) => (
         <div className="flex justify-end gap-1">
-          <ProductFormDialog product={row.original} formulas={formulas} schedules={schedules} productScheduleIds={scheduleIdsFor(row.original.id)} />
+          <ProductFormDialog product={row.original} formulas={formulas} schedules={schedules} productScheduleIds={row.original.allowedRepaymentScheduleIds} />
           <ConfirmDeleteDialog
             trigger={
               <Button variant="ghost" size="icon-sm" className="text-destructive hover:text-destructive">
@@ -69,7 +69,7 @@ export function ProductsTable({ products, formulas, schedules, pivot }: Products
   ];
 
   return (
-    <DataTable
+    <SettingsTable
       columns={columns}
       data={products}
       searchFields={["name", "code"]}

@@ -7,39 +7,50 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { AccessDeniedState } from "@/components/feedback/access-denied-state";
-import { MOCK_PAYMENTS, MOCK_PAYMENT_ALLOCATIONS, MOCK_LOAN_SCHEDULES, MOCK_SUSPENSE_ITEMS } from "@/lib/mock-data/payments";
-import { MOCK_LOANS } from "@/lib/mock-data/loans";
-import { MOCK_CUSTOMERS } from "@/lib/mock-data/customers";
-import { MOCK_BRANCHES } from "@/lib/mock-data/branches";
+import { getPayment, getSuspenseItems } from "@/lib/api/payments";
+import { getLoanSchedule } from "@/lib/api/loans";
+import { ApiError } from "@/lib/api/errors";
 import { MOCK_USERS } from "@/lib/mock-data/users";
-import { customerFullName } from "@/types/customer";
 import { formatMoney, round2 } from "@/lib/domain/money";
 import { getCurrentUser } from "@/lib/auth/session";
 import { hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
-import { ConfirmPaymentButton } from "@/features/repayments/confirm-payment-button";
+import { getNameLookups } from "@/features/repayments/queries";
 import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
 
 export default async function PaymentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const payment = MOCK_PAYMENTS.find((p) => p.id === id);
-  if (!payment) notFound();
+
+  // Outside this user's branch scope comes back 403, missing comes back 404 —
+  // both mean "no such payment, for you".
+  let payment;
+  try {
+    payment = await getPayment(id);
+  } catch (error) {
+    if (error instanceof ApiError && (error.status === 404 || error.status === 403)) notFound();
+    throw error;
+  }
 
   const user = await getCurrentUser();
   if (!user) return <AccessDeniedState />;
-  const seesAll = hasPermission(user, PERMISSIONS.BRANCHES_VIEW_ALL);
-  if (!seesAll && payment.branchId !== null && payment.branchId !== user.branchId) {
-    return <AccessDeniedState />;
-  }
+  const canManage = hasPermission(user, PERMISSIONS.REPAYMENTS_MANAGE);
 
-  const loan = payment.loanId ? MOCK_LOANS.find((l) => l.id === payment.loanId) : undefined;
-  const customer = payment.customerId ? MOCK_CUSTOMERS.find((c) => c.id === payment.customerId) : undefined;
-  const branch = payment.branchId ? MOCK_BRANCHES.find((b) => b.id === payment.branchId) : undefined;
-  const allocations = MOCK_PAYMENT_ALLOCATIONS.filter((a) => a.paymentId === payment.id);
-  const suspense = MOCK_SUSPENSE_ITEMS.filter((s) => s.paymentId === payment.id);
+  const [names, schedule, suspenseQueue] = await Promise.all([
+    getNameLookups(),
+    // Installment numbers and due dates for the allocation rows. Needs
+    // `loans.view`, which a Teller does not hold, so it fails soft to "—".
+    payment.loanId ? getLoanSchedule(payment.loanId).catch(() => null) : Promise.resolve(null),
+    canManage ? getSuspenseItems().catch(() => []) : Promise.resolve([]),
+  ]);
+
+  const scheduleById = new Map((schedule?.installments ?? []).map((s) => [s.id, s]));
+  const suspense = suspenseQueue.filter((s) => s.paymentId === payment.id);
   const userNames = Object.fromEntries(MOCK_USERS.map((u) => [u.id, u.name]));
 
-  const totals = allocations.reduce(
+  const customerName = payment.customerId ? names.customers.get(payment.customerId) : undefined;
+  const branchName = payment.branchId ? names.branches.get(payment.branchId) : undefined;
+
+  const totals = payment.allocations.reduce(
     (acc, a) => ({
       penalty: round2(acc.penalty + a.penaltyAllocated),
       interest: round2(acc.interest + a.interestAllocated),
@@ -48,8 +59,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
     { penalty: 0, interest: 0, principal: 0 }
   );
   const allocatedTotal = round2(totals.penalty + totals.interest + totals.principal);
-
-  const canConfirm = hasPermission(user, PERMISSIONS.REPAYMENTS_MANAGE) && payment.status === "pending_verification";
+  const unallocated = round2(payment.amount - allocatedTotal);
 
   return (
     <div className="space-y-4">
@@ -69,23 +79,20 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              {loan ? (
-                <Link href={`/loans/${loan.id}`} className="hover:underline">
-                  {loan.loanNumber}
+              {payment.loanId ? (
+                <Link href={`/loans/${payment.loanId}`} className="hover:underline">
+                  {payment.loanNumber ?? "View loan"}
                 </Link>
               ) : (
                 "Not matched to a loan"
               )}
-              {customer && ` · ${customerFullName(customer)}`}
-              {branch && ` · ${branch.name}`}
+              {customerName && ` · ${customerName}`}
+              {branchName && ` · ${branchName}`}
             </p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="sm:text-right">
-              <p className="text-xs text-muted-foreground">Amount</p>
-              <p className="font-tabular text-lg font-semibold">{formatMoney(payment.amount)}</p>
-            </div>
-            {canConfirm && <ConfirmPaymentButton paymentId={payment.id} />}
+          <div className="sm:text-right">
+            <p className="text-xs text-muted-foreground">Amount</p>
+            <p className="font-tabular text-lg font-semibold">{formatMoney(payment.amount)}</p>
           </div>
         </CardContent>
       </Card>
@@ -95,13 +102,13 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
           <CardTitle className="text-base">Allocation Breakdown</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {allocations.length === 0 ? (
+          {payment.allocations.length === 0 ? (
             <EmptyState
               title="Not yet allocated"
               description={
-                payment.status === "pending_verification"
-                  ? "Cash payments post only once a deposit slip is reconciled."
-                  : "This payment has no allocation rows yet."
+                payment.status === "unmatched"
+                  ? "This receipt could not be matched to a loan and is parked in Suspense."
+                  : "This payment has no allocation rows."
               }
             />
           ) : (
@@ -115,6 +122,11 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
               <p className="text-xs text-muted-foreground">
                 Applied in the system-wide order: Penalty → Interest → Principal, oldest installment first.
               </p>
+              {unallocated > 0.01 && (
+                <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                  {formatMoney(unallocated)} of this payment exceeded the outstanding balance and was not allocated.
+                </p>
+              )}
               <div className="overflow-x-auto rounded-lg border">
                 <Table>
                   <TableHeader>
@@ -127,12 +139,12 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {allocations.map((a) => {
-                      const schedule = MOCK_LOAN_SCHEDULES.find((s) => s.id === a.loanScheduleId);
+                    {payment.allocations.map((a) => {
+                      const installment = scheduleById.get(a.loanScheduleId);
                       return (
                         <TableRow key={a.id}>
-                          <TableCell>#{schedule?.installmentNumber ?? "—"}</TableCell>
-                          <TableCell className="whitespace-nowrap">{schedule?.dueDate ?? "—"}</TableCell>
+                          <TableCell>#{installment?.installmentNumber ?? "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{installment?.dueDate ?? "—"}</TableCell>
                           <TableCell className="font-tabular">{formatMoney(a.penaltyAllocated)}</TableCell>
                           <TableCell className="font-tabular">{formatMoney(a.interestAllocated)}</TableCell>
                           <TableCell className="font-tabular">{formatMoney(a.principalAllocated)}</TableCell>
@@ -160,7 +172,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
                     <p className="font-medium">{s.reason}</p>
                     <p className="text-xs text-muted-foreground">
                       {formatMoney(s.amount)}
-                      {s.resolvedBy && ` · ${userNames[s.resolvedBy] ?? s.resolvedBy}`}
+                      {s.resolvedByName && ` · ${s.resolvedByName}`}
                     </p>
                   </div>
                   <Badge variant={s.status === "allocated" ? "default" : "secondary"} className="capitalize">
@@ -183,7 +195,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
           <Fact label="Confirmed" value={payment.confirmedAt ? new Date(payment.confirmedAt).toLocaleString() : "—"} />
           <Fact label="Teller" value={payment.tellerId ? (userNames[payment.tellerId] ?? "—") : "—"} />
           <Fact label="Recorded by" value={payment.createdBy ? (userNames[payment.createdBy] ?? "—") : "System"} />
-          <Fact label="Branch" value={branch?.name ?? "—"} />
+          <Fact label="Journal entry" value={payment.journalEntryNumber ?? (payment.journalEntryId ? `#${payment.journalEntryId}` : "—")} />
         </CardContent>
       </Card>
     </div>

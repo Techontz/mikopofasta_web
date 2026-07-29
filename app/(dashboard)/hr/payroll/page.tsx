@@ -8,7 +8,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { hasAnyPermission, hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
 import { formatMoney, round2 } from "@/lib/domain/money";
-import { MOCK_PAYROLL_RUNS, MOCK_PAYROLL_LINES } from "@/lib/mock-data/payroll";
+import { getAllPayrollRuns } from "@/lib/api/hr";
 import { MOCK_USERS } from "@/lib/mock-data/users";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { hrNavFor } from "@/features/hr/nav-items";
@@ -26,7 +26,9 @@ export default async function PayrollPage() {
 
   const canGenerate = hasPermission(user, PERMISSIONS.PAYROLL_GENERATE);
   const userNames = Object.fromEntries(MOCK_USERS.map((u) => [u.id, u.name]));
-  const runs = [...MOCK_PAYROLL_RUNS].sort((a, b) => b.period.localeCompare(a.period));
+  // Ordered newest-period-first by the API, with each run's line count and net
+  // total computed there so a summary can never disagree with its lines.
+  const runs = await getAllPayrollRuns();
 
   return (
     <div className="space-y-6">
@@ -65,10 +67,11 @@ export default async function PayrollPage() {
                 </TableHeader>
                 <TableBody>
                   {runs.map((run) => {
-                    const lines = MOCK_PAYROLL_LINES.filter((l) => l.payrollRunId === run.id);
-                    const gross = round2(lines.reduce((s, l) => s + l.baseSalary + l.commissionAmount + l.allowancesTotal, 0));
-                    const deductions = round2(lines.reduce((s, l) => s + l.deductionsTotal, 0));
-                    const net = round2(lines.reduce((s, l) => s + l.netSalary, 0));
+                    // The index eager-loads each run's lines, so gross and
+                    // deductions are summed from the server's own figures.
+                    const gross = round2(run.lines.reduce((s, l) => s + l.baseSalary + l.commissionAmount + l.allowancesTotal, 0));
+                    const deductions = round2(run.lines.reduce((s, l) => s + l.deductionsTotal, 0));
+                    const net = run.netTotal;
                     return (
                       <TableRow key={run.id}>
                         <TableCell>
@@ -77,7 +80,7 @@ export default async function PayrollPage() {
                           </Link>
                         </TableCell>
                         <TableCell>{userNames[run.generatedBy] ?? run.generatedBy}</TableCell>
-                        <TableCell>{lines.length}</TableCell>
+                        <TableCell>{run.lineCount}</TableCell>
                         <TableCell className="font-tabular text-right">{formatMoney(gross)}</TableCell>
                         <TableCell className="font-tabular text-right">−{formatMoney(deductions)}</TableCell>
                         <TableCell className="font-tabular text-right font-medium">{formatMoney(net)}</TableCell>

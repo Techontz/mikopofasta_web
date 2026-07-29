@@ -32,8 +32,3 @@ export function daysAgo(n: number, from: Date = new Date()): string {
 export function dateOnlyDaysAgo(n: number, from: Date = new Date()): string {
   return daysAgo(n, from).slice(0, 10);
 }
-
-export function daysFromNow(n: number, from: Date = new Date()): string {
-  return daysAgo(-n, from);
-}
-

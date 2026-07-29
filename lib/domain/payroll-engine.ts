@@ -1,77 +1,19 @@
 import { round2 } from "@/lib/domain/money";
-import type { StaffProfile } from "@/types/staff";
-import type { AllowanceType } from "@/types/enums";
 
-/** Staff Fund contribution withheld from every salary — backend §11. */
-export const STAFF_FUND_CONTRIBUTION_PCT = 0.1;
-/** Flat monthly recovery applied against an outstanding staff loan/advance. */
-export const RECOVERY_PER_PERIOD = 50_000;
-
-export interface PayrollInputs {
-  staff: StaffProfile;
-  /** Branch pool share + any zone override already resolved by the commission engine. */
-  commissionAmount: number;
-  /** True for branch-based operational staff, who also draw a transport allowance. */
-  isBranchBased: boolean;
-  hasActiveLoan: boolean;
-  hasOutstandingAdvance: boolean;
-}
-
-export interface PayrollComputation {
-  baseSalary: number;
-  commissionAmount: number;
-  allowances: { type: AllowanceType; amount: number }[];
-  allowancesTotal: number;
-  deductions: { type: "staff_fund" | "loan" | "advance"; amount: number }[];
-  deductionsTotal: number;
-  netSalary: number;
-}
-
-/**
- * The single payroll computation — used by both the seed and the runtime
- * `generatePayroll` action so a generated run can never disagree with the
- * seeded one. Pure: no ledger posting, no mutation (backend §11 — HR
- * generates, Finance finalizes; only finalization touches the ledger).
+/*
+ * What is left of the frontend's §11 engine.
+ *
+ * The payroll half is gone. `computePayrollLine` computed a payslip — base
+ * salary, the transport allowance branch-based staff draw, the Staff Fund
+ * withholding, and loan and advance recovery — and `generatePayroll` then
+ * turned it into rows. `POST /payroll/generate` now does all of it, inside the
+ * same transaction as the run it creates, so a second implementation here
+ * could only ever produce a payslip the books disagree with.
+ *
+ * The commission-pool helpers below stay for one reason: lib/mock-data
+ * /commission.ts seeds itself with them, and Reports still reads that seed.
+ * They go when Reports is integrated.
  */
-export function computePayrollLine(input: PayrollInputs): PayrollComputation {
-  const { staff, commissionAmount, isBranchBased, hasActiveLoan, hasOutstandingAdvance } = input;
-
-  const allowances: { type: AllowanceType; amount: number }[] = isBranchBased
-    ? [
-        { type: "transport", amount: 50_000 },
-        { type: "airtime", amount: 20_000 },
-      ]
-    : [{ type: "airtime", amount: 20_000 }];
-  const allowancesTotal = round2(allowances.reduce((s, a) => s + a.amount, 0));
-
-  const deductions: { type: "staff_fund" | "loan" | "advance"; amount: number }[] = [
-    { type: "staff_fund", amount: round2(staff.baseSalary * STAFF_FUND_CONTRIBUTION_PCT) },
-  ];
-  if (hasActiveLoan) deductions.push({ type: "loan", amount: RECOVERY_PER_PERIOD });
-  if (hasOutstandingAdvance) deductions.push({ type: "advance", amount: RECOVERY_PER_PERIOD });
-  const deductionsTotal = round2(deductions.reduce((s, d) => s + d.amount, 0));
-
-  return {
-    baseSalary: staff.baseSalary,
-    commissionAmount: round2(commissionAmount),
-    allowances,
-    allowancesTotal,
-    deductions,
-    deductionsTotal,
-    netSalary: round2(staff.baseSalary + commissionAmount + allowancesTotal - deductionsTotal),
-  };
-}
-
-/** HQ-based roles don't draw a branch transport allowance. */
-const NON_BRANCH_ROLES = ["super_admin", "admin", "finance", "hr", "auditor"];
-
-export function isBranchBasedRole(role: string, branchId: string | null): boolean {
-  return branchId !== null && !NON_BRANCH_ROLES.includes(role);
-}
-
-// ---------------------------------------------------------------------------
-// Commission engine — backend §11
-// ---------------------------------------------------------------------------
 
 export const HQ_HOLD_PCT = 0.02;
 export const POOL_PCT = 0.2;

@@ -32,6 +32,15 @@ export function CashEntryForm({ loans }: { loans: RepayableLoan[] }) {
   const [amount, setAmount] = React.useState("");
   const [pending, startTransition] = useTransition();
 
+  /*
+   * `POST /payments/cash` is idempotent on this key. It is minted once per
+   * *entry* — not per click — so a double-submitted form replays the first
+   * result instead of taking the customer's money twice, while a genuine second
+   * payment of the same amount gets a fresh key and is recorded as its own
+   * payment. Rotated only after a successful submission.
+   */
+  const [submissionKey, setSubmissionKey] = React.useState(() => crypto.randomUUID());
+
   const loan = loans.find((l) => l.id === loanId);
   const amountNumber = Number(amount) || 0;
   const exceeds = loan ? amountNumber > loan.outstanding : false;
@@ -40,16 +49,15 @@ export function CashEntryForm({ loans }: { loans: RepayableLoan[] }) {
     if (!loan) return;
     startTransition(async () => {
       const result = await recordCashPayment({
-        customerId: loan.customerId,
         loanId: loan.id,
         amount: amountNumber,
-        branchId: loan.branchId,
-        tellerId: "",
+        idempotencyKey: submissionKey,
       });
       if (result.ok) {
         toast.success(result.message);
         setAmount("");
         setLoanId("");
+        setSubmissionKey(crypto.randomUUID());
         router.refresh();
       } else {
         toast.error(result.message);

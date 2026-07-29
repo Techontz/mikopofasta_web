@@ -4,18 +4,17 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MOCK_CUSTOMERS } from "@/lib/mock-data/customers";
-import { MOCK_BRANCHES } from "@/lib/mock-data/branches";
-import { MOCK_CUSTOMER_CATEGORIES } from "@/lib/mock-data/customer-categories";
-import { REGIONS } from "@/lib/mock-data/regions";
-import { DISTRICTS } from "@/lib/mock-data/districts";
-import { WARDS } from "@/lib/mock-data/wards";
-import { STREETS } from "@/lib/mock-data/streets";
-import { MOCK_CUSTOMER_BANK_DETAILS } from "@/lib/mock-data/customer-bank-details";
-import { MOCK_CUSTOMER_DOCUMENTS } from "@/lib/mock-data/customer-documents";
-import { MOCK_CUSTOMER_NOTES } from "@/lib/mock-data/customer-notes";
-import { MOCK_GUARANTORS } from "@/lib/mock-data/guarantors";
-import { MOCK_NEXT_OF_KIN } from "@/lib/mock-data/next-of-kin";
+import {
+  getCustomer,
+  getCustomerCategories,
+  getCustomerDocuments,
+  getCustomerNotes,
+  getGuarantors,
+  getKycStatus,
+  getNextOfKin,
+} from "@/lib/api/customers";
+import { getBranches, getDistricts, getRegions, getStreets, getWards } from "@/lib/api/organization";
+import { ApiError } from "@/lib/api/errors";
 import { MOCK_ACCOUNT_FREEZES } from "@/lib/mock-data/account-freezes";
 import { MOCK_AUDIT_LOGS } from "@/lib/mock-data/audit-logs";
 import { MOCK_GROUPS, MOCK_GROUP_MEMBERS } from "@/lib/mock-data/groups";
@@ -39,24 +38,50 @@ import { AuditTrailPanel } from "@/features/customers/profile/audit-trail-panel"
 
 export default async function CustomerProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const customer = MOCK_CUSTOMERS.find((c) => c.id === id && c.deletedAt === null);
-  if (!customer) notFound();
+
+  // A customer outside this officer's branch scope comes back 403, a missing
+  // one 404. Both mean "no such profile, for you" and belong on the not-found
+  // page rather than the error boundary.
+  let customer;
+  try {
+    customer = await getCustomer(id);
+  } catch (error) {
+    if (error instanceof ApiError && (error.status === 404 || error.status === 403)) notFound();
+    throw error;
+  }
 
   const user = await getCurrentUser();
   const canManage = user ? hasPermission(user, PERMISSIONS.CUSTOMERS_MANAGE) : false;
   const canApprove = user ? hasPermission(user, PERMISSIONS.CUSTOMERS_APPROVE) : false;
 
-  const branch = MOCK_BRANCHES.find((b) => b.id === customer.branchId);
-  const category = MOCK_CUSTOMER_CATEGORIES.find((c) => c.id === customer.customerCategoryId);
-  const region = REGIONS.find((r) => r.id === customer.regionId);
-  const district = DISTRICTS.find((d) => d.id === customer.districtId);
-  const ward = WARDS.find((w) => w.id === customer.wardId);
-  const street = STREETS.find((s) => s.id === customer.streetId);
-  const bankDetails = MOCK_CUSTOMER_BANK_DETAILS.find((b) => b.customerId === customer.id);
-  const documents = MOCK_CUSTOMER_DOCUMENTS.filter((d) => d.customerId === customer.id);
-  const notes = MOCK_CUSTOMER_NOTES.filter((n) => n.customerId === customer.id);
-  const guarantors = MOCK_GUARANTORS.filter((g) => g.customerId === customer.id);
-  const nextOfKin = MOCK_NEXT_OF_KIN.filter((k) => k.customerId === customer.id);
+  const [kyc, documents, notes, guarantors, nextOfKin, categories, branches] = await Promise.all([
+    getKycStatus(id),
+    getCustomerDocuments(id),
+    getCustomerNotes(id),
+    getGuarantors(id),
+    getNextOfKin(id),
+    getCustomerCategories(),
+    getBranches(),
+  ]);
+
+  // The address chain is resolved one level at a time, each filtered by the
+  // level above, rather than pulling every street in the country to name one.
+  const [regions, districts, wards, streets] = await Promise.all([
+    getRegions(),
+    customer.districtId ? getDistricts(customer.regionId ?? undefined) : Promise.resolve([]),
+    customer.wardId ? getWards(customer.districtId ?? undefined) : Promise.resolve([]),
+    customer.streetId ? getStreets(customer.wardId ?? undefined) : Promise.resolve([]),
+  ]);
+
+  const branch = branches.find((b) => b.id === customer.branchId);
+  const category = categories.find((c) => c.id === customer.customerCategoryId);
+  const region = regions.find((r) => r.id === customer.regionId);
+  const district = districts.find((d) => d.id === customer.districtId);
+  const ward = wards.find((w) => w.id === customer.wardId);
+  const street = streets.find((s) => s.id === customer.streetId);
+
+  // Freezes, the audit trail and groups have no endpoint in this phase, so they
+  // stay on seeded data and read empty for API-registered customers.
   const freezes = MOCK_ACCOUNT_FREEZES.filter((f) => f.freezableType === "customer" && f.freezableId === customer.id);
   const auditLogs = MOCK_AUDIT_LOGS.filter((l) => l.auditableType === "customer" && l.auditableId === customer.id);
   const membership = MOCK_GROUP_MEMBERS.find((m) => m.customerId === customer.id);
@@ -92,7 +117,9 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
         <TabsContent value="overview">
           <Card>
             <CardContent className="pt-6">
-              <OverviewPanel customer={customer} branch={branch} category={category} region={region} district={district} ward={ward} street={street} bankDetails={bankDetails} />
+              {/* Bank details are write-only in this API — the KYC panel reads the
+                  server's own checklist rather than inferring them here. */}
+              <OverviewPanel customer={customer} branch={branch} category={category} region={region} district={district} ward={ward} street={street} bankDetails={undefined} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -100,7 +127,7 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
         <TabsContent value="kyc">
           <Card>
             <CardContent className="pt-6">
-              <KycChecklistPanel customer={customer} hasBankDetails={Boolean(bankDetails)} />
+              <KycChecklistPanel kyc={kyc} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -116,7 +143,7 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
         <TabsContent value="documents">
           <Card>
             <CardContent className="pt-6">
-              <DocumentsPanel customerId={customer.id} documents={documents} requiredDocuments={category?.requiredDocuments ?? []} />
+              <DocumentsPanel customerId={customer.id} documents={documents} missingDocuments={kyc.missingDocuments} canManage={canManage} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -124,7 +151,7 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
         <TabsContent value="notes">
           <Card>
             <CardContent className="pt-6">
-              <NotesPanel customerId={customer.id} notes={notes} authorNames={userNames} />
+              <NotesPanel customerId={customer.id} notes={notes} />
             </CardContent>
           </Card>
         </TabsContent>

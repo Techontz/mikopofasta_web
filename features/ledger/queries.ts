@@ -1,28 +1,43 @@
 import "server-only";
 import { round2 } from "@/lib/domain/money";
-import { MOCK_JOURNAL_ENTRIES, MOCK_JOURNAL_ENTRY_LINES } from "@/lib/mock-data/journal-entries";
+import type { LedgerEntry } from "@/lib/api/ledger";
 import type { EntryRow } from "@/features/ledger/entries-table";
-import type { JournalEntry } from "@/types/ledger";
 
-/** An entry's magnitude is one side of its (always balanced) totals. */
-export function entryAmount(entryId: string): number {
-  return round2(MOCK_JOURNAL_ENTRY_LINES.filter((l) => l.journalEntryId === entryId).reduce((s, l) => s + l.debitAmount, 0));
+/**
+ * An entry's magnitude is one side of its (always balanced) totals — the API
+ * sends both, so this reads `totalDebits` rather than re-summing the lines.
+ */
+export function entryAmount(entry: LedgerEntry): number {
+  return round2(entry.totalDebits);
 }
 
-export function entryState(entry: JournalEntry): "Posted" | "Reversal" | "Reversed" {
+/**
+ * Whether an entry is a reversal, has been reversed, or stands as posted.
+ *
+ * "Reversed" needs to know that *some other* entry points back at this one, and
+ * the entry resource does not carry that. The caller passes in the ids that
+ * have been reversed — the list page has the whole book in hand, and the detail
+ * page asks the reversals queue.
+ */
+export function entryState(entry: LedgerEntry, reversedIds: ReadonlySet<string>): "Posted" | "Reversal" | "Reversed" {
   if (entry.isReversal) return "Reversal";
-  return MOCK_JOURNAL_ENTRIES.some((e) => e.reversedEntryId === entry.id) ? "Reversed" : "Posted";
+  return reversedIds.has(entry.id) ? "Reversed" : "Posted";
 }
 
-export function toEntryRow(entry: JournalEntry): EntryRow {
+/** Ids of entries that some later reversal entry points back at. */
+export function reversedEntryIds(entries: readonly LedgerEntry[]): Set<string> {
+  return new Set(entries.map((e) => e.reversedEntryId).filter((id): id is string => id !== null));
+}
+
+export function toEntryRow(entry: LedgerEntry, reversedIds: ReadonlySet<string> = new Set()): EntryRow {
   return {
     id: entry.id,
     entryNumber: entry.entryNumber,
     entryDate: entry.entryDate,
     description: entry.description,
     sourceType: entry.sourceType,
-    amount: entryAmount(entry.id),
-    lineCount: MOCK_JOURNAL_ENTRY_LINES.filter((l) => l.journalEntryId === entry.id).length,
-    state: entryState(entry),
+    amount: entryAmount(entry),
+    lineCount: entry.lines.length,
+    state: entryState(entry, reversedIds),
   };
 }

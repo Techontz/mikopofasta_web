@@ -1,42 +1,87 @@
 import type { LucideIcon } from "lucide-react";
-import {
-  Building2,
-  Users,
-  ShieldCheck,
-  Tags,
-  HandCoins,
-  Percent,
-  CalendarClock,
-  Receipt,
-  BellRing,
-  History,
-} from "lucide-react";
+import { Building2, HandCoins, Percent, Receipt, Scale, Tags, Vault } from "lucide-react";
 import { PERMISSIONS, type AuthenticatedUser, type Permission } from "@/types/auth";
 import { hasAnyPermission, hasPermission } from "@/config/permissions";
 
+/**
+ * The Settings menu, exactly as the system being migrated presents it.
+ *
+ * This list is workflow, not decoration — operators have navigated it for
+ * years — so the entries, their order and their wording are reproduced
+ * verbatim from the old system, including its spellings ("Interest Formular",
+ * "Reserve Setting"). Nothing may be added here, and nothing reordered,
+ * without that being a change to how people work.
+ *
+ * `href: null` marks an entry the old system serves and this one cannot yet:
+ * it keeps its place in the menu rather than being quietly dropped.
+ */
 export interface AdminSection {
-  slug: string;
+  /** Legacy label, shown in the menu and as the page title. */
   title: string;
   description: string;
   icon: LucideIcon;
-  /** Sub-nav/landing-card visibility — most require org settings; audit logs also admits Auditors. */
+  /** Existing route this entry opens, or null where no route serves it yet. */
+  href: string | null;
   permission: Permission | Permission[];
 }
 
-/** Backs both the /admin landing page cards and the shared sub-nav in app/(dashboard)/admin/layout.tsx. */
 export const ADMIN_SECTIONS: AdminSection[] = [
-  { slug: "organization", title: "Organization Setup", description: "Company profile, regions, zones, and branches.", icon: Building2, permission: PERMISSIONS.ADMIN_ORG_SETTINGS },
-  { slug: "users", title: "User Management", description: "Staff accounts, branch assignment, and access status.", icon: Users, permission: PERMISSIONS.USERS_MANAGE },
-  { slug: "roles", title: "Roles & Permissions", description: "Role definitions and the system-wide permission matrix.", icon: ShieldCheck, permission: PERMISSIONS.ROLES_VIEW },
-  { slug: "customer-categories", title: "Customer Categories", description: "KYC rule engine — risk tier, required docs, dynamic forms.", icon: Tags, permission: PERMISSIONS.ADMIN_ORG_SETTINGS },
-  { slug: "loan-products", title: "Loan Products", description: "Interest, limits, tenure, mandate, and penalty configuration.", icon: HandCoins, permission: PERMISSIONS.ADMIN_ORG_SETTINGS },
-  { slug: "interest-formulas", title: "Interest Formulas", description: "Simple, flat rate, and reducing balance calculation methods.", icon: Percent, permission: PERMISSIONS.ADMIN_ORG_SETTINGS },
-  { slug: "repayment-schedules", title: "Repayment Schedules", description: "Daily, weekly, monthly, and group repayment cadences.", icon: CalendarClock, permission: PERMISSIONS.ADMIN_ORG_SETTINGS },
-  { slug: "expense-categories", title: "Expense Categories", description: "Branch and HQ expense classifications.", icon: Receipt, permission: PERMISSIONS.ADMIN_ORG_SETTINGS },
-  { slug: "notification-templates", title: "Notification Templates", description: "SMS and email templates for system-triggered events.", icon: BellRing, permission: PERMISSIONS.ADMIN_ORG_SETTINGS },
-  { slug: "audit-logs", title: "Audit Logs", description: "Full system audit trail — who did what, and when.", icon: History, permission: [PERMISSIONS.ADMIN_ORG_SETTINGS, PERMISSIONS.AUDIT_VIEW] },
+  {
+    title: "Branch",
+    description: "Branches, and the region and zone hierarchy every record is scoped by.",
+    icon: Building2,
+    href: "/admin/organization",
+    permission: PERMISSIONS.ADMIN_ORG_SETTINGS,
+  },
+  {
+    title: "Interest Formular",
+    description: "Simple, flat rate, and reducing balance calculation methods.",
+    icon: Percent,
+    href: "/admin/interest-formulas",
+    permission: PERMISSIONS.ADMIN_ORG_SETTINGS,
+  },
+  {
+    title: "Main Loan Category",
+    description: "Customer categories — risk tier, required documents, and dynamic KYC fields.",
+    icon: Tags,
+    href: "/admin/customer-categories",
+    permission: PERMISSIONS.ADMIN_ORG_SETTINGS,
+  },
+  {
+    title: "Loan Category",
+    description: "Loan levels, interest, tenure, mandate, and penalty configuration.",
+    icon: HandCoins,
+    href: "/admin/loan-products",
+    permission: PERMISSIONS.ADMIN_ORG_SETTINGS,
+  },
+  {
+    title: "Loan Fee",
+    description: "Loan fee and insurance per loan category.",
+    icon: Receipt,
+    href: null,
+    permission: PERMISSIONS.ADMIN_ORG_SETTINGS,
+  },
+  {
+    title: "Penalty",
+    description: "Penalty calculation type and amount.",
+    icon: Scale,
+    href: null,
+    permission: PERMISSIONS.ADMIN_ORG_SETTINGS,
+  },
+  {
+    title: "Reserve Setting",
+    description: "Reserve percentage held against the portfolio.",
+    icon: Vault,
+    href: null,
+    permission: PERMISSIONS.ADMIN_ORG_SETTINGS,
+  },
 ];
 
-export function isSectionVisible(user: Pick<AuthenticatedUser, "role" | "extraPermissions">, section: AdminSection): boolean {
-  return Array.isArray(section.permission) ? hasAnyPermission(user, section.permission) : hasPermission(user, section.permission);
+export function isSectionVisible(
+  user: Pick<AuthenticatedUser, "role" | "extraPermissions">,
+  section: Pick<AdminSection, "permission">
+): boolean {
+  return Array.isArray(section.permission)
+    ? hasAnyPermission(user, section.permission)
+    : hasPermission(user, section.permission);
 }

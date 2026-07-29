@@ -1,15 +1,24 @@
-import { MOCK_LOAN_PRODUCTS, MOCK_LOAN_PRODUCT_REPAYMENT_SCHEDULES } from "@/lib/mock-data/loan-products";
-import { MOCK_INTEREST_FORMULAS } from "@/lib/mock-data/interest-formulas";
-import { MOCK_REPAYMENT_SCHEDULES } from "@/lib/mock-data/repayment-schedules";
+import { getInterestFormulas, getLoanProducts, getRepaymentSchedules } from "@/lib/api/loans";
 import { ProductsTable } from "@/features/admin/loan-products/products-table";
+import { HandCoins } from "lucide-react";
+import { PageHeader } from "@/components/settings";
 
-export default function LoanProductsPage() {
+export default async function LoanProductsPage() {
+  const [products, formulas, schedules] = await Promise.all([
+    getLoanProducts(),
+    getInterestFormulas(),
+    getRepaymentSchedules(),
+  ]);
+
   return (
-    <ProductsTable
-      products={MOCK_LOAN_PRODUCTS}
-      formulas={MOCK_INTEREST_FORMULAS}
-      schedules={MOCK_REPAYMENT_SCHEDULES}
-      pivot={MOCK_LOAN_PRODUCT_REPAYMENT_SCHEDULES}
-    />
+    <div className="space-y-6">
+      <PageHeader
+        icon={HandCoins}
+        title="Loan Category"
+        description="Interest, limits, tenure, mandate requirements, and penalty configuration per product."
+        breadcrumb={[{ label: "Settings", href: "/admin" }, { label: "Loan Category" }]}
+      />
+      <ProductsTable products={products} formulas={formulas} schedules={schedules} />
+    </div>
   );
 }

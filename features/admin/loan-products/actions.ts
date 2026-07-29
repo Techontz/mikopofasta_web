@@ -3,14 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { LoanProductSchema } from "@/types/loan-product";
-import { MOCK_LOAN_PRODUCTS, MOCK_LOAN_PRODUCT_REPAYMENT_SCHEDULES } from "@/lib/mock-data/loan-products";
-import { MOCK_LOANS } from "@/lib/mock-data/loans";
-import { nextId, upsert, removeById } from "@/lib/domain/mock-store";
-import { getCurrentUser } from "@/lib/auth/session";
-import { hasPermission } from "@/config/permissions";
-import { PERMISSIONS } from "@/types/auth";
+import {
+  createLoanProductRequest,
+  deleteLoanProductRequest,
+  updateLoanProductRequest,
+} from "@/lib/api/loans";
+import { describeError } from "@/lib/api/errors";
 import type { ActionResult } from "@/lib/domain/action-result";
-import type { LoanProductRepaymentSchedule } from "@/types/loan-product";
 
 const ProductInputSchema = LoanProductSchema.pick({
   name: true,
@@ -33,64 +32,50 @@ const ProductInputSchema = LoanProductSchema.pick({
 
 export type ProductInputValues = z.infer<typeof ProductInputSchema>;
 
-async function requirePermission(): Promise<ActionResult | null> {
-  const user = await getCurrentUser();
-  if (!user || !hasPermission(user, PERMISSIONS.ADMIN_ORG_SETTINGS)) {
-    return { ok: false, message: "You don't have permission to do that." };
-  }
-  return null;
-}
-
-function syncSchedulePivot(loanProductId: string, scheduleIds: string[]) {
-  for (let i = MOCK_LOAN_PRODUCT_REPAYMENT_SCHEDULES.length - 1; i >= 0; i--) {
-    if (MOCK_LOAN_PRODUCT_REPAYMENT_SCHEDULES[i].loanProductId === loanProductId) MOCK_LOAN_PRODUCT_REPAYMENT_SCHEDULES.splice(i, 1);
-  }
-  for (const repaymentScheduleId of scheduleIds) {
-    const row: LoanProductRepaymentSchedule = { id: nextId("lprs"), loanProductId, repaymentScheduleId };
-    MOCK_LOAN_PRODUCT_REPAYMENT_SCHEDULES.push(row);
-  }
-}
-
+/**
+ * Loan products — `POST/PUT/DELETE /api/v1/loan-products`.
+ *
+ * The rules these functions used to carry now sit with the API, which can see
+ * the whole book: `admin.org_settings`, the unique product code, and "can't
+ * delete a product loans exist against" — a 409 RESOURCE_IN_USE that names the
+ * product. The allowed-cadence pivot travels inside the same request rather
+ * than being a second array kept in step by hand.
+ */
 export async function createLoanProduct(input: ProductInputValues): Promise<ActionResult> {
-  const denied = await requirePermission();
-  if (denied) return denied;
   const parsed = ProductInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid input." };
 
-  const { repaymentScheduleIds, ...product } = parsed.data;
-  const actor = await getCurrentUser();
-  const id = nextId("prod");
-  upsert(MOCK_LOAN_PRODUCTS, { id, ...product, createdBy: actor?.id ?? null, deletedAt: null });
-  syncSchedulePivot(id, repaymentScheduleIds);
+  try {
+    await createLoanProductRequest(parsed.data);
+  } catch (error) {
+    return { ok: false, message: describeError(error) };
+  }
+
   revalidatePath("/admin/loan-products");
   return { ok: true, message: "Loan product created." };
 }
 
 export async function updateLoanProduct(id: string, input: ProductInputValues): Promise<ActionResult> {
-  const denied = await requirePermission();
-  if (denied) return denied;
   const parsed = ProductInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid input." };
 
-  const existing = MOCK_LOAN_PRODUCTS.find((p) => p.id === id);
-  if (!existing) return { ok: false, message: "Loan product not found." };
+  try {
+    await updateLoanProductRequest(id, parsed.data);
+  } catch (error) {
+    return { ok: false, message: describeError(error) };
+  }
 
-  const { repaymentScheduleIds, ...product } = parsed.data;
-  upsert(MOCK_LOAN_PRODUCTS, { ...existing, ...product });
-  syncSchedulePivot(id, repaymentScheduleIds);
   revalidatePath("/admin/loan-products");
   return { ok: true, message: "Loan product updated." };
 }
 
 export async function deleteLoanProduct(id: string): Promise<ActionResult> {
-  const denied = await requirePermission();
-  if (denied) return denied;
-
-  if (MOCK_LOANS.some((l) => l.loanProductId === id)) {
-    return { ok: false, message: "Can't delete — loans exist against this product." };
+  try {
+    await deleteLoanProductRequest(id);
+  } catch (error) {
+    return { ok: false, message: describeError(error) };
   }
-  removeById(MOCK_LOAN_PRODUCTS, id);
-  syncSchedulePivot(id, []);
+
   revalidatePath("/admin/loan-products");
   return { ok: true, message: "Loan product deleted." };
 }

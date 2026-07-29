@@ -9,44 +9,49 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { recordInboundPayment } from "@/features/repayments/actions";
+import { recordUnmatchedPayment } from "@/features/repayments/actions";
 import { PAYMENT_CHANNELS, type PaymentChannel } from "@/types/enums";
 
 /**
- * Stands in for the provider webhook (`POST /webhooks/payments`) so the
- * direct-intake channel is exercisable in the mock environment. A reference
- * that matches no loan is still received and parked in Suspense.
+ * Records money that arrived without a usable reference — `POST
+ * /payments/unmatched`. The API receives it, posts it to Suspense and opens a
+ * suspense item; nothing is dropped (§7).
+ *
+ * This used to simulate the provider callback. It cannot: `POST
+ * /webhooks/payments` authenticates with an HMAC signature this app does not
+ * hold and should never hold — a BFF able to forge one would defeat the point
+ * of signing it. A *matched* provider payment now reaches the system only from
+ * the provider; what a Finance user can do from here is book the receipt that
+ * could not be matched.
  */
 export function InboundPaymentDialog() {
   const [open, setOpen] = React.useState(false);
-  const [reference, setReference] = React.useState("");
   const [amount, setAmount] = React.useState("");
-  const [phone, setPhone] = React.useState("0754000000");
+  const [reason, setReason] = React.useState("");
   const [channel, setChannel] = React.useState<PaymentChannel>("mobile_money");
   const [txn, setTxn] = React.useState("");
   const [pending, startTransition] = useTransition();
 
   function handleOpenChange(next: boolean) {
-    // Fresh transaction id per open so the duplicate-detection rule isn't
-    // tripped just by reopening the dialog.
+    // A fresh transaction id per open, so reopening the dialog does not trip
+    // the API's duplicate-transaction rule.
     if (next) setTxn(`TXN${Date.now().toString().slice(-8)}`);
     setOpen(next);
   }
 
   function submit() {
     startTransition(async () => {
-      const result = await recordInboundPayment({
-        reference,
+      const result = await recordUnmatchedPayment({
         amount: Number(amount) || 0,
-        phone,
         channel,
-        transactionId: txn,
+        transactionId: txn || null,
+        reason,
       });
       if (result.ok) {
         toast.success(result.message);
         setOpen(false);
-        setReference("");
         setAmount("");
+        setReason("");
       } else {
         toast.error(result.message);
       }
@@ -59,21 +64,26 @@ export function InboundPaymentDialog() {
         render={
           <Button size="sm" variant="outline">
             <Radio className="size-4" />
-            Simulate Inbound Payment
+            Record Unmatched Receipt
           </Button>
         }
       />
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Simulate Inbound Payment</DialogTitle>
+          <DialogTitle>Record Unmatched Receipt</DialogTitle>
           <DialogDescription>
-            Mirrors a signed provider callback. An unknown reference is still received and ledgered to Suspense — never dropped.
+            Money that arrived but can&apos;t be matched to a loan. It is still received and still ledgered — to Suspense — never dropped.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="inb-ref">Loan reference</Label>
-            <Input id="inb-ref" placeholder="LN-2026-000011" value={reference} onChange={(e) => setReference(e.target.value)} />
+            <Label htmlFor="inb-reason">Why it couldn&apos;t be matched</Label>
+            <Input
+              id="inb-reason"
+              placeholder="e.g. Reference not found: LN-2026-999999"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="inb-amount">Amount (TZS)</Label>
@@ -94,18 +104,14 @@ export function InboundPaymentDialog() {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="inb-phone">Payer phone</Label>
-            <Input id="inb-phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="inb-txn">Transaction ID</Label>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="inb-txn">Provider transaction ID (optional)</Label>
             <Input id="inb-txn" value={txn} onChange={(e) => setTxn(e.target.value)} />
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={submit} disabled={pending || !reference || !amount || !txn}>
-            {pending ? "Sending…" : "Send Callback"}
+          <Button onClick={submit} disabled={pending || !amount || !reason.trim()}>
+            {pending ? "Recording…" : "Record Receipt"}
           </Button>
         </DialogFooter>
       </DialogContent>

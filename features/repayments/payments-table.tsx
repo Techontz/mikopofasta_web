@@ -9,6 +9,29 @@ import { DataTableColumnHeader } from "@/components/data-table/data-table-column
 import { formatMoney } from "@/lib/domain/money";
 import { PAYMENT_CHANNELS, PAYMENT_STATUSES, type PaymentChannel, type PaymentStatus } from "@/types/enums";
 
+/**
+ * Locale and time zone are pinned deliberately.
+ *
+ * This table is server-rendered and then hydrated, and a bare
+ * `toLocaleDateString()` resolves against whatever each runtime defaults to —
+ * Node answers en-US ("7/28/2026"), the browser en-GB ("28/07/2026"). React
+ * sees two different strings for the same node and throws a hydration error
+ * (#418) on every page load. Naming both ends of the format makes the two
+ * renders agree, and Dar es Salaam is the book's own time zone, so a payment
+ * taken late in the evening is not filed under the previous day.
+ */
+const RECEIVED_DATE = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Africa/Dar_es_Salaam",
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+
+function formatReceivedDate(iso: string): string {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? "—" : RECEIVED_DATE.format(date);
+}
+
 export interface PaymentRow {
   id: string;
   paymentReference: string;
@@ -73,7 +96,7 @@ export function PaymentsTable({ payments }: { payments: PaymentRow[] }) {
     {
       accessorKey: "receivedAt",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Received" />,
-      cell: ({ row }) => <span className="whitespace-nowrap">{new Date(row.original.receivedAt).toLocaleDateString()}</span>,
+      cell: ({ row }) => <span className="whitespace-nowrap">{formatReceivedDate(row.original.receivedAt)}</span>,
     },
   ];
 

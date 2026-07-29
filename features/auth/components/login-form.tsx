@@ -10,9 +10,9 @@ import { loginAction, type LoginState } from "@/lib/auth/actions";
 const INITIAL_STATE: LoginState = { ok: false };
 
 /**
- * Mock login — validated against lib/mock-data/users.ts, not a real
- * credential store. Replaced entirely by Sanctum auth per
- * docs/frontend-technical-specification.md §2 once the backend exists.
+ * Credentials are checked by `POST /api/v1/auth/login` through the Server
+ * Action in lib/auth/actions.ts — this component never sees the bearer token,
+ * which is sealed into the httpOnly session cookie on the server.
  */
 export function LoginForm() {
   const [state, formAction, pending] = useActionState(loginAction, INITIAL_STATE);
@@ -49,7 +49,7 @@ export function LoginForm() {
           </Button>
         </form>
         <p className="mt-4 text-xs text-muted-foreground">
-          Dev sandbox: any seeded phone number (e.g. 0754000001) with password <code>password</code>.
+          Demo accounts: any seeded phone number (e.g. 0754000001) with password <code>password</code>.
         </p>
       </CardContent>
     </Card>

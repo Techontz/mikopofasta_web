@@ -37,6 +37,8 @@ export const CustomerCategorySchema = z.object({
   requiresExtraApproval: z.boolean(),
   createdBy: z.string().nullable(),
   deletedAt: z.string().nullable(),
+  /** Counted by the API on the index/show routes; absent elsewhere. */
+  customerCount: z.number().optional(),
 });
 export type CustomerCategory = z.infer<typeof CustomerCategorySchema>;
 
@@ -55,11 +57,26 @@ export const CustomerDocumentSchema = z.object({
   id: z.string(),
   customerId: z.string(),
   documentType: z.string(),
+  /**
+   * A signed, time-limited URL to the API's download route — not a storage
+   * path. The route sits outside Sanctum precisely so this can be used as a
+   * plain href or <img> src, which a bearer token could not be attached to.
+   */
   filePath: z.string(),
+  /** The name the file was uploaded under, which is what a download should be called. */
+  originalName: z.string().nullable(),
+  mimeType: z.string().nullable(),
+  sizeBytes: z.number().nullable(),
   uploadedBy: z.string().nullable(),
   createdAt: z.string(),
 });
 export type CustomerDocument = z.infer<typeof CustomerDocumentSchema>;
+
+/** Whether the browser can render this inline, or should only offer to download it. */
+export function isPreviewable(document: Pick<CustomerDocument, "mimeType">): boolean {
+  const type = document.mimeType ?? "";
+  return type.startsWith("image/") || type === "application/pdf";
+}
 
 export const CustomerSchema = z.object({
   id: z.string(),
@@ -102,23 +119,21 @@ export function customerFullName(c: Pick<Customer, "firstName" | "middleName" | 
   return [c.firstName, c.middleName, c.lastName].filter(Boolean).join(" ");
 }
 
-/** KYC checklist — backend spec §9. All five must be true for kycStatus = 'completed'. */
+/**
+ * KYC checklist — backend spec §9. All five must be true for kycStatus =
+ * 'completed'.
+ *
+ * The shape only; the evaluation is `GET /customers/{customer}/kyc-status`.
+ * It cannot be computed here: `additionalDataComplete` turns on whether a bank
+ * record exists, and the API accepts bank details on write without ever
+ * returning them.
+ */
 export interface KycChecklist {
   nidaVerified: boolean;
   otpVerified: boolean;
   faceVerified: boolean;
   additionalDataComplete: boolean;
   categoryAssigned: boolean;
-}
-
-export function getKycChecklist(customer: Customer, hasBankDetails: boolean): KycChecklist {
-  return {
-    nidaVerified: customer.nidaVerifiedAt !== null,
-    otpVerified: customer.otpVerifiedAt !== null,
-    faceVerified: customer.faceVerifiedAt !== null,
-    additionalDataComplete: hasBankDetails && customer.maritalStatus !== null && customer.regionId !== null,
-    categoryAssigned: customer.customerCategoryId !== null,
-  };
 }
 
 export const NidaLookupInputSchema = z.object({

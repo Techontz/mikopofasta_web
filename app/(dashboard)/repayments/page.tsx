@@ -4,25 +4,38 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
 import { formatMoney, round2 } from "@/lib/domain/money";
-import { MOCK_SUSPENSE_ITEMS } from "@/lib/mock-data/payments";
+import { getAllPayments, getSuspenseItems } from "@/lib/api/payments";
 import { PaymentsTable } from "@/features/repayments/payments-table";
 import { RepaymentsNav } from "@/features/repayments/repayments-nav";
 import { repaymentsNavFor } from "@/features/repayments/repayments-nav-items";
 import { InboundPaymentDialog } from "@/features/repayments/inbound-payment-dialog";
 import { OverdueRunButton } from "@/features/repayments/overdue-run-button";
-import { toPaymentRow, visiblePaymentsFor } from "@/features/repayments/queries";
+import { getNameLookups, toPaymentRow } from "@/features/repayments/queries";
 
 export default async function RepaymentsPage() {
   const user = await getCurrentUser();
-  const payments = visiblePaymentsFor(user);
-  const rows = payments.map(toPaymentRow);
+  const canManage = user ? hasPermission(user, PERMISSIONS.REPAYMENTS_MANAGE) : false;
 
-  const collected = round2(payments.filter((p) => p.status === "confirmed").reduce((s, p) => s + p.amount, 0));
+  // Already narrowed to this user's branch — §13 scoping is the API's. The
+  // suspense queue needs `repayments.manage`, so it is only asked for when the
+  // caller holds it.
+  const [payments, names, openSuspense] = await Promise.all([
+    getAllPayments(),
+    getNameLookups(),
+    canManage ? getSuspenseItems() : Promise.resolve([]),
+  ]);
+
+  const rows = payments.map((payment) => toPaymentRow(payment, names));
+
+  // Cash is `pending_verification` even once allocated and posted — the status
+  // is a trust marker, not a gate — so "collected" counts both settled states.
+  const collected = round2(
+    payments
+      .filter((p) => p.status === "confirmed" || p.status === "allocated" || p.status === "pending_verification")
+      .reduce((s, p) => s + p.amount, 0)
+  );
   const pendingVerification = payments.filter((p) => p.status === "pending_verification");
   const unmatched = payments.filter((p) => p.status === "unmatched");
-  const openSuspense = MOCK_SUSPENSE_ITEMS.filter((s) => s.status !== "allocated");
-
-  const canManage = user ? hasPermission(user, PERMISSIONS.REPAYMENTS_MANAGE) : false;
 
   const tiles = [
     { label: "Total Collected", value: formatMoney(collected), icon: CircleDollarSign },

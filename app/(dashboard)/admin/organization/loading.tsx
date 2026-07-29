@@ -1,5 +1,10 @@
-import { PageSkeleton } from "@/components/feedback/loading-skeleton";
+import { PageHeaderSkeleton, SettingsFormSkeleton } from "@/components/settings";
 
 export default function Loading() {
-  return <PageSkeleton />;
+  return (
+    <div className="space-y-6">
+      <PageHeaderSkeleton />
+      <SettingsFormSkeleton />
+    </div>
+  );
 }

@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getBranches } from "@/lib/api/branches";
+import { getCompanyProfile } from "@/lib/api/organization";
+import { getAllCustomers } from "@/lib/api/customers";
 import { getNotifications } from "@/lib/api/notifications";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/layout/app-sidebar";
-import { AppHeader } from "@/components/layout/app-header";
+import { LegacySidebar } from "@/components/legacy/legacy-sidebar";
+import { LegacyTopbar } from "@/components/legacy/legacy-topbar";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   // Defense in depth: proxy.ts already guarantees a session exists for this
@@ -12,18 +12,30 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [branches, notifications] = await Promise.all([getBranches(), getNotifications()]);
+  /*
+   * The shell must render even when a role cannot read one of these. A user
+   * without customers.view still gets the bar — with an empty selector —
+   * rather than an error page.
+   */
+  const [profile, customers, notifications] = await Promise.all([
+    getCompanyProfile().catch(() => null),
+    getAllCustomers().catch(() => []),
+    getNotifications().catch(() => []),
+  ]);
 
   return (
-    <SidebarProvider>
-      <AppSidebar user={user} />
-      {/* min-w-0 lets the inset shrink below its content's intrinsic width —
-          without it a wide table forces the whole page past the viewport
-          instead of scrolling inside its own container. */}
-      <SidebarInset className="min-w-0">
-        <AppHeader user={user} branches={branches} notifications={notifications} />
-        <main className="min-w-0 flex-1 overflow-x-hidden p-4 sm:p-6">{children}</main>
-      </SidebarInset>
-    </SidebarProvider>
+    <div className="lg-shell flex h-svh flex-col" style={{ background: "var(--lg-body)" }}>
+      <LegacyTopbar
+        customers={customers.map((c) => ({ id: c.id, label: c.fullName }))}
+        notifications={notifications}
+      />
+      <div className="flex min-h-0 flex-1">
+        <LegacySidebar user={user} tenantName={profile?.tradingName ?? "Mikopofasta"} />
+        {/* min-w-0 lets the pane shrink below its content's intrinsic width —
+            without it a wide table forces the whole page past the viewport
+            instead of scrolling inside its own container. */}
+        <main className="min-w-0 flex-1 overflow-y-auto">{children}</main>
+      </div>
+    </div>
   );
 }

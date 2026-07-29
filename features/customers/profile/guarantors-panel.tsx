@@ -19,6 +19,14 @@ export function GuarantorsPanel({ customerId, guarantors }: { customerId: string
   const [form, setForm] = React.useState(EMPTY);
   const [pending, startTransition] = useTransition();
 
+  function handleRemove(id: string) {
+    startTransition(async () => {
+      const result = await removeGuarantor(id, customerId);
+      if (result.ok) toast.success(result.message);
+      else toast.error(result.message);
+    });
+  }
+
   function handleAdd() {
     startTransition(async () => {
       const result = await addGuarantor(customerId, {
@@ -96,7 +104,14 @@ export function GuarantorsPanel({ customerId, guarantors }: { customerId: string
                   {g.relationship} · {g.phone}
                 </p>
               </div>
-              <Button variant="ghost" size="icon-sm" className="text-destructive hover:text-destructive" onClick={() => removeGuarantor(g.id, customerId)}>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="text-destructive hover:text-destructive"
+                aria-label={`Remove ${g.name}`}
+                disabled={pending}
+                onClick={() => handleRemove(g.id)}
+              >
                 <Trash2 className="size-4" />
               </Button>
             </li>

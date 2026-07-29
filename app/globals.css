@@ -164,3 +164,488 @@
     font-variant-numeric: tabular-nums;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Legacy skin — mikopofasta.co.tz
+ *
+ * The shell and the two screens migrated from the old system are reproduced
+ * from screenshots rather than restyled, so their colours and metrics are
+ * fixed values, not theme tokens. They are deliberately literal: the old app
+ * was Bootstrap 4 + AdminLTE + DataTables, and matching it means matching
+ * those defaults rather than this app's design system.
+ *
+ * Scoped under .lg-* so nothing here reaches the pages that still use the
+ * current design system.
+ * ------------------------------------------------------------------------ */
+@layer components {
+  .lg-shell {
+    --lg-sidebar-w: 250px;
+    --lg-topbar-h: 60px;
+    --lg-body: #f4f6f9;
+    --lg-line: #e6e9ed;
+    --lg-text: #4a4a4a;
+    --lg-muted: #8a8f95;
+    --lg-link: #3c8dbc;
+    --lg-head: #f5f5f5;
+    /* Bootstrap 4 default stack — the old app never loaded a webfont. */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--lg-text);
+  }
+
+  /* The old app rendered light-only. Forcing the scheme keeps a viewer in dark
+     mode from getting a half-inverted copy of a screen that has no dark form. */
+  .lg-shell {
+    color-scheme: light;
+  }
+
+  .lg-card {
+    background: #fff;
+    border: 1px solid var(--lg-line);
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+  }
+
+  /* Action shortcut — the only hover in the old grid was a shadow lift. */
+  .lg-action {
+    transition: box-shadow 0.15s ease;
+  }
+  .lg-action:hover {
+    box-shadow: 0 2px 6px rgb(0 0 0 / 12%);
+  }
+
+  /* -------------------------------------------------------------------------
+   * Settings surface
+   *
+   * The configuration screens are the one place in the app that is read slowly
+   * and edited carefully, so they get their own quieter surface: a light grey
+   * page, white cards, one accent, and no colour that is not carrying meaning.
+   *
+   * Scoped to .st-scope (the /admin subtree) so neither the legacy shell nor
+   * the other modules inherit any of it.
+   * ---------------------------------------------------------------------- */
+  .st-scope {
+    --st-page: #f7f8fa;
+    --st-card: #ffffff;
+    --st-line: #e8eaed;
+    --st-line-soft: #f0f1f3;
+    --st-ink: #1f2733;
+    --st-ink-soft: #5b6472;
+    --st-ink-faint: #8b94a3;
+    --st-accent: #2f6feb;
+    --st-accent-soft: #eef3fe;
+    --st-radius: 14px;
+    --st-radius-sm: 10px;
+    --st-shadow: 0 1px 2px rgb(16 24 40 / 5%), 0 1px 3px rgb(16 24 40 / 4%);
+    --st-shadow-lift: 0 4px 12px rgb(16 24 40 / 8%);
+    color: var(--st-ink);
+  }
+
+  .st-card {
+    background: var(--st-card);
+    border: 1px solid var(--st-line);
+    border-radius: var(--st-radius);
+    box-shadow: var(--st-shadow);
+  }
+
+  /* Link cards on the Settings index. Movement is 1px — enough to register. */
+  .st-card-link {
+    transition: box-shadow 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+  }
+  .st-card-link:hover {
+    border-color: #d5dae1;
+    box-shadow: var(--st-shadow-lift);
+    transform: translateY(-1px);
+  }
+
+  .st-field-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--st-ink);
+  }
+  .st-field-help {
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--st-ink-faint);
+  }
+  .st-field-error {
+    font-size: 12.5px;
+    color: #b42318;
+  }
+
+  /* One input treatment, shared by input/select/textarea inside Settings. */
+  .st-control {
+    width: 100%;
+    height: 38px;
+    padding: 0 12px;
+    font-size: 14px;
+    color: var(--st-ink);
+    background: var(--st-card);
+    border: 1px solid #d5dae1;
+    border-radius: var(--st-radius-sm);
+    transition: border-color 0.14s ease, box-shadow 0.14s ease;
+  }
+  textarea.st-control {
+    height: auto;
+    padding: 9px 12px;
+    line-height: 1.55;
+  }
+  .st-control::placeholder {
+    color: var(--st-ink-faint);
+  }
+  .st-control:hover:not(:disabled) {
+    border-color: #c2c9d3;
+  }
+  .st-control:focus {
+    outline: none;
+    border-color: var(--st-accent);
+    box-shadow: 0 0 0 3px rgb(47 111 235 / 12%);
+  }
+  .st-control:disabled {
+    background: var(--st-line-soft);
+    color: var(--st-ink-faint);
+    cursor: not-allowed;
+  }
+  .st-control[aria-invalid="true"] {
+    border-color: #d92d20;
+  }
+  .st-control[aria-invalid="true"]:focus {
+    box-shadow: 0 0 0 3px rgb(217 45 32 / 12%);
+  }
+
+  /* Buttons press by 1px; nothing else moves. */
+  .st-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    height: 36px;
+    padding: 0 14px;
+    font-size: 13.5px;
+    font-weight: 500;
+    white-space: nowrap;
+    border: 1px solid transparent;
+    border-radius: var(--st-radius-sm);
+    transition: background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+  }
+  .st-btn:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  .st-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgb(47 111 235 / 25%);
+  }
+  .st-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  .st-btn-primary {
+    background: var(--st-accent);
+    color: #fff;
+  }
+  .st-btn-primary:hover:not(:disabled) {
+    background: #2560d4;
+  }
+  .st-btn-secondary {
+    background: var(--st-card);
+    border-color: #d5dae1;
+    color: var(--st-ink);
+  }
+  .st-btn-secondary:hover:not(:disabled) {
+    background: #f7f8fa;
+    border-color: #c2c9d3;
+  }
+  .st-btn-danger {
+    background: #d92d20;
+    color: #fff;
+  }
+  .st-btn-danger:hover:not(:disabled) {
+    background: #b42318;
+  }
+  .st-btn-ghost {
+    background: transparent;
+    color: var(--st-ink-soft);
+  }
+  .st-btn-ghost:hover:not(:disabled) {
+    background: var(--st-line-soft);
+    color: var(--st-ink);
+  }
+  .st-btn-icon {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+  }
+
+  /* Status pill. Tone is carried by colour AND by the dot, never colour alone. */
+  .st-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 22px;
+    padding: 0 9px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .st-badge::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: currentColor;
+    flex: none;
+  }
+  .st-badge-plain::before {
+    display: none;
+  }
+
+  /* Section rail inside Settings. */
+  .st-rail {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);
+  }
+  .st-rail:not([data-overflowing="true"]) {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .st-rail-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--st-ink-soft);
+    border-radius: 8px;
+    white-space: nowrap;
+    transition: background-color 0.14s ease, color 0.14s ease;
+  }
+  .st-rail-item:hover {
+    background: #eef0f3;
+    color: var(--st-ink);
+  }
+  .st-rail-item[data-active="true"] {
+    background: var(--st-accent-soft);
+    color: var(--st-accent);
+  }
+
+  /* Table chrome. The header is sticky so long lists keep their labels. */
+  .st-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #fafbfc;
+    border-bottom: 1px solid var(--st-line);
+    padding: 10px 16px;
+    text-align: left;
+    white-space: nowrap;
+  }
+  /*
+   * Sortable columns render their label inside a button, which carries its own
+   * type scale. The header treatment is applied to both so a sortable and a
+   * plain column read as the same row.
+   */
+  .st-table thead th,
+  .st-table thead th button,
+  .st-table thead th > div {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--st-ink-faint);
+  }
+  .st-table thead th button {
+    height: auto;
+    margin-left: 0;
+    padding: 0;
+    background: transparent;
+  }
+  .st-table thead th button:hover {
+    background: transparent;
+    color: var(--st-ink);
+  }
+  .st-table tbody td {
+    padding: 13px 16px;
+    font-size: 13.5px;
+    border-bottom: 1px solid var(--st-line-soft);
+    vertical-align: middle;
+  }
+  .st-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+  .st-table tbody tr {
+    transition: background-color 0.12s ease;
+  }
+  .st-table tbody tr:hover {
+    background: #fafbfc;
+  }
+
+  /* Sidebar accordion: height animates, so the list unfolds rather than jumps. */
+  .lg-submenu {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.22s ease;
+  }
+  .lg-submenu[data-open="true"] {
+    grid-template-rows: 1fr;
+  }
+  .lg-submenu > div {
+    overflow: hidden;
+  }
+  .lg-submenu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 10px 9px 26px;
+    font-size: 12.5px;
+    color: #6b7178;
+    border-left: 3px solid transparent;
+  }
+  /* The old menu marks each Settings entry with a literal "--". */
+  .lg-submenu-dash {
+    color: #b6bcc3;
+    letter-spacing: -1px;
+    user-select: none;
+  }
+  .lg-submenu-item[data-inert="true"] {
+    cursor: default;
+  }
+  .lg-submenu-item:hover {
+    background: #f7f7f7;
+    color: #2c2c2c;
+  }
+  .lg-submenu-item[data-active="true"] {
+    color: #2c2c2c;
+    font-weight: 500;
+    border-left-color: #3c8dbc;
+    background: #f4f8fb;
+  }
+  .lg-chevron {
+    transition: transform 0.22s ease;
+  }
+  .lg-chevron[data-open="true"] {
+    transform: rotate(90deg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .st-card-link,
+    .st-btn,
+    .st-control,
+    .st-rail-item,
+    .st-table tbody tr,
+    .lg-submenu,
+    .lg-chevron {
+      transition: none;
+    }
+    .st-card-link:hover,
+    .st-btn:active:not(:disabled) {
+      transform: none;
+    }
+  }
+
+  /*
+   * The old sidebar scrolls without reserving a gutter — its items simply run
+   * past the viewport edge. A classic scrollbar here would claim 15px and
+   * re-truncate the longest labels, so the track is suppressed and the list
+   * still scrolls by wheel or trackpad.
+   */
+  .lg-shell nav {
+    scrollbar-width: none;
+  }
+  .lg-shell nav::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  .lg-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 17px 10px 17px 25px;
+    font-size: 13px;
+    color: #5a5a5a;
+    border-left: 3px solid transparent;
+  }
+  .lg-menu-item:hover {
+    background: #f7f7f7;
+    color: #2c2c2c;
+  }
+  .lg-menu-item[data-active="true"] {
+    background: #efefef;
+    color: #2c2c2c;
+  }
+  .lg-menu-item[data-inert="true"] {
+    cursor: default;
+  }
+
+  /* Bootstrap nav-tabs: active tab lifts out of the bottom rule. */
+  .lg-tab {
+    padding: 9px 18px;
+    font-size: 14px;
+    color: #6b7075;
+    border: 1px solid transparent;
+    border-radius: 4px 4px 0 0;
+    margin-bottom: -1px;
+  }
+  .lg-tab[data-active="true"] {
+    color: #4a4a4a;
+    background: #fff;
+    border-color: var(--lg-line) var(--lg-line) #fff;
+  }
+
+  /* DataTables sort affordance — the paired chevrons in every column head. */
+  .lg-sort::after {
+    content: "⇅";
+    margin-left: 6px;
+    opacity: 0.55;
+    font-size: 12px;
+  }
+
+  .lg-badge {
+    display: inline-block;
+    min-width: 30px;
+    padding: 1px 8px;
+    font-size: 12px;
+    text-align: center;
+    border: 1px solid #b7e0b9;
+    border-radius: 3px;
+    color: #3c3c3c;
+    background: #fff;
+  }
+
+  .lg-status {
+    display: inline-block;
+    padding: 3px 10px;
+    font-size: 11px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    border-radius: 3px;
+    border: 1px solid currentColor;
+  }
+
+  .lg-page {
+    min-width: 42px;
+    padding: 4px 14px;
+    font-size: 14px;
+    border: 1px solid #dee2e6;
+    background: #fff;
+    color: var(--lg-link);
+    margin-left: -1px;
+  }
+  .lg-page:hover:not([data-active="true"]):not([data-disabled="true"]) {
+    background: #e9ecef;
+  }
+  .lg-page[data-active="true"] {
+    background: #3c8dbc;
+    border-color: #3c8dbc;
+    color: #fff;
+  }
+  .lg-page[data-disabled="true"] {
+    color: #b6bcc2;
+    cursor: default;
+  }
+}

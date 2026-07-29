@@ -4,9 +4,9 @@ import { useTransition } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 import { Building2, Crown, Trash2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/settings";
 import { Button } from "@/components/ui/button";
-import { DataTable } from "@/components/data-table/data-table";
+import { SettingsTable } from "@/components/settings/table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { ConfirmDeleteDialog } from "@/components/data-table/confirm-delete-dialog";
 import { BranchFormDialog } from "@/features/admin/organization/branch-form-dialog";
@@ -15,7 +15,7 @@ import type { Branch, Region, Zone } from "@/types/branch";
 
 function HeadOfficeAction({ branch }: { branch: Branch }) {
   const [pending, startTransition] = useTransition();
-  if (branch.isHeadOffice) return <Badge className="gap-1"><Crown className="size-3" />Head Office</Badge>;
+  if (branch.isHeadOffice) return <StatusBadge tone="default" dot={false}><Crown className="size-3" aria-hidden />Head Office</StatusBadge>;
   return (
     <Button
       variant="ghost"
@@ -52,9 +52,9 @@ export function BranchesTable({ branches, regions, zones }: { branches: Branch[]
       accessorKey: "status",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
       cell: ({ row }) => (
-        <Badge variant={row.original.status === "active" ? "default" : "secondary"} className="capitalize">
+        <StatusBadge tone={row.original.status === "active" ? "active" : "inactive"} className="capitalize">
           {row.original.status}
-        </Badge>
+        </StatusBadge>
       ),
       filterFn: "arrIncludesSome",
     },
@@ -81,7 +81,7 @@ export function BranchesTable({ branches, regions, zones }: { branches: Branch[]
   ];
 
   return (
-    <DataTable
+    <SettingsTable
       columns={columns}
       data={branches}
       searchFields={["name", "phone"]}

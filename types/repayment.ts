@@ -79,13 +79,16 @@ export const InboundPaymentWebhookSchema = z.object({
 });
 export type InboundPaymentWebhook = z.infer<typeof InboundPaymentWebhookSchema>;
 
-/** POST /payments/cash — teller entry. */
+/**
+ * POST /payments/cash — teller entry.
+ *
+ * Only the loan and the amount: the API derives customer, branch and teller
+ * from the loan and the authenticated user, and would ignore anything this end
+ * claimed about them.
+ */
 export const CashPaymentInputSchema = z.object({
-  customerId: z.string(),
-  loanId: z.string(),
+  loanId: z.string().min(1),
   amount: z.number().positive(),
-  branchId: z.string(),
-  tellerId: z.string(),
 });
 export type CashPaymentInput = z.infer<typeof CashPaymentInputSchema>;
 

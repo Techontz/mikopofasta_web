@@ -4,10 +4,10 @@ import { useTransition } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 import { BellRing, Trash2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/settings";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { DataTable } from "@/components/data-table/data-table";
+import { SettingsTable } from "@/components/settings/table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { ConfirmDeleteDialog } from "@/components/data-table/confirm-delete-dialog";
 import { TemplateFormDialog } from "@/features/admin/notification-templates/template-form-dialog";
@@ -42,7 +42,7 @@ export function TemplatesTable({ templates }: { templates: NotificationTemplate[
     {
       accessorKey: "channel",
       header: "Channel",
-      cell: ({ row }) => <Badge variant="secondary" className="uppercase">{row.original.channel}</Badge>,
+      cell: ({ row }) => <StatusBadge tone="info" dot={false} className="uppercase">{row.original.channel}</StatusBadge>,
       filterFn: "arrIncludesSome",
     },
     { id: "active", header: "Active", cell: ({ row }) => <ActiveSwitch template={row.original} /> },
@@ -68,7 +68,7 @@ export function TemplatesTable({ templates }: { templates: NotificationTemplate[
   ];
 
   return (
-    <DataTable
+    <SettingsTable
       columns={columns}
       data={templates}
       searchFields={["name", "body"]}

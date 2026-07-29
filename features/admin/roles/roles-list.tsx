@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/settings";
 import { ROLES } from "@/types/auth";
 import { getEffectivePermissions, ROLE_DESCRIPTIONS, ROLE_LABELS } from "@/config/permissions";
 import type { MockCredential } from "@/lib/mock-data/users";
@@ -14,7 +14,7 @@ export function RolesList({ users }: { users: MockCredential[] }) {
           <Card key={role}>
             <CardHeader className="flex flex-row items-start justify-between space-y-0">
               <CardTitle className="text-base">{ROLE_LABELS[role]}</CardTitle>
-              <Badge variant="secondary">{userCount} {userCount === 1 ? "user" : "users"}</Badge>
+              <StatusBadge tone="neutral" dot={false}>{userCount} {userCount === 1 ? "user" : "users"}</StatusBadge>
             </CardHeader>
             <CardContent className="space-y-2">
               <p className="text-sm text-muted-foreground">{ROLE_DESCRIPTIONS[role]}</p>

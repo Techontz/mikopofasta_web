@@ -22,6 +22,7 @@ import { EmptyState } from "@/components/feedback/empty-state";
 import { ErrorState } from "@/components/feedback/error-state";
 import { DataTablePagination } from "@/components/data-table/data-table-pagination";
 import { DataTableFacetedFilter } from "@/components/data-table/data-table-faceted-filter";
+import { cn } from "@/lib/utils";
 
 interface FacetedFilterConfig {
   columnId: string;
@@ -40,6 +41,14 @@ interface DataTableProps<TData, TValue> {
   emptyState: { icon?: LucideIcon; title: string; description?: string; action?: React.ReactNode };
   isLoading?: boolean;
   error?: unknown;
+  /**
+   * Presentation only. "settings" swaps in the configuration surface — card
+   * container, sticky uppercase header, quieter rules. Defaults to the
+   * original look so every existing caller is untouched.
+   */
+  variant?: "default" | "settings";
+  /** Rows to draw while loading; match the page size for a stable skeleton. */
+  skeletonRows?: number;
 }
 
 /**
@@ -58,7 +67,10 @@ export function DataTable<TData, TValue>({
   emptyState,
   isLoading,
   error,
+  variant = "default",
+  skeletonRows = 5,
 }: DataTableProps<TData, TValue>) {
+  const settings = variant === "settings";
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = React.useState("");
@@ -87,16 +99,22 @@ export function DataTable<TData, TValue>({
   const isFiltered = columnFilters.length > 0 || globalFilter.length > 0;
 
   return (
-    <div className="space-y-3">
+    <div className={settings ? "space-y-4" : "space-y-3"}>
       <div className="flex flex-wrap items-center gap-2">
         {searchFields && searchFields.length > 0 && (
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <div className="relative w-full sm:w-72">
+            <Search
+              className={cn(
+                "absolute left-3 top-1/2 size-4 -translate-y-1/2",
+                settings ? "text-[var(--st-ink-faint)]" : "left-2.5 text-muted-foreground"
+              )}
+            />
             <Input
               value={globalFilter}
               onChange={(e) => setGlobalFilter(e.target.value)}
               placeholder={searchPlaceholder}
-              className="pl-8"
+              aria-label={searchPlaceholder}
+              className={settings ? "st-control pl-9" : "pl-8"}
             />
           </div>
         )}
@@ -119,11 +137,16 @@ export function DataTable<TData, TValue>({
         {toolbarAction && <div className="ml-auto">{toolbarAction}</div>}
       </div>
 
-      <div className="overflow-x-auto rounded-lg border">
-        <Table>
+      <div
+        className={cn(
+          "overflow-x-auto",
+          settings ? "st-card max-h-[68vh] overflow-y-auto" : "rounded-lg border"
+        )}
+      >
+        <Table className={settings ? "st-table" : undefined}>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
+              <TableRow key={headerGroup.id} className={settings ? "hover:bg-transparent" : undefined}>
                 {headerGroup.headers.map((header) => (
                   <TableHead key={header.id}>
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
@@ -134,7 +157,7 @@ export function DataTable<TData, TValue>({
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
+              Array.from({ length: skeletonRows }).map((_, i) => (
                 <TableRow key={i}>
                   {columns.map((_col, j) => (
                     <TableCell key={j}>

@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { formatMoney, round2 } from "@/lib/domain/money";
-import { reconcileDeposit } from "@/features/repayments/actions";
+import { reconcileDeposit } from "@/features/repayments/deposit-actions";
 
 export interface DepositRow {
   id: string;

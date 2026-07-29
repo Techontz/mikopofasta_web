@@ -2,9 +2,9 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import { Receipt, Trash2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/settings";
 import { Button } from "@/components/ui/button";
-import { DataTable } from "@/components/data-table/data-table";
+import { SettingsTable } from "@/components/settings/table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { ConfirmDeleteDialog } from "@/components/data-table/confirm-delete-dialog";
 import { ExpenseCategoryFormDialog } from "@/features/admin/expense-categories/category-form-dialog";
@@ -20,7 +20,7 @@ export function ExpenseCategoriesTable({ categories, accounts }: { categories: E
     {
       accessorKey: "scope",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Scope" />,
-      cell: ({ row }) => <Badge variant="secondary" className="uppercase">{row.original.scope}</Badge>,
+      cell: ({ row }) => <StatusBadge tone="neutral" dot={false} className="uppercase">{row.original.scope}</StatusBadge>,
       filterFn: "arrIncludesSome",
     },
     { id: "account", header: "Ledger Account", cell: ({ row }) => <span className="font-mono text-xs">{accountCode(row.original.chartAccountId)}</span> },
@@ -46,7 +46,7 @@ export function ExpenseCategoriesTable({ categories, accounts }: { categories: E
   ];
 
   return (
-    <DataTable
+    <SettingsTable
       columns={columns}
       data={categories}
       searchFields={["name"]}

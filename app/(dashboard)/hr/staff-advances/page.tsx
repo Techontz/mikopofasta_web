@@ -7,13 +7,10 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { hasAnyPermission, hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
 import { formatMoney } from "@/lib/domain/money";
-import { MOCK_STAFF_ADVANCES } from "@/lib/mock-data/staff-advances";
-import { MOCK_STAFF_LOANS } from "@/lib/mock-data/staff-loans";
-import { MOCK_STAFF_PROFILES } from "@/lib/mock-data/staff-profiles";
+import { getAllStaff, getStaffAdvances, getStaffLoans } from "@/lib/api/hr";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { hrNavFor } from "@/features/hr/nav-items";
 import { RequestAdvanceForm, AdvanceDecisionButtons } from "@/features/hr/advance-actions";
-import { staffName } from "@/features/hr/queries";
 
 const STATUS_TONE: Record<string, string> = {
   requested: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400",
@@ -30,10 +27,33 @@ export default async function StaffAdvancesPage() {
   const canManage = hasPermission(user, PERMISSIONS.HR_MANAGE);
   const canDisburse = hasPermission(user, PERMISSIONS.PAYROLL_FINALIZE);
 
-  const staffOptions = MOCK_STAFF_PROFILES.filter((s) => s.deletedAt === null && s.employmentStatus === "active").map((s) => ({
-    id: s.id,
-    label: `${s.employeeNumber} — ${staffName(s.id)}`,
-  }));
+  /*
+   * This route is deliberately reachable by Finance without `hr.view` (§14 —
+   * disbursing an advance is Finance's, never HR's). The API does not follow
+   * suit: `/staff/advances`, `/staff/loans` and `/staff` are all gated behind
+   * `hr.view`, so those three calls answer Finance 403 even though
+   * `payroll.finalize` is what authorises the disbursement itself.
+   *
+   * Each call therefore fails soft, and the banner below says plainly why the
+   * queue is empty rather than leaving Finance on a blank page wondering where
+   * the advances went. Nothing is hidden that the caller is entitled to see.
+   */
+  const [advances, loans, staff] = await Promise.all([
+    getStaffAdvances().catch(() => null),
+    getStaffLoans().catch(() => null),
+    getAllStaff().catch(() => null),
+  ]);
+
+  // Null means "the API refused to tell us", which is not the same as "there
+  // are none" — the banner draws that distinction; the lists below just render
+  // what came back.
+  const listUnavailable = advances === null;
+  const advanceRows = advances ?? [];
+  const loanRows = loans ?? [];
+
+  const staffOptions = (staff ?? [])
+    .filter((s) => s.deletedAt === null && s.employmentStatus === "active")
+    .map((s) => ({ id: s.id, label: `${s.employeeNumber} — ${s.name ?? s.employeeNumber}` }));
 
   return (
     <div className="space-y-6">
@@ -45,6 +65,14 @@ export default async function StaffAdvancesPage() {
       </div>
 
       <SectionNav items={hrNavFor(user)} />
+
+      {listUnavailable && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
+          Your role can disburse an approved advance but cannot read the staff book, so the queue below is empty — the
+          API gates it behind <span className="font-medium">hr.view</span>. Ask HR for the advance to be disbursed, or
+          have <span className="font-medium">hr.view</span> added to this role.
+        </div>
+      )}
 
       {canManage && (
         <Card>
@@ -59,18 +87,18 @@ export default async function StaffAdvancesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Advances ({MOCK_STAFF_ADVANCES.length})</CardTitle>
+          <CardTitle className="text-base">Advances ({advanceRows.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          {MOCK_STAFF_ADVANCES.length === 0 ? (
+          {advanceRows.length === 0 ? (
             <EmptyState title="No advances on record" />
           ) : (
             <ul className="space-y-2">
-              {MOCK_STAFF_ADVANCES.map((a) => (
+              {advanceRows.map((a) => (
                 <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3 text-sm">
                   <div>
                     <Link href={`/hr/staff/${a.staffProfileId}`} className="font-medium hover:underline">
-                      {staffName(a.staffProfileId)}
+                      {(a.staffName ?? a.staffProfileId)}
                     </Link>
                     <p className="text-xs text-muted-foreground">Requested {new Date(a.requestedAt).toLocaleDateString()}</p>
                   </div>
@@ -90,18 +118,18 @@ export default async function StaffAdvancesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Staff Loans ({MOCK_STAFF_LOANS.length})</CardTitle>
+          <CardTitle className="text-base">Staff Loans ({loanRows.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          {MOCK_STAFF_LOANS.length === 0 ? (
+          {loanRows.length === 0 ? (
             <EmptyState title="No staff loans" />
           ) : (
             <ul className="space-y-2">
-              {MOCK_STAFF_LOANS.map((l) => (
+              {loanRows.map((l) => (
                 <li key={l.id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
                   <div>
                     <Link href={`/hr/staff/${l.staffProfileId}`} className="font-medium hover:underline">
-                      {staffName(l.staffProfileId)}
+                      {(l.staffName ?? l.staffProfileId)}
                     </Link>
                     <p className="text-xs text-muted-foreground">Disbursed {l.disbursedAt}</p>
                   </div>

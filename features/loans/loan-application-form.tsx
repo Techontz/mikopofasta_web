@@ -14,25 +14,24 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { EmptyState } from "@/components/feedback/empty-state";
 import { formatMoney } from "@/lib/domain/money";
 import { generateLoanSchedule } from "@/lib/domain/loan-schedule";
-import { checkLoanApplication, effectiveMaxAmount } from "@/lib/domain/loan-eligibility";
-import { applyForLoan } from "@/features/loans/actions";
-import type { Customer } from "@/types/customer";
-import type { CategoryProductEligibility, InterestFormula, LoanProduct, LoanProductRepaymentSchedule, RepaymentSchedule } from "@/types/loan-product";
-import type { Loan } from "@/types/loan";
+import { effectiveMaxAmount } from "@/lib/domain/loan-eligibility";
+import { applyForLoan, checkLoanEligibility } from "@/features/loans/actions";
+import type { EligibilityViolation } from "@/lib/api/loans";
+import type { LoanProductWithConfig } from "@/lib/api/loans";
+import type { CustomerListItem } from "@/lib/api/customers";
+import type { CategoryProductEligibility, InterestFormula, RepaymentSchedule } from "@/types/loan-product";
 
 const NONE = "__none__";
 
 interface Props {
-  customers: Customer[];
-  products: LoanProduct[];
+  customers: CustomerListItem[];
+  products: LoanProductWithConfig[];
   schedules: RepaymentSchedule[];
   formulas: InterestFormula[];
   eligibility: CategoryProductEligibility[];
-  productSchedules: LoanProductRepaymentSchedule[];
-  openLoans: Loan[];
 }
 
-export function LoanApplicationForm({ customers, products, schedules, formulas, eligibility, productSchedules, openLoans }: Props) {
+export function LoanApplicationForm({ customers, products, schedules, formulas, eligibility }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -41,6 +40,8 @@ export function LoanApplicationForm({ customers, products, schedules, formulas, 
   const [scheduleId, setScheduleId] = React.useState("");
   const [principal, setPrincipal] = React.useState("");
   const [tenure, setTenure] = React.useState("");
+  const [violations, setViolations] = React.useState<EligibilityViolation[]>([]);
+  const [checking, setChecking] = React.useState(false);
 
   const customer = customers.find((c) => c.id === customerId);
   const product = products.find((p) => p.id === productId);
@@ -55,14 +56,13 @@ export function LoanApplicationForm({ customers, products, schedules, formulas, 
     return products.filter((p) => allowedIds.has(p.id) && p.status === "active");
   }, [customer, eligibility, products]);
 
-  // Only schedules the chosen product permits (§2.3 pivot).
+  // Only cadences the chosen product permits (§2.3). The API puts the allowed
+  // ids on the product itself, so no pivot table is reconstructed here.
   const availableSchedules = React.useMemo(() => {
     if (!product) return [];
-    const allowedIds = new Set(
-      productSchedules.filter((ps) => ps.loanProductId === product.id).map((ps) => ps.repaymentScheduleId)
-    );
+    const allowedIds = new Set(product.allowedRepaymentScheduleIds);
     return schedules.filter((s) => allowedIds.has(s.id));
-  }, [product, productSchedules, schedules]);
+  }, [product, schedules]);
 
   const rule = customer && product ? eligibility.find((e) => e.customerCategoryId === customer.customerCategoryId && e.loanProductId === product.id) : undefined;
   const maxAmount = product ? effectiveMaxAmount(product, rule) : 0;
@@ -70,20 +70,62 @@ export function LoanApplicationForm({ customers, products, schedules, formulas, 
   const principalNumber = Number(principal) || 0;
   const tenureNumber = Number(tenure) || 0;
 
-  const violations = React.useMemo(() => {
-    if (!customer || !product || !scheduleId || !principalNumber || !tenureNumber) return [];
-    return checkLoanApplication({
-      customer,
-      product,
-      repaymentScheduleId: scheduleId,
-      principalAmount: principalNumber,
-      tenureDays: tenureNumber,
-      eligibility,
-      productSchedules,
-      openLoans: openLoans.filter((l) => l.customerId === customer.id),
-    });
-  }, [customer, product, scheduleId, principalNumber, tenureNumber, eligibility, productSchedules, openLoans]);
+  const complete = Boolean(customerId && productId && scheduleId && principalNumber && tenureNumber);
 
+  /*
+   * Eligibility is the API's answer, not a local re-implementation of §6.
+   *
+   * Only the server can see the customer's whole loan history, the live
+   * category rules and the post-closure cooldown, and `POST /loans` applies
+   * exactly these gates — so asking it here means the form can never disagree
+   * with what submission will do. Debounced because it fires on every keystroke
+   * in the amount and tenure fields.
+   */
+  React.useEffect(() => {
+    let cancelled = false;
+
+    // Every state change happens inside the timer, never synchronously in the
+    // effect body — a synchronous setState here would cascade a second render
+    // on each keystroke.
+    const timer = setTimeout(async () => {
+      if (!complete) {
+        setViolations([]);
+        return;
+      }
+
+      setChecking(true);
+
+      const result = await checkLoanEligibility({
+        customerId,
+        loanProductId: productId,
+        repaymentScheduleId: scheduleId,
+        principalAmount: principalNumber,
+        tenureDays: tenureNumber,
+      });
+
+      if (cancelled) return;
+
+      setViolations(
+        result.ok
+          ? (result.violations ?? [])
+          : [{ code: "CHECK_FAILED", message: result.message ?? "Could not check eligibility." }]
+      );
+      setChecking(false);
+    }, 400);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [complete, customerId, productId, scheduleId, principalNumber, tenureNumber]);
+
+  /*
+   * The preview is computed locally because the API has no preview endpoint —
+   * a schedule only exists once a manager approves. lib/domain/loan-schedule.ts
+   * mirrors the backend generator, but the two allocate rounding remainders
+   * differently, so individual installments can differ by a cent or two from
+   * the schedule that is finally generated.
+   */
   const preview = React.useMemo(() => {
     if (!product || !schedule || !principalNumber || !tenureNumber || violations.length > 0) return [];
     const formula = formulas.find((f) => f.id === product.interestFormulaId);
@@ -104,7 +146,7 @@ export function LoanApplicationForm({ customers, products, schedules, formulas, 
     { principal: 0, interest: 0 }
   );
 
-  const canSubmit = Boolean(customer && product && scheduleId && principalNumber && tenureNumber) && violations.length === 0;
+  const canSubmit = complete && violations.length === 0 && !checking;
 
   function handleSubmit() {
     startTransition(async () => {
@@ -248,8 +290,15 @@ export function LoanApplicationForm({ customers, products, schedules, formulas, 
         </CardContent>
       </Card>
 
-      {violations.length > 0 && (
-        <div className="space-y-1 rounded-lg border border-destructive/30 bg-destructive/10 p-3">
+      {checking && (
+        <p className="flex items-center gap-2 text-sm text-muted-foreground" role="status">
+          <Loader2 className="size-4 animate-spin" aria-hidden />
+          Checking eligibility…
+        </p>
+      )}
+
+      {!checking && violations.length > 0 && (
+        <div className="space-y-1 rounded-lg border border-destructive/30 bg-destructive/10 p-3" role="alert">
           <div className="flex items-center gap-2 text-sm font-medium text-destructive">
             <CircleAlert className="size-4" aria-hidden />
             This application can&apos;t be submitted yet

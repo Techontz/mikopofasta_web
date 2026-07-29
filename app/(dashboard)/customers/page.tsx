@@ -1,11 +1,14 @@
 import { AlertTriangle, ShieldCheck, Snowflake, UserCheck, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MOCK_CUSTOMERS } from "@/lib/mock-data/customers";
+import { getAllCustomers } from "@/lib/api/customers";
 import { CustomersTable } from "@/features/customers/customers-table";
 import { toCustomerRow } from "@/features/customers/view-models";
 
-export default function CustomersPage() {
-  const customers = MOCK_CUSTOMERS.filter((c) => c.deletedAt === null);
+export default async function CustomersPage() {
+  // Already narrowed to what this officer may see — §13 branch scoping is the
+  // API's, so the page does no filtering of its own. Soft-deleted customers are
+  // excluded unless `include_deleted` is asked for, which this screen does not.
+  const customers = await getAllCustomers();
   const rows = customers.map(toCustomerRow);
 
   const tiles = [

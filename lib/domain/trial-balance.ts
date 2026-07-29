@@ -72,45 +72,16 @@ export function buildTrialBalance(
  * account-detail screen shows. Uses the account's normal side so the running
  * figure reads the way an accountant expects.
  */
-export interface LedgerLineRow {
-  id: string;
-  entryId: string;
-  entryNumber: string;
-  entryDate: string;
-  description: string;
-  debit: number;
-  credit: number;
-  runningBalance: number;
-  isReversal: boolean;
-}
-
-export function buildAccountLedger(
-  account: ChartOfAccount,
-  lines: JournalEntryLine[],
-  entryOf: (id: string) => { entryNumber: string; entryDate: string; description: string; postedAt: string; isReversal: boolean } | undefined
-): LedgerLineRow[] {
-  const rows = lines
-    .filter((l) => l.accountId === account.id)
-    .map((l) => ({ line: l, entry: entryOf(l.journalEntryId) }))
-    .filter((x) => x.entry !== undefined)
-    .sort((a, b) => new Date(a.entry!.postedAt).getTime() - new Date(b.entry!.postedAt).getTime());
-
-  let running = 0;
-  return rows.map(({ line, entry }) => {
-    running = round2(running + netBalance(account.type, line.debitAmount, line.creditAmount));
-    return {
-      id: line.id,
-      entryId: line.journalEntryId,
-      entryNumber: entry!.entryNumber,
-      entryDate: entry!.entryDate,
-      description: entry!.description,
-      debit: line.debitAmount,
-      credit: line.creditAmount,
-      runningBalance: running,
-      isReversal: entry!.isReversal,
-    };
-  });
-}
+/*
+ * `buildAccountLedger` used to live here: it walked journal lines for one
+ * account and accumulated a running balance on that account's normal side.
+ * `GET /ledger/accounts/{account}/entries` now returns exactly those rows,
+ * running balance included, computed against the whole journal rather than
+ * whatever subset the browser happened to hold.
+ *
+ * `buildTrialBalance` below stays for now — Reports still builds its financial
+ * statements from the mock journal, and goes when that module is integrated.
+ */
 
 export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
   asset: "Asset",

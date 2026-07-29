@@ -6,12 +6,10 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
 import { formatMoney, round2 } from "@/lib/domain/money";
-import { MOCK_LOANS } from "@/lib/mock-data/loans";
-import { MOCK_PAYMENTS, MOCK_LOAN_SCHEDULES } from "@/lib/mock-data/payments";
-import { MOCK_CUSTOMERS } from "@/lib/mock-data/customers";
+import { getAllLoans, getOutstandingByLoan } from "@/lib/api/loans";
+import { getAllPayments } from "@/lib/api/payments";
+import { getNameLookups } from "@/features/repayments/queries";
 import { MOCK_BANK_ACCOUNTS } from "@/lib/mock-data/bank-accounts";
-import { customerFullName } from "@/types/customer";
-import { scheduleOutstanding } from "@/types/loan";
 import { RepaymentsNav } from "@/features/repayments/repayments-nav";
 import { repaymentsNavFor } from "@/features/repayments/repayments-nav-items";
 import { CashEntryForm, type RepayableLoan } from "@/features/repayments/cash-entry-form";
@@ -21,34 +19,39 @@ export default async function CashEntryPage() {
   const user = await getCurrentUser();
   if (!user || !hasPermission(user, PERMISSIONS.REPAYMENTS_CASH_ENTRY)) return <AccessDeniedState />;
 
-  const seesAll = hasPermission(user, PERMISSIONS.BRANCHES_VIEW_ALL);
-  const loans = MOCK_LOANS.filter(
-    (l) => l.deletedAt === null && l.disbursementDate !== null && (seesAll || l.branchId === user.branchId)
-  );
+  /*
+   * The repayable-loan picker needs `GET /loans`, which requires `loans.view`
+   * — and a Teller, the role this page exists for, does not hold it. The API
+   * offers no loan lookup a Teller *can* call either, so for them the list
+   * comes back empty and the page says why, rather than erroring on a
+   * permission the screen was never granted.
+   */
+  const canListLoans = hasPermission(user, PERMISSIONS.LOANS_VIEW);
 
-  const repayable: RepayableLoan[] = loans
-    .map((loan) => {
-      const schedules = MOCK_LOAN_SCHEDULES.filter((s) => s.loanId === loan.id).sort((a, b) => a.installmentNumber - b.installmentNumber);
-      const outstanding = round2(schedules.reduce((sum, s) => sum + scheduleOutstanding(s).total, 0));
-      const next = schedules.find((s) => scheduleOutstanding(s).total > 0);
-      const customer = MOCK_CUSTOMERS.find((c) => c.id === loan.customerId);
-      return {
-        id: loan.id,
-        loanNumber: loan.loanNumber,
-        customerId: loan.customerId,
-        customerName: customer ? customerFullName(customer) : "—",
-        branchId: loan.branchId,
-        outstanding,
-        nextDueDate: next?.dueDate ?? null,
-        nextDueAmount: next ? round2(scheduleOutstanding(next).total) : 0,
-      };
-    })
+  const [openBook, payments, names] = await Promise.all([
+    canListLoans ? getAllLoans({ stage: "open_book" }).catch(() => []) : Promise.resolve([]),
+    getAllPayments({ status: ["pending_verification"], channel: ["cash"] }),
+    getNameLookups(),
+  ]);
+
+  const outstanding = await getOutstandingByLoan(openBook);
+
+  const repayable: RepayableLoan[] = openBook
+    .map((loan) => ({
+      id: loan.id,
+      loanNumber: loan.loanNumber,
+      customerId: loan.customerId,
+      customerName: loan.customerName ?? "—",
+      branchId: loan.branchId,
+      outstanding: outstanding.byLoan.get(loan.id) ?? 0,
+      // The next-due installment is not on the list resource; the picker shows
+      // the balance, which is what a teller counts cash against.
+      nextDueDate: null,
+      nextDueAmount: 0,
+    }))
     .filter((l) => l.outstanding > 0);
 
-  const myPending = MOCK_PAYMENTS.filter(
-    (p) => p.status === "pending_verification" && p.channel === "cash" && (seesAll || p.branchId === user.branchId)
-  );
-  const pendingCashTotal = round2(myPending.reduce((s, p) => s + p.amount, 0));
+  const pendingCashTotal = round2(payments.reduce((s, p) => s + p.amount, 0));
 
   return (
     <div className="space-y-6">
@@ -59,6 +62,13 @@ export default async function CashEntryPage() {
 
       <RepaymentsNav items={repaymentsNavFor(user)} />
 
+      {!canListLoans && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
+          Your role can record cash but cannot list loans, and the API offers no loan lookup for it — ask a
+          supervisor with loan access to record this payment.
+        </div>
+      )}
+
       <CashEntryForm loans={repayable} />
 
       <CashDepositForm
@@ -68,32 +78,31 @@ export default async function CashEntryPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Cash Awaiting Reconciliation ({myPending.length})</CardTitle>
+          <CardTitle className="text-base">Cash Awaiting Reconciliation ({payments.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          {myPending.length === 0 ? (
-            <EmptyState title="No unreconciled cash" description="Every cash payment you've taken has been reconciled." />
+          {payments.length === 0 ? (
+            <EmptyState title="No unreconciled cash" description="Every cash payment taken has been reconciled." />
           ) : (
             <ul className="space-y-2">
-              {myPending.map((p) => {
-                const loan = MOCK_LOANS.find((l) => l.id === p.loanId);
-                return (
-                  <li key={p.id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
-                    <div>
-                      <p className="font-medium">{p.paymentReference}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {loan?.loanNumber ?? "—"} · {new Date(p.receivedAt).toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="font-tabular">{formatMoney(p.amount)}</span>
-                      <Badge variant="outline" className="whitespace-nowrap border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400">
-                        Pending verification
-                      </Badge>
-                    </div>
-                  </li>
-                );
-              })}
+              {payments.map((p) => (
+                <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm">
+                  <div className="min-w-0">
+                    <p className="font-medium">{p.paymentReference}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {p.loanNumber ?? "—"}
+                      {p.customerId && names.customers.get(p.customerId) ? ` · ${names.customers.get(p.customerId)}` : ""} ·{" "}
+                      {new Date(p.receivedAt).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-tabular">{formatMoney(p.amount)}</span>
+                    <Badge variant="outline" className="whitespace-nowrap border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                      Pending verification
+                    </Badge>
+                  </div>
+                </li>
+              ))}
             </ul>
           )}
         </CardContent>

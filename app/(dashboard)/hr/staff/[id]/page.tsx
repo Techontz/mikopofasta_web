@@ -13,33 +13,41 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { hasPermission, ROLE_LABELS } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
 import { formatMoney } from "@/lib/domain/money";
-import { MOCK_STAFF_PROFILES, MOCK_STAFF_BANK_DETAILS } from "@/lib/mock-data/staff-profiles";
-import { MOCK_USERS } from "@/lib/mock-data/users";
-import { MOCK_BRANCHES } from "@/lib/mock-data/branches";
-import { ZONES } from "@/lib/mock-data/zones";
-import { MOCK_PAYROLL_LINES, MOCK_PAYROLL_RUNS } from "@/lib/mock-data/payroll";
-import { MOCK_STAFF_LOANS } from "@/lib/mock-data/staff-loans";
-import { MOCK_STAFF_ADVANCES } from "@/lib/mock-data/staff-advances";
-import { MOCK_STAFF_PERFORMANCE_RECORDS } from "@/lib/mock-data/staff-performance";
+import { getAllPayrollRuns, getStaffMember } from "@/lib/api/hr";
+import { getZones } from "@/lib/api/organization";
+import { ApiError } from "@/lib/api/errors";
 
 export default async function StaffProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await getCurrentUser();
   if (!user || !hasPermission(user, PERMISSIONS.HR_VIEW)) return <AccessDeniedState />;
 
-  const staff = MOCK_STAFF_PROFILES.find((s) => s.id === id && s.deletedAt === null);
-  if (!staff) notFound();
+  // `show` carries this employee's loans, advances and performance in its
+  // meta, so the profile is one request rather than four.
+  let detail;
+  try {
+    detail = await getStaffMember(id);
+  } catch (error) {
+    if (error instanceof ApiError && (error.status === 404 || error.status === 403)) notFound();
+    throw error;
+  }
 
-  const account = MOCK_USERS.find((u) => u.id === staff.userId);
-  const branch = staff.branchId ? MOCK_BRANCHES.find((b) => b.id === staff.branchId) : undefined;
-  const zone = staff.zoneId ? ZONES.find((z) => z.id === staff.zoneId) : undefined;
-  const bank = MOCK_STAFF_BANK_DETAILS.find((b) => b.staffProfileId === staff.id);
-  const lines = MOCK_PAYROLL_LINES.filter((l) => l.staffProfileId === staff.id);
-  const loans = MOCK_STAFF_LOANS.filter((l) => l.staffProfileId === staff.id);
-  const advances = MOCK_STAFF_ADVANCES.filter((a) => a.staffProfileId === staff.id);
-  const performance = MOCK_STAFF_PERFORMANCE_RECORDS.filter((p) => p.staffProfileId === staff.id);
+  const { staff, loans, advances, performance } = detail;
 
-  const name = account?.name ?? staff.employeeNumber;
+  // Payroll history for this employee: the runs index eager-loads its lines,
+  // so the employee's payslips are filtered out of them rather than fetched
+  // per run. Zones are a separate lookup — the staff resource carries only the
+  // id — and it fails soft.
+  const [runs, zones] = await Promise.all([getAllPayrollRuns(), getZones().catch(() => [])]);
+  const runById = new Map(runs.map((r) => [r.id, r]));
+  const lines = runs.flatMap((r) => r.lines).filter((l) => l.staffProfileId === staff.id);
+
+  const zone = staff.zoneId ? zones.find((z) => z.id === staff.zoneId) : undefined;
+  const bank = staff.bankDetails;
+  const name = staff.name ?? staff.employeeNumber;
+  // The staff resource carries the employee's name but not the avatar initials
+  // the user record computes, so they are derived from the name here.
+  const initials = name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "—";
 
   return (
     <div className="space-y-4">
@@ -50,11 +58,11 @@ export default async function StaffProfilePage({ params }: { params: Promise<{ i
         <Card className="lg:col-span-1">
           <CardContent className="flex flex-col items-center gap-3 pt-6 text-center">
             <Avatar className="size-16">
-              <AvatarFallback className="text-lg">{account?.avatarInitials ?? "—"}</AvatarFallback>
+              <AvatarFallback className="text-lg">{initials}</AvatarFallback>
             </Avatar>
             <div>
               <p className="font-semibold">{name}</p>
-              <p className="text-sm text-muted-foreground">{account ? ROLE_LABELS[account.role] : "—"}</p>
+              <p className="text-sm text-muted-foreground">{staff.role ? (ROLE_LABELS[staff.role] ?? staff.role) : "—"}</p>
             </div>
             <Badge variant="outline" className="capitalize">
               {staff.employmentStatus}
@@ -71,7 +79,7 @@ export default async function StaffProfilePage({ params }: { params: Promise<{ i
             <Field label="Hired">{staff.hiredAt}</Field>
             <Field label="Base salary">{formatMoney(staff.baseSalary)}</Field>
             <Field label="Commission eligible">{staff.commissionEligible ? "Yes" : "No"}</Field>
-            <Field label="Branch">{branch?.name ?? "—"}</Field>
+            <Field label="Branch">{staff.branchName ?? "—"}</Field>
             <Field label="Zone">{zone?.name ?? "—"}</Field>
             <Field label="Payment method">
               <span className="capitalize">{staff.paymentMethod}</span>
@@ -103,7 +111,7 @@ export default async function StaffProfilePage({ params }: { params: Promise<{ i
                 </TableHeader>
                 <TableBody>
                   {lines.map((l) => {
-                    const run = MOCK_PAYROLL_RUNS.find((r) => r.id === l.payrollRunId);
+                    const run = runById.get(l.payrollRunId);
                     return (
                       <TableRow key={l.id}>
                         <TableCell>

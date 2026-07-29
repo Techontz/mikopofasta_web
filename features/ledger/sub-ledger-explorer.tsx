@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { formatMoney } from "@/lib/domain/money";
+import { fetchSubLedger, type SubLedgerLines } from "@/features/ledger/actions";
 
 export type SubLedgerDimension = "customer" | "loan" | "staff" | "branch";
 
@@ -17,21 +18,13 @@ export interface SubLedgerOption {
   label: string;
 }
 
-export interface SubLedgerLine {
-  id: string;
-  entryId: string;
-  entryNumber: string;
-  entryDate: string;
-  description: string;
-  accountCode: string;
-  accountName: string;
-  debit: number;
-  credit: number;
-  customerId: string | null;
-  loanId: string | null;
-  staffProfileId: string | null;
-  branchId: string | null;
-}
+/** The API's dimension slugs, which differ from the singular labels shown here. */
+const DIMENSION_SLUGS = {
+  customer: "customers",
+  loan: "loans",
+  staff: "staff",
+  branch: "branches",
+} as const;
 
 const DIMENSION_LABELS: Record<SubLedgerDimension, string> = {
   customer: "Customer",
@@ -46,34 +39,56 @@ const DIMENSION_LABELS: Record<SubLedgerDimension, string> = {
  * §2.7). This one screen therefore covers all four §15.4 sub-ledger
  * endpoints rather than duplicating a page per dimension.
  */
-export function SubLedgerExplorer({
-  options,
-  lines,
-}: {
-  options: Record<SubLedgerDimension, SubLedgerOption[]>;
-  lines: SubLedgerLine[];
-}) {
+export function SubLedgerExplorer({ options }: { options: Record<SubLedgerDimension, SubLedgerOption[]> }) {
   const [dimension, setDimension] = React.useState<SubLedgerDimension>("loan");
   const [selectedId, setSelectedId] = React.useState<string>("");
+  const [result, setResult] = React.useState<SubLedgerLines | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
   const currentOptions = options[dimension];
 
-  function keyFor(line: SubLedgerLine): string | null {
-    switch (dimension) {
-      case "customer":
-        return line.customerId;
-      case "loan":
-        return line.loanId;
-      case "staff":
-        return line.staffProfileId;
-      case "branch":
-        return line.branchId;
-    }
-  }
+  /*
+   * One subject at a time. `GET /ledger/{dimension}/{id}` answers per subject,
+   * so the lines are fetched when a selection is made rather than the page
+   * shipping the entire journal to the browser to filter locally.
+   */
+  React.useEffect(() => {
+    let cancelled = false;
 
-  const filtered = selectedId ? lines.filter((l) => keyFor(l) === selectedId) : [];
-  const debits = filtered.reduce((s, l) => s + l.debit, 0);
-  const credits = filtered.reduce((s, l) => s + l.credit, 0);
+    // Every state change is deferred out of the effect body — a synchronous
+    // setState here cascades a second render on each selection.
+    const run = async () => {
+      if (!selectedId) {
+        setResult(null);
+        setError(null);
+        return;
+      }
+
+      setLoading(true);
+      const response = await fetchSubLedger(DIMENSION_SLUGS[dimension], selectedId);
+      if (cancelled) return;
+
+      if (response.ok && response.data) {
+        setResult(response.data);
+        setError(null);
+      } else {
+        setResult(null);
+        setError(response.message ?? "Could not load this sub-ledger.");
+      }
+      setLoading(false);
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dimension, selectedId]);
+
+  const filtered = result?.lines ?? [];
+  const debits = result?.totalDebits ?? 0;
+  const credits = result?.totalCredits ?? 0;
 
   return (
     <div className="space-y-4">
@@ -130,12 +145,20 @@ export function SubLedgerExplorer({
       <Card>
         <CardHeader>
           <CardTitle className="text-base">
-            {selectedId ? `Ledger Lines (${filtered.length})` : "Ledger Lines"}
+            {selectedId && !loading ? `Ledger Lines (${filtered.length})` : "Ledger Lines"}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {!selectedId ? (
             <EmptyState icon={Layers} title="Pick a dimension and subject" description="Sub-ledgers are journal lines filtered by customer, loan, staff, or branch." />
+          ) : loading ? (
+            <p className="py-6 text-center text-sm text-muted-foreground" role="status">
+              Loading ledger lines…
+            </p>
+          ) : error ? (
+            <p className="py-6 text-center text-sm text-destructive" role="alert">
+              {error}
+            </p>
           ) : filtered.length === 0 ? (
             <EmptyState icon={Layers} title="No postings" description="Nothing has been posted against this subject yet." />
           ) : (
@@ -143,16 +166,14 @@ export function SubLedgerExplorer({
               <div className="grid gap-3 sm:grid-cols-3">
                 <Fact label="Debits" value={formatMoney(debits)} />
                 <Fact label="Credits" value={formatMoney(credits)} />
-                <Fact label="Net" value={formatMoney(debits - credits)} />
+                <Fact label="Net" value={formatMoney(result?.net ?? debits - credits)} />
               </div>
               <div className="overflow-x-auto rounded-lg border">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Entry</TableHead>
-                      <TableHead>Date</TableHead>
                       <TableHead>Account</TableHead>
-                      <TableHead>Description</TableHead>
                       <TableHead className="text-right">Debit</TableHead>
                       <TableHead className="text-right">Credit</TableHead>
                     </TableRow>
@@ -162,14 +183,12 @@ export function SubLedgerExplorer({
                       <TableRow key={l.id}>
                         <TableCell className="whitespace-nowrap">
                           <Link href={`/ledger/entries/${l.entryId}`} className="font-tabular hover:underline">
-                            {l.entryNumber}
+                            View entry
                           </Link>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap">{l.entryDate}</TableCell>
                         <TableCell className="whitespace-nowrap">
-                          <span className="font-tabular">{l.accountCode}</span> {l.accountName}
+                          <span className="font-tabular">{l.accountCode ?? "—"}</span> {l.accountName ?? ""}
                         </TableCell>
-                        <TableCell className="max-w-72 truncate">{l.description}</TableCell>
                         <TableCell className="font-tabular text-right">{l.debit > 0 ? formatMoney(l.debit) : "—"}</TableCell>
                         <TableCell className="font-tabular text-right">{l.credit > 0 ? formatMoney(l.credit) : "—"}</TableCell>
                       </TableRow>

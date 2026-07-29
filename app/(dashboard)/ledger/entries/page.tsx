@@ -3,19 +3,22 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { getCurrentUser } from "@/lib/auth/session";
 import { hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
-import { MOCK_JOURNAL_ENTRIES } from "@/lib/mock-data/journal-entries";
+import { getAllJournalEntries } from "@/lib/api/ledger";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { ledgerNavFor } from "@/features/ledger/nav-items";
 import { EntriesTable } from "@/features/ledger/entries-table";
-import { toEntryRow } from "@/features/ledger/queries";
+import { reversedEntryIds, toEntryRow } from "@/features/ledger/queries";
 
 export default async function JournalEntriesPage() {
   const user = await getCurrentUser();
   if (!user || !hasPermission(user, PERMISSIONS.LEDGER_VIEW)) return <AccessDeniedState />;
 
-  const rows = [...MOCK_JOURNAL_ENTRIES]
-    .sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime())
-    .map(toEntryRow);
+  // The API already returns newest-first (ordered by posted_at), so no local
+  // re-sort — and each entry arrives with its lines, so the row's amount and
+  // line count are the server's figures, not a second tally.
+  const entries = await getAllJournalEntries();
+  const reversed = reversedEntryIds(entries);
+  const rows = entries.map((entry) => toEntryRow(entry, reversed));
 
   return (
     <div className="space-y-6">

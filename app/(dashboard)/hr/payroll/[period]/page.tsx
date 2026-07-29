@@ -11,27 +11,31 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { hasAnyPermission, hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
 import { formatMoney, round2 } from "@/lib/domain/money";
-import { MOCK_PAYROLL_RUNS, MOCK_PAYROLL_LINES, MOCK_ALLOWANCES, MOCK_DEDUCTIONS } from "@/lib/mock-data/payroll";
+import { getPayrollRunByPeriod } from "@/lib/api/hr";
 import { MOCK_USERS } from "@/lib/mock-data/users";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { hrNavFor } from "@/features/hr/nav-items";
 import { PayrollRunActions } from "@/features/hr/payroll-actions";
-import { staffName } from "@/features/hr/queries";
 
 export default async function PayrollPeriodPage({ params }: { params: Promise<{ period: string }> }) {
   const { period } = await params;
   const user = await getCurrentUser();
   if (!user || !hasAnyPermission(user, [PERMISSIONS.HR_VIEW, PERMISSIONS.PAYROLL_FINALIZE])) return <AccessDeniedState />;
 
-  const run = MOCK_PAYROLL_RUNS.find((r) => r.period === period);
+  // The screens are addressed by period; the API is keyed by run id, so the
+  // period is resolved against the index. `show` then eager-loads each line's
+  // staff, allowances and deductions.
+  const run = await getPayrollRunByPeriod(period);
   if (!run) notFound();
 
-  const lines = MOCK_PAYROLL_LINES.filter((l) => l.payrollRunId === run.id);
+  const lines = run.lines;
+  // `generatedBy` is a user id with no name on the resource, and /users needs
+  // `users.manage`, which HR-viewing roles do not hold.
   const userNames = Object.fromEntries(MOCK_USERS.map((u) => [u.id, u.name]));
 
   const gross = round2(lines.reduce((s, l) => s + l.baseSalary + l.commissionAmount + l.allowancesTotal, 0));
   const deductions = round2(lines.reduce((s, l) => s + l.deductionsTotal, 0));
-  const net = round2(lines.reduce((s, l) => s + l.netSalary, 0));
+  const net = run.netTotal;
 
   return (
     <div className="space-y-4">
@@ -95,13 +99,13 @@ export default async function PayrollPeriodPage({ params }: { params: Promise<{ 
               </TableHeader>
               <TableBody>
                 {lines.map((line) => {
-                  const allowances = MOCK_ALLOWANCES.filter((a) => a.payrollLineId === line.id);
-                  const deds = MOCK_DEDUCTIONS.filter((d) => d.payrollLineId === line.id);
+                  const allowances = line.allowances;
+                  const deds = line.deductions;
                   return (
                     <TableRow key={line.id}>
                       <TableCell>
                         <Link href={`/hr/staff/${line.staffProfileId}`} className="font-medium hover:underline">
-                          {staffName(line.staffProfileId)}
+                          {(line.staffName ?? line.staffProfileId)}
                         </Link>
                       </TableCell>
                       <TableCell className="font-tabular text-right">{formatMoney(line.baseSalary)}</TableCell>

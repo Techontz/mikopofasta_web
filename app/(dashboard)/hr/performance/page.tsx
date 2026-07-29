@@ -7,11 +7,10 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { getCurrentUser } from "@/lib/auth/session";
 import { hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
-import { MOCK_STAFF_PERFORMANCE_RECORDS } from "@/lib/mock-data/staff-performance";
+import { getPerformanceRecords } from "@/lib/api/hr";
 import { MOCK_USERS } from "@/lib/mock-data/users";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { hrNavFor } from "@/features/hr/nav-items";
-import { staffName } from "@/features/hr/queries";
 
 const RATING_TONE: Record<string, "default" | "secondary" | "destructive"> = {
   A: "default",
@@ -24,8 +23,12 @@ export default async function PerformancePage() {
   const user = await getCurrentUser();
   if (!user || !hasPermission(user, PERMISSIONS.HR_VIEW)) return <AccessDeniedState />;
 
+  // The API already returns newest-period-first, and each record carries the
+  // employee's name. `recordedBy` is a user id with no name on the resource —
+  // /users needs `users.manage`, which HR-viewing roles do not hold — so the
+  // reviewer falls back to the seeded user list until Users is integrated.
   const userNames = Object.fromEntries(MOCK_USERS.map((u) => [u.id, u.name]));
-  const records = [...MOCK_STAFF_PERFORMANCE_RECORDS].sort((a, b) => b.period.localeCompare(a.period));
+  const records = await getPerformanceRecords();
 
   return (
     <div className="space-y-6">
@@ -62,7 +65,7 @@ export default async function PerformancePage() {
                     <TableRow key={r.id}>
                       <TableCell>
                         <Link href={`/hr/staff/${r.staffProfileId}`} className="font-medium hover:underline">
-                          {staffName(r.staffProfileId)}
+                          {(r.staffName ?? r.staffProfileId)}
                         </Link>
                       </TableCell>
                       <TableCell>{r.period}</TableCell>

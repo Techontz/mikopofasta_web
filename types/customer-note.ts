@@ -5,6 +5,11 @@ export const CustomerNoteSchema = z.object({
   id: z.string(),
   customerId: z.string(),
   authorId: z.string(),
+  /**
+   * Resolved by the API when it eager-loads the author, so the notes panel no
+   * longer needs a local user list to turn an id into a name.
+   */
+  authorName: z.string().nullable().optional(),
   note: z.string(),
   createdAt: z.string(),
 });

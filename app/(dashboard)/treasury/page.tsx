@@ -5,11 +5,9 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
 import { formatMoney, round2 } from "@/lib/domain/money";
-import { buildTrialBalance } from "@/lib/domain/trial-balance";
-import { CHART_OF_ACCOUNTS } from "@/lib/mock-data/chart-of-accounts";
-import { MOCK_JOURNAL_ENTRY_LINES, MOCK_CAPITAL_CONTRIBUTIONS } from "@/lib/mock-data/journal-entries";
+import { classifyAccount, getLedgerAccounts, getTrialBalance } from "@/lib/api/ledger";
+import { MOCK_CAPITAL_CONTRIBUTIONS } from "@/lib/mock-data/journal-entries";
 import { MOCK_DIVIDENDS } from "@/lib/mock-data/reversals";
-import { MOCK_BANK_ACCOUNTS } from "@/lib/mock-data/bank-accounts";
 import { SYSTEM_ACCOUNT_CODES } from "@/types/ledger";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { treasuryNavFor } from "@/features/ledger/nav-items";
@@ -18,14 +16,19 @@ export default async function TreasuryPage() {
   const user = await getCurrentUser();
   if (!user || !hasPermission(user, PERMISSIONS.TREASURY_VIEW)) return <AccessDeniedState />;
 
-  const trial = buildTrialBalance(CHART_OF_ACCOUNTS, MOCK_JOURNAL_ENTRY_LINES);
+  /*
+   * Every figure on this page is derived from the ledger, which is what the
+   * original page claimed and now actually does. There is no treasury endpoint
+   * — no bank-account registry, no capital or dividend route — so a bank
+   * account is identified the way the data model defines one: a dynamic
+   * (non-system) account with no branch, as opposed to a branch till, which has
+   * one. See classifyAccount.
+   */
+  const [trial, accounts] = await Promise.all([getTrialBalance(), getLedgerAccounts()]);
   const byCode = (code: string) => trial.rows.find((r) => r.code === code)?.balance ?? 0;
 
   const bankBalance = round2(
-    MOCK_BANK_ACCOUNTS.filter((b) => b.deletedAt === null).reduce(
-      (s, b) => s + (trial.rows.find((r) => r.accountId === b.chartAccountId)?.balance ?? 0),
-      0
-    )
+    accounts.filter((a) => classifyAccount(a) === "bank").reduce((s, a) => s + a.balance, 0)
   );
 
   const income = trial.rows.filter((r) => r.type === "income").reduce((s, r) => s + r.balance, 0);
@@ -65,6 +68,7 @@ export default async function TreasuryPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Capital Contributions ({MOCK_CAPITAL_CONTRIBUTIONS.length})</CardTitle>
+            <p className="text-xs text-muted-foreground">Not yet on the API — no treasury endpoint exists.</p>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
@@ -84,6 +88,7 @@ export default async function TreasuryPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Dividends ({MOCK_DIVIDENDS.length})</CardTitle>
+            <p className="text-xs text-muted-foreground">Not yet on the API — no treasury endpoint exists.</p>
           </CardHeader>
           <CardContent>
             {MOCK_DIVIDENDS.length === 0 ? (

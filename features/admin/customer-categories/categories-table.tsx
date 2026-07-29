@@ -2,9 +2,9 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import { Tags, Trash2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/settings";
 import { Button } from "@/components/ui/button";
-import { DataTable } from "@/components/data-table/data-table";
+import { SettingsTable } from "@/components/settings/table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { ConfirmDeleteDialog } from "@/components/data-table/confirm-delete-dialog";
 import { CategoryFormDialog } from "@/features/admin/customer-categories/category-form-dialog";
@@ -12,7 +12,7 @@ import { deleteCustomerCategory } from "@/features/admin/customer-categories/act
 import { RISK_TIERS } from "@/types/enums";
 import type { CustomerCategory } from "@/types/customer";
 
-const RISK_VARIANT: Record<string, "default" | "secondary" | "destructive"> = { low: "secondary", medium: "default", high: "destructive" };
+const RISK_TONE: Record<string, "active" | "warning" | "danger"> = { low: "active", medium: "warning", high: "danger" };
 
 export function CategoriesTable({ categories }: { categories: CustomerCategory[] }) {
   const columns: ColumnDef<CustomerCategory>[] = [
@@ -21,14 +21,14 @@ export function CategoriesTable({ categories }: { categories: CustomerCategory[]
     {
       accessorKey: "riskTier",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Risk Tier" />,
-      cell: ({ row }) => <Badge variant={RISK_VARIANT[row.original.riskTier]} className="capitalize">{row.original.riskTier}</Badge>,
+      cell: ({ row }) => <StatusBadge tone={RISK_TONE[row.original.riskTier] ?? "neutral"} className="capitalize">{row.original.riskTier}</StatusBadge>,
       filterFn: "arrIncludesSome",
     },
     { id: "fields", header: "Dynamic Fields", cell: ({ row }) => row.original.dynamicFormSchema.length },
     {
       id: "approval",
       header: "Extra Approval",
-      cell: ({ row }) => (row.original.requiresExtraApproval ? <Badge variant="outline">Required</Badge> : "—"),
+      cell: ({ row }) => (row.original.requiresExtraApproval ? <StatusBadge tone="info" dot={false}>Required</StatusBadge> : "—"),
     },
     {
       id: "actions",
@@ -52,7 +52,7 @@ export function CategoriesTable({ categories }: { categories: CustomerCategory[]
   ];
 
   return (
-    <DataTable
+    <SettingsTable
       columns={columns}
       data={categories}
       searchFields={["name", "code"]}
