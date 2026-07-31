@@ -6,19 +6,17 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ExpenseCategorySchema, type ExpenseCategory } from "@/types/expense";
+import { Pencil, Plus } from "lucide-react";
+import { SettingsDialog } from "@/components/settings/dialog";
+import { Button, Field, IconButton, Select, TextInput } from "@/components/settings/form";
+import { ExpenseCategorySchema } from "@/types/expense";
+import type { ExpenseRegisterEntry } from "@/lib/api/expenses";
 import { createExpenseCategory, updateExpenseCategory } from "@/features/admin/expense-categories/actions";
 
 const FormSchema = ExpenseCategorySchema.pick({ name: true, scope: true });
 type FormValues = z.infer<typeof FormSchema>;
 
-export function ExpenseCategoryFormDialog({ category }: { category?: ExpenseCategory }) {
+export function ExpenseCategoryFormDialog({ category }: { category?: ExpenseRegisterEntry }) {
   const [open, setOpen] = React.useState(false);
   const [pending, startTransition] = useTransition();
   const isEdit = Boolean(category);
@@ -27,8 +25,6 @@ export function ExpenseCategoryFormDialog({ category }: { category?: ExpenseCate
   const {
     register,
     handleSubmit,
-    setValue,
-    watch,
     reset,
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(FormSchema), defaultValues: defaults });
@@ -46,57 +42,50 @@ export function ExpenseCategoryFormDialog({ category }: { category?: ExpenseCate
   }
 
   return (
-    <Dialog
+    <SettingsDialog
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
         if (next) reset(defaults);
       }}
+      trigger={
+        isEdit ? (
+          <IconButton icon={Pencil} label={`Edit ${category!.name}`} tone="secondary" />
+        ) : (
+          <Button tone="primary" icon={Plus}>
+            New Category
+          </Button>
+        )
+      }
+      title={isEdit ? "Edit Expense Category" : "New Expense Category"}
+      description="A dedicated 6xxx ledger account is created automatically for every category, and every expense filed under it posts there."
+      formId="expense-category-form"
+      onSubmit={handleSubmit(onSubmit)}
+      submitLabel={isEdit ? "Save changes" : "Create category"}
+      pending={pending}
     >
-      <DialogTrigger
-        render={
-          isEdit ? (
-            <Button variant="ghost" size="sm">
-              Edit
-            </Button>
-          ) : (
-            <Button size="sm">
-              <Plus className="size-4" />
-              New Category
-            </Button>
-          )
-        }
-      />
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Expense Category" : "New Expense Category"}</DialogTitle>
-          <DialogDescription>A dedicated ledger account is created automatically for every category.</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="exp-cat-name">Name</Label>
-            <Input id="exp-cat-name" placeholder="e.g. Fuel" {...register("name")} />
-            {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
-          </div>
-          <div className="space-y-1.5">
-            <Label>Scope</Label>
-            <Select value={watch("scope")} onValueChange={(v) => setValue("scope", v as FormValues["scope"])}>
-              <SelectTrigger aria-label="Scope" className="w-full">
-                <SelectValue>{(v: string) => (v === "hq" ? "HQ" : "Branch")}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="branch">Branch</SelectItem>
-                <SelectItem value="hq">HQ</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <DialogFooter>
-            <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : isEdit ? "Save changes" : "Create category"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+      <Field label="Name" htmlFor="exp-cat-name" required error={errors.name?.message}>
+        <TextInput id="exp-cat-name" placeholder="e.g. Fuel" invalid={!!errors.name} {...register("name")} />
+      </Field>
+
+      <Field
+        label="Scope"
+        htmlFor="exp-cat-scope"
+        error={errors.scope?.message}
+        help={isEdit ? "Fixed when the category was created." : "Whether the cost belongs to a branch or to head office."}
+      >
+        {/*
+          Disabled on edit. The register a category belongs to is fixed at
+          creation — moving it would silently re-file every request already
+          under it and change historical Branch P&L — but it is still shown,
+          because a reader editing a name needs to know which register they
+          are in.
+        */}
+        <Select id="exp-cat-scope" invalid={!!errors.scope} disabled={isEdit} {...register("scope")}>
+          <option value="branch">Branch</option>
+          <option value="headquarters">Headquarters</option>
+        </Select>
+      </Field>
+    </SettingsDialog>
   );
 }

@@ -60,7 +60,7 @@ export const MOCK_BRANCHES: Branch[] = [
   },
   {
     id: "br-kalenge",
-    name: "New Kalenge",
+    name: "NEW KALENGE",
     regionId: "region-mbeya",
     zoneId: "zone-east",
     phone: "0700000005",

@@ -3,8 +3,17 @@ import { z } from "zod";
 export const ExpenseCategorySchema = z.object({
   id: z.string(),
   name: z.string(),
-  scope: z.enum(["branch", "hq"]),
-  /** 1:1 auto-created ledger account — backend §2.2. */
+  /**
+   * `headquarters`, not `hq`.
+   *
+   * This screen and the six operational expense screens describe the same
+   * record, and they used to spell its two registers differently — `hq` here,
+   * `headquarters` in types/operations.ts. The backend enum is
+   * `branch | headquarters` and six screens read it against one that did not,
+   * so the odd one out is corrected rather than translated at the boundary.
+   */
+  scope: z.enum(["branch", "headquarters"]),
+  /** The 6xxx ledger account this category owns — one each, never shared. */
   chartAccountId: z.string(),
   createdBy: z.string().nullable(),
   deletedAt: z.string().nullable(),

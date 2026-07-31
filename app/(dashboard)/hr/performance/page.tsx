@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Target } from "lucide-react";
+import { PageHeader, SettingsCard, StatusBadge, type StatusTone } from "@/components/settings";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -12,11 +11,22 @@ import { MOCK_USERS } from "@/lib/mock-data/users";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { hrNavFor } from "@/features/hr/nav-items";
 
-const RATING_TONE: Record<string, "default" | "secondary" | "destructive"> = {
-  A: "default",
-  B: "secondary",
-  C: "secondary",
-  D: "destructive",
+/**
+ * HRM → Performance.
+ *
+ * PRESENTATION ONLY. The same `getPerformanceRecords` call, the same reviewer
+ * fallback, the same permission gate, the same columns and the same
+ * target-versus-achieved pairs. The table keeps its own markup because each
+ * cell prints two figures rather than one value — it now wears `.st-table`,
+ * the skin SettingsTable renders through, so it matches the Menu modules.
+ */
+
+/** Rating → the app's own badge tone, replacing shadcn's variant names. */
+const RATING_TONE: Record<string, StatusTone> = {
+  A: "active",
+  B: "info",
+  C: "warning",
+  D: "danger",
 };
 
 export default async function PerformancePage() {
@@ -31,65 +41,73 @@ export default async function PerformancePage() {
   const records = await getPerformanceRecords();
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1>Performance</h1>
-        <p className="text-sm text-muted-foreground">Targets versus achieved per period, with the reviewer&apos;s rating.</p>
-      </div>
+    <>
+      <PageHeader
+        icon={Target}
+        title="Performance"
+        description="Targets versus achieved per period, with the reviewer's rating."
+        breadcrumb={[{ label: "HRM", href: "/hr" }, { label: "Performance" }]}
+      />
 
       <SectionNav items={hrNavFor(user)} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Performance Records ({records.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {records.length === 0 ? (
-            <EmptyState title="No performance records" description="Managers record targets and achievement per period." />
-          ) : (
-            <div className="overflow-x-auto rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Staff</TableHead>
-                    <TableHead>Period</TableHead>
-                    <TableHead>Loans disbursed</TableHead>
-                    <TableHead>Collection rate</TableHead>
-                    <TableHead>New customers</TableHead>
-                    <TableHead>Recorded by</TableHead>
-                    <TableHead>Rating</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {records.map((r) => (
-                    <TableRow key={r.id}>
-                      <TableCell>
-                        <Link href={`/hr/staff/${r.staffProfileId}`} className="font-medium hover:underline">
-                          {(r.staffName ?? r.staffProfileId)}
-                        </Link>
-                      </TableCell>
-                      <TableCell>{r.period}</TableCell>
-                      <TableCell className="font-tabular">
-                        {r.achieved.loans_disbursed} / {r.targets.loans_disbursed}
-                      </TableCell>
-                      <TableCell className="font-tabular">
-                        {r.achieved.collection_rate_pct}% / {r.targets.collection_rate_pct}%
-                      </TableCell>
-                      <TableCell className="font-tabular">
-                        {r.achieved.new_customers} / {r.targets.new_customers}
-                      </TableCell>
-                      <TableCell>{userNames[r.recordedBy] ?? r.recordedBy}</TableCell>
-                      <TableCell>
-                        <Badge variant={r.rating ? RATING_TONE[r.rating] : "secondary"}>{r.rating ?? "—"}</Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+      <SettingsCard
+        title={`Performance Records (${records.length})`}
+        bodyClassName={records.length === 0 ? undefined : "pt-0 sm:pt-0"}
+      >
+        {records.length === 0 ? (
+          <EmptyState
+            title="No performance records"
+            description="Managers record targets and achievement per period."
+          />
+        ) : (
+          <div className="st-card overflow-x-auto">
+            <table className="st-table w-full">
+              <thead>
+                <tr>
+                  <th className="text-left">Staff</th>
+                  <th className="text-left">Period</th>
+                  <th className="text-right">Loans disbursed</th>
+                  <th className="text-right">Collection rate</th>
+                  <th className="text-right">New customers</th>
+                  <th className="text-left">Recorded by</th>
+                  <th className="text-left">Rating</th>
+                </tr>
+              </thead>
+              <tbody>
+                {records.map((r) => (
+                  <tr key={r.id}>
+                    <td>
+                      <Link
+                        href={`/hr/staff/${r.staffProfileId}`}
+                        className="font-medium text-[var(--st-ink)] hover:underline"
+                      >
+                        {r.staffName ?? r.staffProfileId}
+                      </Link>
+                    </td>
+                    <td>{r.period}</td>
+                    <td className="font-tabular text-right">
+                      {r.achieved.loans_disbursed} / {r.targets.loans_disbursed}
+                    </td>
+                    <td className="font-tabular text-right">
+                      {r.achieved.collection_rate_pct}% / {r.targets.collection_rate_pct}%
+                    </td>
+                    <td className="font-tabular text-right">
+                      {r.achieved.new_customers} / {r.targets.new_customers}
+                    </td>
+                    <td>{userNames[r.recordedBy] ?? r.recordedBy}</td>
+                    <td>
+                      <StatusBadge tone={r.rating ? (RATING_TONE[r.rating] ?? "neutral") : "neutral"}>
+                        {r.rating ?? "—"}
+                      </StatusBadge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </SettingsCard>
+    </>
   );
 }

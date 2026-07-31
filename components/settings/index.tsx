@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, Home, type LucideIcon } from "lucide-react";
+import { ChevronRight, Home, X, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -19,23 +19,50 @@ export interface Crumb {
   href?: string;
 }
 
+/**
+ * A crumb's identity is where it points, not what it reads.
+ *
+ * Two crumbs in one trail can legitimately share a label — "Capital › Capital"
+ * is a section and a page that happen to be named the same — so keying on the
+ * label alone collides. The destination distinguishes them: only the final
+ * crumb has no href, and a trail has exactly one final crumb.
+ */
+function crumbKey(crumb: Crumb): string {
+  return crumb.href ?? `current:${crumb.label}`;
+}
+
 export function SettingsBreadcrumb({ trail }: { trail: Crumb[] }) {
   return (
-    <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-[12.5px] text-[var(--st-ink-faint)]">
-      <Link href="/dashboard" aria-label="Dashboard" className="transition-colors hover:text-[var(--st-ink)]">
+    <nav
+      aria-label="Breadcrumb"
+      /* The trail scrolls rather than wraps: a two-line breadcrumb shifts the
+         heading below it, and on a phone the tail is the part worth reading. */
+      className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap text-[12.5px] text-[var(--st-ink-faint)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    >
+      <Link
+        href="/dashboard"
+        aria-label="Dashboard"
+        className="shrink-0 rounded-[var(--st-radius-xs)] transition-colors hover:text-[var(--st-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--st-accent)]"
+      >
         <Home className="size-3.5" strokeWidth={1.8} aria-hidden />
       </Link>
       {trail.map((crumb, i) => {
         const last = i === trail.length - 1;
         return (
-          <span key={crumb.label} className="flex items-center gap-1.5">
-            <ChevronRight className="size-3 text-[#c8cdd5]" aria-hidden />
+          <span key={crumbKey(crumb)} className="flex shrink-0 items-center gap-1.5">
+            <ChevronRight className="size-3 text-[var(--st-line-strong)]" aria-hidden />
             {crumb.href && !last ? (
-              <Link href={crumb.href} className="transition-colors hover:text-[var(--st-ink)]">
+              <Link
+                href={crumb.href}
+                className="rounded-[var(--st-radius-xs)] transition-colors hover:text-[var(--st-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--st-accent)]"
+              >
                 {crumb.label}
               </Link>
             ) : (
-              <span className={last ? "font-medium text-[var(--st-ink)]" : undefined} aria-current={last ? "page" : undefined}>
+              <span
+                className={last ? "font-medium text-[var(--st-ink)]" : undefined}
+                aria-current={last ? "page" : undefined}
+              >
                 {crumb.label}
               </span>
             )}
@@ -70,14 +97,20 @@ export function PageHeader({
         <div className="flex min-w-0 items-start gap-3">
           {Icon && (
             <span
-              className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-[10px] border"
-              style={{ background: "var(--st-accent-soft)", borderColor: "#dde6fb", color: "var(--st-accent)" }}
+              className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-[var(--st-radius-sm)] border"
+              style={{
+                background: "var(--st-accent-soft)",
+                borderColor: "var(--st-accent-line)",
+                color: "var(--st-accent)",
+              }}
             >
               <Icon className="size-[18px]" strokeWidth={1.8} aria-hidden />
             </span>
           )}
           <div className="min-w-0">
-            <h1 className="text-[19px] font-semibold leading-tight tracking-[-0.01em] text-[var(--st-ink)]">{title}</h1>
+            <h1 className="text-[20px] font-semibold leading-[1.25] tracking-[-0.018em] text-[var(--st-ink)]">
+              {title}
+            </h1>
             {description && (
               <p className="mt-1 max-w-2xl text-[13.5px] leading-relaxed text-[var(--st-ink-soft)]">{description}</p>
             )}
@@ -113,11 +146,15 @@ export function SettingsCard({
   return (
     <section className={cn("st-card overflow-hidden", className)}>
       {(title || actions) && (
-        <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2 px-5 pb-4 pt-[18px] sm:px-6">
+        <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2 px-5 pb-4 pt-5 sm:px-6">
           <div className="min-w-0">
-            {title && <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--st-ink)]">{title}</h2>}
+            {title && (
+              <h2 className="text-[15px] font-semibold leading-tight tracking-[-0.012em] text-[var(--st-ink)]">
+                {title}
+              </h2>
+            )}
             {description && (
-              <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-[var(--st-ink-soft)]">{description}</p>
+              <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-[var(--st-ink-soft)]">{description}</p>
             )}
           </div>
           {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
@@ -129,14 +166,149 @@ export function SettingsCard({
         </div>
       )}
       {footer && (
+        /*
+         * The action bar is tinted a shade off the card so it reads as a base
+         * the card rests on rather than as more card. On a phone the buttons
+         * stretch to full width — a 36px target at the edge of a 390px screen
+         * is a miss waiting to happen.
+         */
         <div
-          className="flex flex-wrap items-center justify-end gap-2 border-t px-5 py-3.5 sm:px-6"
-          style={{ borderColor: "var(--st-line)", background: "#fcfcfd" }}
+          className="flex flex-col-reverse gap-2 border-t px-5 py-3.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:px-6 [&>.st-btn]:w-full sm:[&>.st-btn]:w-auto"
+          style={{ borderColor: "var(--st-line)", background: "var(--st-subtle)" }}
         >
           {footer}
         </div>
       )}
     </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Page container
+// ---------------------------------------------------------------------------
+
+/**
+ * The padding and rhythm every configuration screen sits in.
+ *
+ * Exists so the page gutter is decided once. Both `.st-scope` layouts inlined
+ * the same class string, which is how they drifted apart the first time. There
+ * is deliberately no max-width: these are dashboard screens, and a centred
+ * column leaves dead gutters while the table inside it scrolls.
+ */
+export function PageContainer({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <div className={cn("w-full space-y-6 px-4 py-6 sm:px-6 sm:py-7 xl:px-8", className)}>{children}</div>;
+}
+
+// ---------------------------------------------------------------------------
+// Money
+// ---------------------------------------------------------------------------
+
+/**
+ * A figure in a table.
+ *
+ * Tabular numerals and right alignment are not decoration — they are what lets
+ * a column of amounts be compared by length instead of read digit by digit.
+ * `muted` is for a zero or a placeholder, so an empty cell reads as "nothing"
+ * rather than as a number worth checking.
+ */
+export function Money({
+  children,
+  muted,
+  strong,
+  className,
+}: {
+  children: React.ReactNode;
+  muted?: boolean;
+  strong?: boolean;
+  className?: string;
+}) {
+  return (
+    <span
+      className={cn(
+        "font-tabular block text-right tabular-nums",
+        strong && "font-semibold text-[var(--st-ink)]",
+        muted && "text-[var(--st-ink-faint)]",
+        className
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Stat card
+// ---------------------------------------------------------------------------
+
+/**
+ * A single headline figure. Used in rows of two to four above a table.
+ *
+ * The label sits above the value, not beside it, so a row of tiles has one
+ * baseline for its numbers — the thing the eye is actually scanning.
+ */
+export function StatCard({
+  label,
+  value,
+  hint,
+  icon: Icon,
+  tone = "default",
+  className,
+}: {
+  label: string;
+  value: React.ReactNode;
+  hint?: string;
+  icon?: LucideIcon;
+  tone?: "default" | "accent";
+  className?: string;
+}) {
+  return (
+    <div className={cn("st-card p-4 sm:p-5", className)}>
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-[12px] font-medium uppercase tracking-[0.04em] text-[var(--st-ink-faint)]">{label}</p>
+        {Icon && (
+          <span
+            className="flex size-7 shrink-0 items-center justify-center rounded-[var(--st-radius-xs)]"
+            style={{
+              background: tone === "accent" ? "var(--st-accent-soft)" : "var(--st-subtle-strong)",
+              color: tone === "accent" ? "var(--st-accent)" : "var(--st-ink-faint)",
+            }}
+          >
+            <Icon className="size-4" strokeWidth={1.8} aria-hidden />
+          </span>
+        )}
+      </div>
+      <p className="font-tabular mt-2 text-[22px] font-semibold leading-tight tracking-[-0.02em] text-[var(--st-ink)]">
+        {value}
+      </p>
+      {hint && <p className="mt-1 text-[12px] leading-relaxed text-[var(--st-ink-soft)]">{hint}</p>}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Section header
+// ---------------------------------------------------------------------------
+
+/** A titled band inside a card body, for a card that holds more than one list. */
+export function SectionHeader({
+  title,
+  description,
+  actions,
+  className,
+}: {
+  title: string;
+  description?: string;
+  actions?: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("flex flex-wrap items-start justify-between gap-x-6 gap-y-2", className)}>
+      <div className="min-w-0">
+        <h3 className="text-[13.5px] font-semibold tracking-[-0.01em] text-[var(--st-ink)]">{title}</h3>
+        {description && <p className="mt-1 text-[12.5px] leading-relaxed text-[var(--st-ink-soft)]">{description}</p>}
+      </div>
+      {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+    </div>
   );
 }
 
@@ -163,15 +335,20 @@ export type StatusTone = "active" | "inactive" | "default" | "warning" | "danger
 /**
  * Tone is expressed by colour and by the leading dot together, so the state
  * survives a greyscale print and a colour-blind reader.
+ *
+ * The colours themselves live in globals.css as `.st-tone-*`, not in a lookup
+ * table here: a table of hex triples in a component can only describe one
+ * theme, and this badge has to render in two. All that survives in TypeScript
+ * is the tone's name.
  */
-const TONES: Record<StatusTone, { bg: string; fg: string; border: string }> = {
-  active: { bg: "#ecfdf3", fg: "#067647", border: "#abefc6" },
-  inactive: { bg: "#f4f5f7", fg: "#5b6472", border: "#e0e3e8" },
-  default: { bg: "#eef3fe", fg: "#2f6feb", border: "#c9dcfd" },
-  warning: { bg: "#fffaeb", fg: "#b54708", border: "#fedf89" },
-  danger: { bg: "#fef3f2", fg: "#b42318", border: "#fecdca" },
-  info: { bg: "#f0f9ff", fg: "#026aa2", border: "#b9e6fe" },
-  neutral: { bg: "#f9fafb", fg: "#5b6472", border: "#e0e3e8" },
+const TONE_CLASS: Record<StatusTone, string> = {
+  active: "st-tone-active",
+  inactive: "st-tone-inactive",
+  default: "st-tone-default",
+  warning: "st-tone-warning",
+  danger: "st-tone-danger",
+  info: "st-tone-info",
+  neutral: "st-tone-neutral",
 };
 
 export function StatusBadge({
@@ -185,12 +362,8 @@ export function StatusBadge({
   dot?: boolean;
   className?: string;
 }) {
-  const t = TONES[tone];
   return (
-    <span
-      className={cn("st-badge", !dot && "st-badge-plain", className)}
-      style={{ background: t.bg, color: t.fg, borderColor: t.border }}
-    >
+    <span className={cn("st-badge", TONE_CLASS[tone], !dot && "st-badge-plain", className)}>
       {children}
     </span>
   );
@@ -219,20 +392,96 @@ export function PageToolbar({
 }
 
 // ---------------------------------------------------------------------------
+// Filter bar
+// ---------------------------------------------------------------------------
+
+/**
+ * The row of filters above a table.
+ *
+ * A plain wrapper on purpose: each screen owns its own filter state, because
+ * each screen knows what its filters mean. What this centralises is the
+ * geometry — filters wrap in reading order on a narrow viewport, the reset
+ * affordance sits at the end of the row, and every screen's filter row is the
+ * same height as every other's.
+ */
+export function FilterBar({
+  children,
+  onReset,
+  active,
+  className,
+}: {
+  children: React.ReactNode;
+  /** Omit to hide the reset affordance entirely. */
+  onReset?: () => void;
+  /** Whether any filter is currently narrowing the list. */
+  active?: boolean;
+  className?: string;
+}) {
+  return (
+    <div className={cn("flex flex-wrap items-end gap-3", className)}>
+      {children}
+      {onReset && active && (
+        <button
+          type="button"
+          onClick={onReset}
+          className="st-btn st-btn-ghost h-9 shrink-0"
+        >
+          <X className="size-3.5" strokeWidth={2} aria-hidden />
+          Clear filters
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** One labelled control inside a FilterBar. Narrow by default; grows if asked. */
+export function Filter({
+  label,
+  htmlFor,
+  children,
+  className,
+}: {
+  label: string;
+  htmlFor?: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("min-w-0 flex-1 sm:max-w-[190px]", className)}>
+      <label
+        htmlFor={htmlFor}
+        className="mb-1 block text-[11.5px] font-medium uppercase tracking-[0.04em] text-[var(--st-ink-faint)]"
+      >
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Skeletons
 // ---------------------------------------------------------------------------
 
+/*
+ * A placeholder bar. `--st-skeleton` moves with the theme, so a loading screen
+ * in dark mode is dark — a light-grey pulse on a dark card is a flashbulb.
+ */
 function Bar({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded bg-[#e9ebef]", className)} />;
+  return <div className={cn("animate-pulse rounded-[var(--st-radius-xs)] bg-[var(--st-skeleton)]", className)} />;
 }
 
-/** Header placeholder — matches PageHeader's metrics so nothing shifts on load. */
+/**
+ * Skeletons mirror the metrics of what they stand in for — same heights, same
+ * radii, same gaps — so the real content lands where the placeholder was
+ * instead of pushing the page around as it arrives.
+ */
 export function PageHeaderSkeleton() {
   return (
     <div className="space-y-3">
       <Bar className="h-3.5 w-40" />
       <div className="flex items-start gap-3">
-        <Bar className="size-9 shrink-0 rounded-[10px]" />
+        <Bar className="size-9 shrink-0 rounded-[var(--st-radius-sm)]" />
         <div className="space-y-2 pt-0.5">
           <Bar className="h-5 w-52" />
           <Bar className="h-3.5 w-80 max-w-full" />
@@ -246,17 +495,24 @@ export function SettingsTableSkeleton({ rows = 6 }: { rows?: number }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        <Bar className="h-[38px] w-full rounded-[10px] sm:w-72" />
-        <Bar className="ml-auto h-9 w-32 rounded-[10px]" />
+        <Bar className="h-9 w-full rounded-[var(--st-radius-sm)] sm:w-72" />
+        <Bar className="ml-auto h-9 w-32 rounded-[var(--st-radius-sm)]" />
       </div>
-      <div className="st-card divide-y" style={{ borderColor: "var(--st-line)" }}>
-        <div className="flex gap-4 px-4 py-3">
+      <div className="st-card overflow-hidden">
+        <div
+          className="flex gap-4 border-b px-4 py-[13px]"
+          style={{ borderColor: "var(--st-line)", background: "var(--st-subtle)" }}
+        >
           {Array.from({ length: 4 }).map((_, i) => (
             <Bar key={i} className="h-3 flex-1" />
           ))}
         </div>
         {Array.from({ length: rows }).map((_, i) => (
-          <div key={i} className="flex gap-4 px-4 py-4">
+          <div
+            key={i}
+            className="flex gap-4 border-b px-4 py-[15px] last:border-b-0"
+            style={{ borderColor: "var(--st-line-soft)" }}
+          >
             {Array.from({ length: 4 }).map((_, j) => (
               <Bar key={j} className="h-4 flex-1" />
             ))}
@@ -272,7 +528,7 @@ export function SettingsCardsSkeleton({ cards = 6 }: { cards?: number }) {
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: cards }).map((_, i) => (
         <div key={i} className="st-card space-y-3 p-5">
-          <Bar className="size-9 rounded-[10px]" />
+          <Bar className="size-9 rounded-[var(--st-radius-sm)]" />
           <Bar className="h-4 w-32" />
           <Bar className="h-3.5 w-full" />
           <Bar className="h-3.5 w-3/4" />
@@ -293,7 +549,7 @@ export function SettingsFormSkeleton() {
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="space-y-1.5">
             <Bar className="h-3 w-24" />
-            <Bar className="h-[38px] w-full rounded-[10px]" />
+            <Bar className="h-9 w-full rounded-[var(--st-radius-sm)]" />
           </div>
         ))}
       </div>

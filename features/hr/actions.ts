@@ -42,7 +42,6 @@ function revalidateHr() {
   revalidatePath("/hr/commission");
   revalidatePath("/hr/staff-advances");
   revalidatePath("/hr/performance");
-  revalidatePath("/ledger");
 }
 
 // ---------------------------------------------------------------------------

@@ -68,7 +68,7 @@ const bankAccounts: ChartOfAccount[] = [
   { id: BANK_CHART_ACCOUNT_IDS.CRDB, code: "8100", name: "CRDB Bank", type: "asset", parentAccountId: null, isSystem: false, branchId: null, status: "active", deletedAt: null },
 ];
 
-/** One 6xxx account per expense category — ids referenced by lib/mock-data/expense-categories.ts. */
+/** One 6xxx account per expense category, for the ledger fixtures below. The real ones are minted by the API (see its docs/modules/expenses.md). */
 export const EXPENSE_CHART_ACCOUNT_IDS = {
   RENT: "acct-expense-rent",
   ELECTRICITY: "acct-expense-electricity",

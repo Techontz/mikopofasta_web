@@ -3,8 +3,6 @@ import {
   LayoutDashboard,
   Users,
   HandCoins,
-  Wallet,
-  BookOpenText,
   Landmark,
   UsersRound,
   BarChart3,
@@ -47,15 +45,8 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [{ label: "Loans", href: "/loans", icon: HandCoins, permission: PERMISSIONS.LOANS_VIEW }],
   },
   {
-    label: "Repayments",
-    items: [{ label: "Repayments & Collections", href: "/repayments", icon: Wallet, permission: PERMISSIONS.REPAYMENTS_VIEW }],
-  },
-  {
-    label: "Treasury & Ledger",
-    items: [
-      { label: "Ledger", href: "/ledger", icon: BookOpenText, permission: PERMISSIONS.LEDGER_VIEW },
-      { label: "Treasury", href: "/treasury", icon: Landmark, permission: PERMISSIONS.TREASURY_VIEW },
-    ],
+    label: "Treasury",
+    items: [{ label: "Treasury", href: "/treasury", icon: Landmark, permission: PERMISSIONS.TREASURY_VIEW }],
   },
   {
     label: "HR & Payroll",

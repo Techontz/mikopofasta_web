@@ -55,6 +55,9 @@
 }
 
 :root {
+  /* Tells the browser which way to render scrollbars, native form controls and
+     the canvas behind the app, so those follow the theme instead of the OS. */
+  color-scheme: light;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -96,18 +99,26 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
+  color-scheme: dark;
+  /*
+   * The dark neutrals carry a small blue tint (chroma 0.012–0.018 at hue 265)
+   * rather than sitting at zero chroma. Portalled chrome — dialogs, dropdowns,
+   * tooltips, toasts — is painted from these tokens, so a pure-grey ramp here
+   * would put every overlay in a different colour family from the slate page
+   * underneath it. Light mode is untouched.
+   */
+  --background: oklch(0.176 0.013 265);
+  --foreground: oklch(0.95 0.006 265);
+  --card: oklch(0.225 0.014 265);
+  --card-foreground: oklch(0.95 0.006 265);
+  --popover: oklch(0.225 0.014 265);
+  --popover-foreground: oklch(0.95 0.006 265);
   --primary: oklch(0.68 0.14 258);
-  --primary-foreground: oklch(0.145 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
+  --primary-foreground: oklch(0.176 0.013 265);
+  --secondary: oklch(0.275 0.015 265);
+  --secondary-foreground: oklch(0.95 0.006 265);
+  --muted: oklch(0.275 0.015 265);
+  --muted-foreground: oklch(0.715 0.014 265);
   --accent: oklch(0.3 0.05 258);
   --accent-foreground: oklch(0.9 0.03 258);
   --destructive: oklch(0.704 0.191 22.216);
@@ -117,16 +128,16 @@
   --warning-foreground: oklch(0.2 0.05 85);
   --info: oklch(0.7 0.12 225);
   --info-foreground: oklch(0.145 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
+  --border: oklch(1 0 0 / 11%);
+  --input: oklch(1 0 0 / 16%);
   --ring: oklch(0.68 0.14 258);
   --chart-1: oklch(0.68 0.14 258);
   --chart-2: oklch(0.72 0.15 155);
   --chart-3: oklch(0.78 0.15 85);
   --chart-4: oklch(0.7 0.12 225);
   --chart-5: oklch(0.7 0.02 258);
-  --sidebar: oklch(0.18 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar: oklch(0.225 0.014 265);
+  --sidebar-foreground: oklch(0.95 0.006 265);
   --sidebar-primary: oklch(0.68 0.14 258);
   --sidebar-primary-foreground: oklch(0.145 0 0);
   --sidebar-accent: oklch(0.3 0.05 258);
@@ -182,27 +193,101 @@
     --lg-sidebar-w: 250px;
     --lg-topbar-h: 60px;
     --lg-body: #f4f6f9;
+    --lg-surface: #ffffff;
     --lg-line: #e6e9ed;
     --lg-text: #4a4a4a;
     --lg-muted: #8a8f95;
     --lg-link: #3c8dbc;
     --lg-head: #f5f5f5;
+    --lg-row-line: #eef0f2;
+    --lg-hover: #f7f7f7;
+    --lg-hover-strong: #e9ecef;
+    --lg-active-bg: #efefef;
+    --lg-active-tint: #f4f8fb;
+    --lg-ink-strong: #2c2c2c;
+    --lg-ink-menu: #5a5a5a;
+    --lg-ink-sub: #6b7178;
+    --lg-ink-tab: #6b7075;
+    --lg-dash: #b6bcc3;
+    --lg-icon: #7b8087;
+    --lg-icon-faint: #a8adb3;
+    --lg-icon-action: #3d3d3d;
+    --lg-ctrl-line: #ced4da;
+    --lg-page-line: #dee2e6;
+    --lg-disabled: #b6bcc2;
+    --lg-badge-line: #b7e0b9;
+    --lg-badge-ink: #3c3c3c;
+    --lg-on-link: #ffffff;
+    /* The DataTables header band, and the hairline around a customer photo. */
+    --lg-thead: #4a90c2;
+    --lg-on-thead: #ffffff;
+    --lg-photo-line: #dcdcdc;
+    --lg-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+    --lg-shadow-lift: 0 2px 6px rgb(0 0 0 / 12%);
+    --lg-brand-a: #e8710a;
+    --lg-brand-b: #4a9d2f;
+    --lg-dot: #2fa84f;
+    color-scheme: light;
     /* Bootstrap 4 default stack — the old app never loaded a webfont. */
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     color: var(--lg-text);
   }
 
-  /* The old app rendered light-only. Forcing the scheme keeps a viewer in dark
-     mode from getting a half-inverted copy of a screen that has no dark form. */
-  .lg-shell {
-    color-scheme: light;
+  /*
+   * The dark form of the legacy shell.
+   *
+   * The old system rendered light-only, so there is no screenshot to match here
+   * and nothing to be faithful to — this is a designed counterpart, not an
+   * inversion. Every light value above is left byte-for-byte unchanged, which is
+   * what keeps light mode pixel-identical to the originals; dark mode only
+   * reassigns the same token names. The neutral ramp is a cool slate rather than
+   * pure black so the surface reads as paper under low light rather than as a
+   * hole, and the two brand colours are lifted just enough to hold their hue at
+   * this luminance instead of going muddy.
+   */
+  .dark .lg-shell {
+    --lg-body: #0f1218;
+    --lg-surface: #161a22;
+    --lg-line: #262c37;
+    --lg-text: #dfe3ea;
+    --lg-muted: #8b94a3;
+    --lg-link: #6bb2e0;
+    --lg-head: #1b2029;
+    --lg-row-line: #222834;
+    --lg-hover: #1e242e;
+    --lg-hover-strong: #262d38;
+    --lg-active-bg: #232a35;
+    --lg-active-tint: #1a2434;
+    --lg-ink-strong: #f0f3f7;
+    --lg-ink-menu: #b6bfcd;
+    --lg-ink-sub: #9aa4b3;
+    --lg-ink-tab: #9aa4b3;
+    --lg-dash: #5b6472;
+    --lg-icon: #8b94a3;
+    --lg-icon-faint: #6b7482;
+    --lg-icon-action: #c8cfd9;
+    --lg-ctrl-line: #333a47;
+    --lg-page-line: #333a47;
+    --lg-disabled: #5b6472;
+    --lg-badge-line: #2f6b45;
+    --lg-badge-ink: #dfe3ea;
+    --lg-on-link: #0f1218;
+    --lg-thead: #1d3a52;
+    --lg-on-thead: #dfe9f2;
+    --lg-photo-line: #313846;
+    --lg-shadow: 0 1px 2px rgb(0 0 0 / 40%);
+    --lg-shadow-lift: 0 2px 8px rgb(0 0 0 / 55%);
+    --lg-brand-a: #f59440;
+    --lg-brand-b: #6fc44a;
+    --lg-dot: #46c96a;
+    color-scheme: dark;
   }
 
   .lg-card {
-    background: #fff;
+    background: var(--lg-surface);
     border: 1px solid var(--lg-line);
     border-radius: 4px;
-    box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+    box-shadow: var(--lg-shadow);
   }
 
   /* Action shortcut — the only hover in the old grid was a shadow lift. */
@@ -210,7 +295,7 @@
     transition: box-shadow 0.15s ease;
   }
   .lg-action:hover {
-    box-shadow: 0 2px 6px rgb(0 0 0 / 12%);
+    box-shadow: var(--lg-shadow-lift);
   }
 
   /* -------------------------------------------------------------------------
@@ -224,20 +309,134 @@
    * the other modules inherit any of it.
    * ---------------------------------------------------------------------- */
   .st-scope {
+    /* Surfaces, lightest page to most-raised overlay. */
     --st-page: #f7f8fa;
     --st-card: #ffffff;
-    --st-line: #e8eaed;
+    --st-raised: #ffffff;
+    --st-subtle: #fafbfc;
+    --st-subtle-strong: #f4f5f7;
+
+    /* Rules, weakest to strongest. */
     --st-line-soft: #f0f1f3;
+    --st-line: #e8eaed;
+    --st-line-strong: #d5dae1;
+    --st-line-hover: #c2c9d3;
+
+    /* Text, in descending emphasis. */
     --st-ink: #1f2733;
     --st-ink-soft: #5b6472;
     --st-ink-faint: #8b94a3;
+
     --st-accent: #2f6feb;
+    --st-accent-hover: #2560d4;
     --st-accent-soft: #eef3fe;
-    --st-radius: 14px;
-    --st-radius-sm: 10px;
+    --st-accent-line: #dde6fb;
+    --st-accent-ring: rgb(47 111 235 / 20%);
+    /* Body text sitting on --st-accent-soft; the accent itself is too light. */
+    --st-accent-ink: #2a4f9e;
+    --st-on-accent: #ffffff;
+
+    --st-danger: #d92d20;
+    --st-danger-hover: #b42318;
+    --st-danger-ink: #b42318;
+    --st-danger-ring: rgb(217 45 32 / 20%);
+    --st-on-danger: #ffffff;
+
+    /*
+     * Money in, against --st-danger's money out.
+     *
+     * The legacy Daily Report is the one screen in the whole system where
+     * colour carries meaning rather than decorating: it prints its inflow total
+     * green and its outflow total red. Reproducing that needs a success token,
+     * and there was none — the badge tones carry their colours in .st-tone-*
+     * classes, which a figure in a table cannot use.
+     *
+     * `-ink` is the darker form for text, since the base green is tuned for
+     * fills and does not carry enough contrast at 13px.
+     */
+    --st-success: #12885a;
+    --st-success-ink: #0d6b46;
+
+    --st-skeleton: #e9ebef;
+
+    --st-radius: 12px;
+    /* Between --st-radius and --st-radius-sm: for a photo or avatar block,
+       which reads as over-rounded at the card radius and boxy below it. */
+    --st-radius-md: 10px;
+    --st-radius-sm: 8px;
+    --st-radius-xs: 6px;
+
+    /*
+     * Two-layer shadows: a hairline contact shadow to seat the card on the
+     * page, and a wider ambient one for depth. A single blurred shadow reads as
+     * a smudge at this scale; the pair reads as a raised sheet.
+     */
     --st-shadow: 0 1px 2px rgb(16 24 40 / 5%), 0 1px 3px rgb(16 24 40 / 4%);
-    --st-shadow-lift: 0 4px 12px rgb(16 24 40 / 8%);
+    --st-shadow-lift: 0 1px 2px rgb(16 24 40 / 6%), 0 8px 20px -6px rgb(16 24 40 / 12%);
+    --st-shadow-overlay: 0 8px 12px -4px rgb(16 24 40 / 8%), 0 20px 44px -12px rgb(16 24 40 / 18%);
+
+    color-scheme: light;
     color: var(--st-ink);
+  }
+
+  /*
+   * The dark form of the configuration surface.
+   *
+   * Designed rather than inverted. Three things it does that a straight
+   * inversion does not:
+   *
+   *   - The neutral ramp is a cool slate, and the page is *darker* than the
+   *     cards. Light mode raises cards with a shadow; shadows are nearly
+   *     invisible on a dark ground, so here elevation is carried by luminance —
+   *     each step up the stack is a step lighter.
+   *   - The accent is lifted and slightly desaturated. #2f6feb on near-black
+   *     falls to roughly 3:1 and vibrates against the dark ground; #5b90f7
+   *     clears 6:1 and sits still.
+   *   - Status tints are dark, low-chroma washes with a lifted foreground,
+   *     rather than the light pastels flipped — a bright pastel pill on a dark
+   *     table is a flashbulb, not a status.
+   */
+  .dark .st-scope {
+    --st-page: #0f1218;
+    --st-card: #161a22;
+    --st-raised: #1b2029;
+    --st-subtle: #1b2029;
+    --st-subtle-strong: #212733;
+
+    --st-line-soft: #1f242e;
+    --st-line: #262c37;
+    --st-line-strong: #333a47;
+    --st-line-hover: #414a5a;
+
+    --st-ink: #e8ebf0;
+    --st-ink-soft: #a3adbd;
+    --st-ink-faint: #7a8496;
+
+    --st-accent: #5b90f7;
+    --st-accent-hover: #7aa6f9;
+    --st-accent-soft: #1a2438;
+    --st-accent-line: #2b3a58;
+    --st-accent-ring: rgb(91 144 247 / 32%);
+    --st-accent-ink: #a9c6fb;
+    --st-on-accent: #0b101a;
+
+    --st-danger: #e5544a;
+    --st-danger-hover: #f0685e;
+    --st-danger-ink: #f08a83;
+    --st-danger-ring: rgb(229 84 74 / 32%);
+    --st-on-danger: #120706;
+
+    /* Lifted for a dark surface, like every other hue in this block. */
+    --st-success: #3dbd88;
+    --st-success-ink: #6bd3a6;
+
+    --st-skeleton: #232935;
+
+    --st-shadow: 0 1px 2px rgb(0 0 0 / 40%);
+    --st-shadow-lift: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 20px -6px rgb(0 0 0 / 55%);
+    --st-shadow-overlay: 0 8px 12px -4px rgb(0 0 0 / 45%), 0 20px 44px -12px rgb(0 0 0 / 65%);
+
+    color-scheme: dark;
   }
 
   .st-card {
@@ -252,7 +451,7 @@
     transition: box-shadow 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
   }
   .st-card-link:hover {
-    border-color: #d5dae1;
+    border-color: var(--st-line-strong);
     box-shadow: var(--st-shadow-lift);
     transform: translateY(-1px);
   }
@@ -261,6 +460,7 @@
     display: block;
     font-size: 13px;
     font-weight: 500;
+    letter-spacing: -0.005em;
     color: var(--st-ink);
   }
   .st-field-help {
@@ -269,48 +469,82 @@
     color: var(--st-ink-faint);
   }
   .st-field-error {
+    display: flex;
+    align-items: center;
+    gap: 5px;
     font-size: 12.5px;
-    color: #b42318;
+    line-height: 1.5;
+    color: var(--st-danger-ink);
+  }
+  /* The required mark reads as meaning, not decoration — hence its own colour. */
+  .st-required {
+    color: var(--st-danger);
   }
 
-  /* One input treatment, shared by input/select/textarea inside Settings. */
+  /*
+   * One input treatment, shared by input/select/textarea inside Settings.
+   *
+   * 36px matches .st-btn exactly, so a field and the button beside it sit on
+   * the same baseline without either being nudged.
+   */
   .st-control {
     width: 100%;
-    height: 38px;
-    padding: 0 12px;
-    font-size: 14px;
+    height: 36px;
+    padding: 0 11px;
+    font-size: 13.5px;
     color: var(--st-ink);
     background: var(--st-card);
-    border: 1px solid #d5dae1;
+    border: 1px solid var(--st-line-strong);
     border-radius: var(--st-radius-sm);
-    transition: border-color 0.14s ease, box-shadow 0.14s ease;
+    transition: border-color 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease;
   }
   textarea.st-control {
     height: auto;
-    padding: 9px 12px;
+    min-height: 76px;
+    padding: 8px 11px;
     line-height: 1.55;
+    resize: vertical;
   }
   .st-control::placeholder {
     color: var(--st-ink-faint);
   }
-  .st-control:hover:not(:disabled) {
-    border-color: #c2c9d3;
+  .st-control:hover:not(:disabled):not(:focus) {
+    border-color: var(--st-line-hover);
   }
   .st-control:focus {
     outline: none;
     border-color: var(--st-accent);
-    box-shadow: 0 0 0 3px rgb(47 111 235 / 12%);
+    box-shadow: 0 0 0 3px var(--st-accent-ring);
   }
   .st-control:disabled {
-    background: var(--st-line-soft);
+    background: var(--st-subtle-strong);
     color: var(--st-ink-faint);
     cursor: not-allowed;
   }
   .st-control[aria-invalid="true"] {
-    border-color: #d92d20;
+    border-color: var(--st-danger);
   }
   .st-control[aria-invalid="true"]:focus {
-    box-shadow: 0 0 0 3px rgb(217 45 32 / 12%);
+    box-shadow: 0 0 0 3px var(--st-danger-ring);
+  }
+  /*
+   * The native date and search widgets ship black glyphs. Left alone they
+   * vanish against a dark field, so the browser's own icon is inverted with the
+   * theme rather than replaced with a custom picker.
+   */
+  .dark .st-control::-webkit-calendar-picker-indicator,
+  .dark .st-control::-webkit-search-cancel-button {
+    /* invert only — the opacity below already dims it, and stacking a second
+       opacity() in the filter multiplied the two and left the glyph at 34%. */
+    filter: invert(1);
+  }
+  .st-control::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.14s ease;
+  }
+  .st-control::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
   }
 
   /* Buttons press by 1px; nothing else moves. */
@@ -318,62 +552,80 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 7px;
+    gap: 6px;
     height: 36px;
-    padding: 0 14px;
+    padding: 0 13px;
     font-size: 13.5px;
     font-weight: 500;
+    letter-spacing: -0.005em;
     white-space: nowrap;
     border: 1px solid transparent;
     border-radius: var(--st-radius-sm);
-    transition: background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+    transition: background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease,
+      box-shadow 0.14s ease;
   }
   .st-btn:active:not(:disabled) {
     transform: translateY(1px);
   }
+  /*
+   * Focus is a ring with a gap, so it stays legible on a filled button where a
+   * flush ring would be swallowed by the button's own colour.
+   */
   .st-btn:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 3px rgb(47 111 235 / 25%);
+    outline: 2px solid var(--st-accent);
+    outline-offset: 2px;
   }
   .st-btn:disabled {
-    opacity: 0.55;
+    opacity: 0.5;
     cursor: not-allowed;
   }
   .st-btn-primary {
     background: var(--st-accent);
-    color: #fff;
+    color: var(--st-on-accent);
+    box-shadow: 0 1px 2px rgb(16 24 40 / 8%);
   }
   .st-btn-primary:hover:not(:disabled) {
-    background: #2560d4;
+    background: var(--st-accent-hover);
   }
   .st-btn-secondary {
     background: var(--st-card);
-    border-color: #d5dae1;
+    border-color: var(--st-line-strong);
     color: var(--st-ink);
+    box-shadow: 0 1px 2px rgb(16 24 40 / 4%);
   }
   .st-btn-secondary:hover:not(:disabled) {
-    background: #f7f8fa;
-    border-color: #c2c9d3;
+    background: var(--st-subtle-strong);
+    border-color: var(--st-line-hover);
   }
   .st-btn-danger {
-    background: #d92d20;
-    color: #fff;
+    background: var(--st-danger);
+    color: var(--st-on-danger);
+    box-shadow: 0 1px 2px rgb(16 24 40 / 8%);
   }
   .st-btn-danger:hover:not(:disabled) {
-    background: #b42318;
+    background: var(--st-danger-hover);
+  }
+  .st-btn-danger:focus-visible {
+    outline-color: var(--st-danger);
   }
   .st-btn-ghost {
     background: transparent;
     color: var(--st-ink-soft);
   }
   .st-btn-ghost:hover:not(:disabled) {
-    background: var(--st-line-soft);
+    background: var(--st-subtle-strong);
     color: var(--st-ink);
   }
   .st-btn-icon {
     width: 34px;
     height: 34px;
     padding: 0;
+  }
+  /* A row of icon actions is dense; the icon itself carries the hover. */
+  .st-btn-icon.st-btn-secondary:hover:not(:disabled) {
+    color: var(--st-accent);
+    border-color: var(--st-accent-line);
+    background: var(--st-accent-soft);
   }
 
   /* Status pill. Tone is carried by colour AND by the dot, never colour alone. */
@@ -389,6 +641,9 @@
     border: 1px solid transparent;
     border-radius: 999px;
     white-space: nowrap;
+    background: var(--st-badge-bg);
+    color: var(--st-badge-fg);
+    border-color: var(--st-badge-line);
   }
   .st-badge::before {
     content: "";
@@ -400,6 +655,86 @@
   }
   .st-badge-plain::before {
     display: none;
+  }
+
+  /*
+   * Tones live in CSS, not in a JS lookup table, for one reason: a table of hex
+   * triples in a component can only ever describe one theme. Declared here,
+   * each tone is a triple of custom properties that the dark block below
+   * reassigns — the component just names the tone.
+   */
+  .st-tone-active {
+    --st-badge-bg: #ecfdf3;
+    --st-badge-fg: #067647;
+    --st-badge-line: #abefc6;
+  }
+  .st-tone-inactive {
+    --st-badge-bg: #f4f5f7;
+    --st-badge-fg: #5b6472;
+    --st-badge-line: #e0e3e8;
+  }
+  .st-tone-default {
+    --st-badge-bg: #eef3fe;
+    --st-badge-fg: #2f6feb;
+    --st-badge-line: #c9dcfd;
+  }
+  .st-tone-warning {
+    --st-badge-bg: #fffaeb;
+    --st-badge-fg: #b54708;
+    --st-badge-line: #fedf89;
+  }
+  .st-tone-danger {
+    --st-badge-bg: #fef3f2;
+    --st-badge-fg: #b42318;
+    --st-badge-line: #fecdca;
+  }
+  .st-tone-info {
+    --st-badge-bg: #f0f9ff;
+    --st-badge-fg: #026aa2;
+    --st-badge-line: #b9e6fe;
+  }
+  .st-tone-neutral {
+    --st-badge-bg: #f9fafb;
+    --st-badge-fg: #5b6472;
+    --st-badge-line: #e0e3e8;
+  }
+
+  /* Dark tints are deep and low-chroma with a lifted label, so a pill marks a
+     row rather than lighting it up. */
+  .dark .st-tone-active {
+    --st-badge-bg: #10281c;
+    --st-badge-fg: #5fd39a;
+    --st-badge-line: #1e4a34;
+  }
+  .dark .st-tone-inactive {
+    --st-badge-bg: #1f242e;
+    --st-badge-fg: #a3adbd;
+    --st-badge-line: #2e3542;
+  }
+  .dark .st-tone-default {
+    --st-badge-bg: #16233a;
+    --st-badge-fg: #7aa6f9;
+    --st-badge-line: #2a3d5e;
+  }
+  .dark .st-tone-warning {
+    --st-badge-bg: #2b1f0c;
+    --st-badge-fg: #f0b458;
+    --st-badge-line: #4a3616;
+  }
+  .dark .st-tone-danger {
+    --st-badge-bg: #2c1412;
+    --st-badge-fg: #f08a83;
+    --st-badge-line: #4d2320;
+  }
+  .dark .st-tone-info {
+    --st-badge-bg: #0e2436;
+    --st-badge-fg: #63b6e3;
+    --st-badge-line: #1c405c;
+  }
+  .dark .st-tone-neutral {
+    --st-badge-bg: #1b2029;
+    --st-badge-fg: #a3adbd;
+    --st-badge-line: #2b323e;
   }
 
   /* Section rail inside Settings. */
@@ -425,7 +760,7 @@
     transition: background-color 0.14s ease, color 0.14s ease;
   }
   .st-rail-item:hover {
-    background: #eef0f3;
+    background: var(--st-subtle-strong);
     color: var(--st-ink);
   }
   .st-rail-item[data-active="true"] {
@@ -433,12 +768,18 @@
     color: var(--st-accent);
   }
 
-  /* Table chrome. The header is sticky so long lists keep their labels. */
+  /*
+   * Table chrome. The header is sticky so long lists keep their labels.
+   *
+   * A sticky header over a scrolling body needs to be opaque — a translucent
+   * one lets rows slide visibly underneath the labels — so the background is a
+   * solid token, and the bottom rule doubles as the seam.
+   */
   .st-table thead th {
     position: sticky;
     top: 0;
     z-index: 1;
-    background: #fafbfc;
+    background: var(--st-subtle);
     border-bottom: 1px solid var(--st-line);
     padding: 10px 16px;
     text-align: left;
@@ -449,6 +790,8 @@
    * type scale. The header treatment is applied to both so a sortable and a
    * plain column read as the same row.
    */
+  /* Colour is set in the unlayered block near the end of this file — see the
+     note there for why it cannot live in a layer. */
   .st-table thead th,
   .st-table thead th button,
   .st-table thead th > div {
@@ -456,7 +799,6 @@
     font-weight: 600;
     letter-spacing: 0.02em;
     text-transform: uppercase;
-    color: var(--st-ink-faint);
   }
   .st-table thead th button {
     height: auto;
@@ -469,7 +811,7 @@
     color: var(--st-ink);
   }
   .st-table tbody td {
-    padding: 13px 16px;
+    padding: 12px 16px;
     font-size: 13.5px;
     border-bottom: 1px solid var(--st-line-soft);
     vertical-align: middle;
@@ -480,9 +822,194 @@
   .st-table tbody tr {
     transition: background-color 0.12s ease;
   }
-  .st-table tbody tr:hover {
-    background: #fafbfc;
+  /*
+   * Zebra striping, deliberately at the threshold of visibility. Its job is to
+   * help the eye track one row across a wide table, not to draw bands — so it
+   * is a shade the reader notices only when scanning, and the hover state is
+   * still a clear step above it.
+   */
+  .st-table tbody tr:nth-child(even) {
+    background: color-mix(in srgb, var(--st-subtle) 55%, transparent);
   }
+  .st-table tbody tr:hover,
+  .st-table tbody tr:nth-child(even):hover {
+    background: var(--st-subtle-strong);
+  }
+  /* A row of icon actions only earns its ink once the row is under the cursor. */
+  .st-table tbody tr .st-row-action {
+    opacity: 0.62;
+    transition: opacity 0.12s ease;
+  }
+  .st-table tbody tr:hover .st-row-action,
+  .st-table tbody tr:focus-within .st-row-action {
+    opacity: 1;
+  }
+  /* Numbers line up only if they are the same width. */
+  .st-table .st-num {
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  /*
+   * The closing total of a money table. Tinted and rule-topped so it reads as
+   * a summary of the rows above rather than as one more row among them, and
+   * excluded from zebra striping and hover for the same reason.
+   */
+  .st-table tbody tr.st-total-row,
+  .st-table tbody tr.st-total-row:hover,
+  .st-table tbody tr.st-total-row:nth-child(even),
+  .st-table tbody tr.st-total-row:nth-child(even):hover {
+    background: var(--st-subtle);
+  }
+  .st-table tbody tr.st-total-row td {
+    border-top: 1px solid var(--st-line);
+    border-bottom: 0;
+    font-weight: 600;
+  }
+
+  /*
+   * The panel-swap fade, used when a tab changes.
+   *
+   * Short and small: 8px of travel over 180ms reads as "this replaced that"
+   * without making a reader wait to start reading. Anything longer turns tab
+   * switching into a transition you sit through.
+   */
+  @keyframes st-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .st-fade-in {
+    animation: st-fade-in 180ms ease-out;
+  }
+  /* A reader who has asked for less motion gets the swap without the travel. */
+  @media (prefers-reduced-motion: reduce) {
+    .st-fade-in {
+      animation: none;
+    }
+  }
+
+  /*
+   * Empty and error states inside a Settings table. The component itself is the
+   * shared one and paints from shadcn tokens; these rules only re-point it at
+   * the configuration palette so it does not read as a different app's panel
+   * dropped into the middle of the card.
+   */
+  .st-scope .st-empty-icon {
+    background: var(--st-subtle-strong);
+    color: var(--st-ink-faint);
+  }
+  .st-scope .st-empty-icon svg {
+    color: var(--st-ink-faint);
+  }
+  .st-scope .st-empty-title {
+    color: var(--st-ink);
+  }
+  .st-scope .st-empty-text {
+    color: var(--st-ink-soft);
+  }
+
+  /*
+   * The shared SectionNav, repainted for the configuration surface. The
+   * component is the same one the Ledger and HR sections use — only its skin
+   * changes here, so there is one set of active-route rules in the app rather
+   * than one per surface.
+   */
+  .st-scope .st-section-nav {
+    background: var(--st-subtle-strong);
+    border: 1px solid var(--st-line);
+    border-radius: var(--st-radius-sm);
+    padding: 3px;
+  }
+  .st-scope .st-section-nav a {
+    color: var(--st-ink-soft);
+    border-radius: var(--st-radius-xs);
+    font-size: 13px;
+    box-shadow: none;
+  }
+  .st-scope .st-section-nav a:hover {
+    color: var(--st-ink);
+  }
+  .st-scope .st-section-nav a[data-active="true"] {
+    background: var(--st-card);
+    color: var(--st-ink);
+    box-shadow: 0 1px 2px rgb(16 24 40 / 6%);
+  }
+  /* Fades the trailing edge when there is more rail than room, so the cut reads
+     as "scroll for more" rather than as clipped content. */
+  .st-scope .st-section-nav[data-overflowing="true"] {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent 100%);
+  }
+  .dark .st-scope .st-section-nav a[data-active="true"] {
+    box-shadow: 0 1px 2px rgb(0 0 0 / 40%);
+  }
+
+  /*
+   * Print.
+   *
+   * A payslip is a document someone hands over, so the printed page drops the
+   * shell — sidebar, top bar, section tabs, action buttons — and keeps only the
+   * content. Colours are forced light: a dark-mode print would empty a toner
+   * cartridge to say the same thing.
+   */
+  @media print {
+    .lg-shell aside,
+    .lg-shell > header,
+    .st-print-hide,
+    .st-section-nav {
+      display: none !important;
+    }
+    .lg-shell,
+    .st-scope {
+      background: #fff !important;
+      color-scheme: light;
+    }
+    .st-card {
+      box-shadow: none !important;
+      break-inside: avoid;
+    }
+    .lg-shell main {
+      overflow: visible !important;
+    }
+  }
+}
+
+/*
+ * Settings table header colour — deliberately unlayered.
+ *
+ * shadcn's <TableHead> ships `text-foreground`, a Tailwind utility. Cascade
+ * layers are resolved before specificity, and Tailwind's utilities layer comes
+ * after @layer components, so the rule above lost to it no matter how specific
+ * it was: the quiet uppercase header this surface was designed with has been
+ * rendering at full foreground contrast, and the intended colour was dead CSS.
+ *
+ * Unlayered declarations outrank every layer, which is the one place this
+ * belongs. It is scoped to `.st-table thead` and sets nothing but colour, so a
+ * per-cell utility on a body cell is unaffected.
+ */
+.st-table thead th,
+.st-table thead th button,
+.st-table thead th > div {
+  /*
+   * --st-ink-soft, not --st-ink-faint. Faint was the original intent, but once
+   * the rule actually applied it measured 2.95:1 on the header band — below AA
+   * for 12px text, and column labels are the one thing a reader needs when
+   * scanning an unfamiliar table. Soft measures 5.8:1 light / 7.2:1 dark and is
+   * still visibly quieter than the body ink at 15:1.
+   */
+  color: var(--st-ink-soft);
+}
+.st-table thead th button:hover {
+  color: var(--st-ink);
+}
+
+@layer components {
 
   /* Sidebar accordion: height animates, so the list unfolds rather than jumps. */
   .lg-submenu {
@@ -496,18 +1023,28 @@
   .lg-submenu > div {
     overflow: hidden;
   }
+  /*
+   * A submenu entry. align-items is flex-start, not center, because the two
+   * longest labels in the old menu wrap onto a second line and the "--" sits
+   * against the first — centring it would float the dash into the gutter
+   * between the lines. Single-line rows are unaffected: the dash and the label
+   * share a line-height, so they still sit level.
+   */
   .lg-submenu-item {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 12px;
     padding: 9px 10px 9px 26px;
     font-size: 12.5px;
-    color: #6b7178;
+    line-height: 1.5;
+    color: var(--lg-ink-sub);
     border-left: 3px solid transparent;
   }
-  /* The old menu marks each Settings entry with a literal "--". */
+  /* The old menu marks each submenu entry with a literal "--". */
   .lg-submenu-dash {
-    color: #b6bcc3;
+    flex: none;
+    line-height: 1.5;
+    color: var(--lg-dash);
     letter-spacing: -1px;
     user-select: none;
   }
@@ -515,14 +1052,14 @@
     cursor: default;
   }
   .lg-submenu-item:hover {
-    background: #f7f7f7;
-    color: #2c2c2c;
+    background: var(--lg-hover);
+    color: var(--lg-ink-strong);
   }
   .lg-submenu-item[data-active="true"] {
-    color: #2c2c2c;
+    color: var(--lg-ink-strong);
     font-weight: 500;
-    border-left-color: #3c8dbc;
-    background: #f4f8fb;
+    border-left-color: var(--lg-link);
+    background: var(--lg-active-tint);
   }
   .lg-chevron {
     transition: transform 0.22s ease;
@@ -537,13 +1074,19 @@
     .st-control,
     .st-rail-item,
     .st-table tbody tr,
+    .st-row-action,
     .lg-submenu,
-    .lg-chevron {
+    .lg-chevron,
+    .lg-action {
       transition: none;
     }
     .st-card-link:hover,
     .st-btn:active:not(:disabled) {
       transform: none;
+    }
+    /* Row actions that fade in on hover are simply always visible instead. */
+    .st-table tbody tr .st-row-action {
+      opacity: 1;
     }
   }
 
@@ -567,16 +1110,16 @@
     gap: 18px;
     padding: 17px 10px 17px 25px;
     font-size: 13px;
-    color: #5a5a5a;
+    color: var(--lg-ink-menu);
     border-left: 3px solid transparent;
   }
   .lg-menu-item:hover {
-    background: #f7f7f7;
-    color: #2c2c2c;
+    background: var(--lg-hover);
+    color: var(--lg-ink-strong);
   }
   .lg-menu-item[data-active="true"] {
-    background: #efefef;
-    color: #2c2c2c;
+    background: var(--lg-active-bg);
+    color: var(--lg-ink-strong);
   }
   .lg-menu-item[data-inert="true"] {
     cursor: default;
@@ -586,15 +1129,15 @@
   .lg-tab {
     padding: 9px 18px;
     font-size: 14px;
-    color: #6b7075;
+    color: var(--lg-ink-tab);
     border: 1px solid transparent;
     border-radius: 4px 4px 0 0;
     margin-bottom: -1px;
   }
   .lg-tab[data-active="true"] {
-    color: #4a4a4a;
-    background: #fff;
-    border-color: var(--lg-line) var(--lg-line) #fff;
+    color: var(--lg-text);
+    background: var(--lg-surface);
+    border-color: var(--lg-line) var(--lg-line) var(--lg-surface);
   }
 
   /* DataTables sort affordance — the paired chevrons in every column head. */
@@ -611,10 +1154,10 @@
     padding: 1px 8px;
     font-size: 12px;
     text-align: center;
-    border: 1px solid #b7e0b9;
+    border: 1px solid var(--lg-badge-line);
     border-radius: 3px;
-    color: #3c3c3c;
-    background: #fff;
+    color: var(--lg-badge-ink);
+    background: var(--lg-surface);
   }
 
   .lg-status {
@@ -631,21 +1174,22 @@
     min-width: 42px;
     padding: 4px 14px;
     font-size: 14px;
-    border: 1px solid #dee2e6;
-    background: #fff;
+    border: 1px solid var(--lg-page-line);
+    background: var(--lg-surface);
     color: var(--lg-link);
     margin-left: -1px;
   }
   .lg-page:hover:not([data-active="true"]):not([data-disabled="true"]) {
-    background: #e9ecef;
+    background: var(--lg-hover-strong);
   }
   .lg-page[data-active="true"] {
-    background: #3c8dbc;
-    border-color: #3c8dbc;
-    color: #fff;
+    background: var(--lg-link);
+    border-color: var(--lg-link);
+    color: var(--lg-on-link);
   }
   .lg-page[data-disabled="true"] {
-    color: #b6bcc2;
+    color: var(--lg-disabled);
     cursor: default;
   }
+
 }

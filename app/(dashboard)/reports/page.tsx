@@ -1,12 +1,21 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowRight, BarChart3 } from "lucide-react";
 import { AccessDeniedState } from "@/components/feedback/access-denied-state";
+import { PageHeader, SettingsCard } from "@/components/settings";
+import { SectionNav } from "@/features/ledger/section-nav";
+import { reportNavFor } from "@/features/ledger/nav-items";
 import { getCurrentUser } from "@/lib/auth/session";
 import { hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
 import { getReportsByGroup } from "@/lib/api/reports";
 
+/**
+ * Reports → the catalogue.
+ *
+ * Presentation only in this pass: the same registry call, the same grouping and
+ * the same per-report links as before, drawn with PageHeader and SettingsCard
+ * so it sits in the same design system as every Menu-tab module.
+ */
 export default async function ReportsPage() {
   const user = await getCurrentUser();
   if (!user || !hasPermission(user, PERMISSIONS.REPORTS_VIEW)) return <AccessDeniedState />;
@@ -21,41 +30,43 @@ export default async function ReportsPage() {
   const total = groups.reduce((s, g) => s + g.reports.length, 0);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1>Reports</h1>
-        <p className="text-sm text-muted-foreground">
-          {total} reports, every one computed from the same records the operational modules use — no separate reporting store.
-        </p>
-      </div>
+    <>
+      <PageHeader
+        icon={BarChart3}
+        title="Reports"
+        description={`${total} reports, every one computed from the same records the operational modules use — no separate reporting store.`}
+        breadcrumb={[{ label: "Report" }]}
+      />
+      <SectionNav items={reportNavFor(user)} />
 
       {groups
         .filter((g) => g.reports.length > 0)
         .map((group) => (
-          <Card key={group.group}>
-            <CardHeader>
-              <CardTitle className="text-base">{group.group}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="grid gap-2 sm:grid-cols-2">
-                {group.reports.map((report) => (
-                  <li key={report.slug}>
-                    <Link
-                      href={`/reports/${report.slug}`}
-                      className="flex items-start justify-between gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium">{report.title}</p>
-                        <p className="text-xs text-muted-foreground">{report.description}</p>
-                      </div>
-                      <ArrowRight className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
+          <SettingsCard key={group.group} title={group.group}>
+            <ul className="grid gap-2 sm:grid-cols-2">
+              {group.reports.map((report) => (
+                <li key={report.slug}>
+                  <Link
+                    href={`/reports/${report.slug}`}
+                    className="flex items-start justify-between gap-3 rounded-[var(--st-radius-sm)] border p-3 transition-colors hover:bg-[var(--st-subtle-strong)]"
+                    style={{ borderColor: "var(--st-line-strong)" }}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-[13.5px] font-medium text-[var(--st-ink)]">{report.title}</p>
+                      <p className="mt-0.5 text-[12.5px] leading-relaxed text-[var(--st-ink-soft)]">
+                        {report.description}
+                      </p>
+                    </div>
+                    <ArrowRight
+                      className="mt-0.5 size-4 shrink-0 text-[var(--st-ink-faint)]"
+                      aria-hidden
+                    />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </SettingsCard>
         ))}
-    </div>
+    </>
   );
 }

@@ -3,15 +3,25 @@
 import * as React from "react";
 import { useTransition } from "react";
 import { toast } from "sonner";
-import { Check, Loader2, Plus, Send, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Check, Plus, Send, X } from "lucide-react";
+import { Button, Field, FieldGrid, Select, TextInput } from "@/components/settings/form";
 import { decideStaffAdvance, disburseStaffAdvance, requestStaffAdvance } from "@/features/hr/actions";
 import type { ActionResult } from "@/lib/domain/action-result";
 
-const NONE = "__none__";
+/**
+ * The advance request form and its decision buttons.
+ *
+ * PRESENTATION ONLY. Both server actions, the transition runner, the toasts,
+ * the disabled rules and §11's approve/disburse permission split are exactly as
+ * they were. What changed is the controls: the Menu module's Field, Select,
+ * TextInput and Button replace the shadcn ones, so an HR form looks like an
+ * Expenses form.
+ *
+ * The staff picker is now a native select rather than the shadcn combobox —
+ * the same control every other form in the Menu modules uses, which is why the
+ * `__none__` sentinel it needed is gone: an empty option value carries that
+ * meaning natively.
+ */
 
 function useRunner() {
   const [pending, startTransition] = useTransition();
@@ -30,31 +40,30 @@ export function RequestAdvanceForm({ staff }: { staff: { id: string; label: stri
   const { pending, run } = useRunner();
 
   return (
-    <div className="grid gap-4 sm:grid-cols-3">
-      <div className="space-y-1.5 sm:col-span-2">
-        <Label>Staff member</Label>
-        <Select value={staffId || NONE} onValueChange={(v) => setStaffId(v === NONE ? "" : (v ?? ""))}>
-          <SelectTrigger aria-label="Staff member" className="w-full">
-            <SelectValue placeholder="Select staff">{(v: string) => staff.find((s) => s.id === v)?.label ?? "Select staff"}</SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={NONE} className="text-muted-foreground">
-              Select staff
-            </SelectItem>
-            {staff.map((s) => (
-              <SelectItem key={s.id} value={s.id}>
-                {s.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
+    <FieldGrid columns={3}>
+      <Field label="Staff member" htmlFor="adv-staff" className="sm:col-span-2">
+        <Select id="adv-staff" value={staffId} onChange={(e) => setStaffId(e.target.value)}>
+          <option value="">Select staff</option>
+          {staff.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.label}
+            </option>
+          ))}
         </Select>
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="adv-amount">Amount (TZS)</Label>
+      </Field>
+
+      <Field label="Amount (TZS)" htmlFor="adv-amount">
         <div className="flex gap-2">
-          <Input id="adv-amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
+          <TextInput
+            id="adv-amount"
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
           <Button
-            size="sm"
+            tone="primary"
+            icon={Plus}
+            loading={pending}
             disabled={pending || !staffId || Number(amount) <= 0}
             onClick={() =>
               run(async () => {
@@ -67,12 +76,11 @@ export function RequestAdvanceForm({ staff }: { staff: { id: string; label: stri
               })
             }
           >
-            {pending ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
             Request
           </Button>
         </div>
-      </div>
-    </div>
+      </Field>
+    </FieldGrid>
   );
 }
 
@@ -94,15 +102,26 @@ export function AdvanceDecisionButtons({
   const { pending, run } = useRunner();
 
   if (status === "requested") {
-    if (!canApprove) return <span className="text-xs text-muted-foreground">Awaiting HR approval</span>;
+    if (!canApprove) {
+      return <span className="text-[12px] text-[var(--st-ink-soft)]">Awaiting HR approval</span>;
+    }
     return (
       <div className="flex gap-2">
-        <Button size="sm" disabled={pending} onClick={() => run(() => decideStaffAdvance(advanceId, true))}>
-          {pending ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+        <Button
+          tone="primary"
+          icon={Check}
+          loading={pending}
+          disabled={pending}
+          onClick={() => run(() => decideStaffAdvance(advanceId, true))}
+        >
           Approve
         </Button>
-        <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" disabled={pending} onClick={() => run(() => decideStaffAdvance(advanceId, false))}>
-          <X className="size-4" />
+        <Button
+          tone="danger"
+          icon={X}
+          disabled={pending}
+          onClick={() => run(() => decideStaffAdvance(advanceId, false))}
+        >
           Reject
         </Button>
       </div>
@@ -110,10 +129,17 @@ export function AdvanceDecisionButtons({
   }
 
   if (status === "approved") {
-    if (!canDisburse) return <span className="text-xs text-muted-foreground">Approved — Finance disburses</span>;
+    if (!canDisburse) {
+      return <span className="text-[12px] text-[var(--st-ink-soft)]">Approved — Finance disburses</span>;
+    }
     return (
-      <Button size="sm" disabled={pending} onClick={() => run(() => disburseStaffAdvance(advanceId))}>
-        {pending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+      <Button
+        tone="primary"
+        icon={Send}
+        loading={pending}
+        disabled={pending}
+        onClick={() => run(() => disburseStaffAdvance(advanceId))}
+      >
         Disburse
       </Button>
     );

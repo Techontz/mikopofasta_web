@@ -2,16 +2,13 @@
 
 import * as React from "react";
 import { useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Pencil, Plus } from "lucide-react";
+import { SettingsDialog } from "@/components/settings/dialog";
+import { Button, Field, FieldGrid, IconButton, Select, TextInput } from "@/components/settings/form";
 import { ROLES, type Role } from "@/types/auth";
 import { ROLE_LABELS } from "@/config/permissions";
 import { createUser, updateUser } from "@/features/admin/users/users-actions";
@@ -58,7 +55,7 @@ export function UserFormDialog({ user, branches, zones, regions }: UserFormDialo
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     reset,
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(FormSchema), defaultValues: defaults });
@@ -77,134 +74,131 @@ export function UserFormDialog({ user, branches, zones, regions }: UserFormDialo
     });
   }
 
-  const role = watch("role") as Role;
+  // useWatch rather than watch(): the latter returns a new function each
+  // render, which makes the React Compiler skip memoizing this component.
+  const role = useWatch({ control, name: "role" }) as Role;
+  const branchId = useWatch({ control, name: "branchId" });
+  const zoneId = useWatch({ control, name: "zoneId" });
+  const regionId = useWatch({ control, name: "regionId" });
 
   return (
-    <Dialog
+    <SettingsDialog
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
         if (next) reset(defaults);
       }}
+      trigger={
+        isEdit ? (
+          <IconButton icon={Pencil} label={`Edit ${user!.name}`} tone="secondary" />
+        ) : (
+          <Button tone="primary" icon={Plus}>
+            New User
+          </Button>
+        )
+      }
+      title={isEdit ? "Edit User" : "New User"}
+      description="Role determines default permissions — see Roles & Permissions for the full matrix."
+      formId="user-form"
+      onSubmit={handleSubmit(onSubmit)}
+      submitLabel={isEdit ? "Save changes" : "Create user"}
+      pending={pending}
+      size="lg"
     >
-      <DialogTrigger
-        render={
-          isEdit ? (
-            <Button variant="ghost" size="sm">
-              Edit
-            </Button>
-          ) : (
-            <Button size="sm">
-              <Plus className="size-4" />
-              New User
-            </Button>
-          )
-        }
-      />
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit User" : "New User"}</DialogTitle>
-          <DialogDescription>Role determines default permissions — see Roles & Permissions for the full matrix.</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="user-name">Full name</Label>
-              <Input id="user-name" {...register("name")} />
-              {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="user-phone">Phone number</Label>
-              <Input id="user-phone" placeholder="0754000012" {...register("phone")} />
-              {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="user-email">Email</Label>
-              <Input id="user-email" type="email" {...register("email")} />
-              {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
-            </div>
-            {!isEdit && (
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="user-password">Temporary password</Label>
-                <Input id="user-password" type="password" {...register("password")} />
-                {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
-              </div>
-            )}
-            <div className="space-y-1.5">
-              <Label>Role</Label>
-              <Select value={role} onValueChange={(v) => setValue("role", v as Role)}>
-                <SelectTrigger aria-label="Role" className="w-full">
-                  <SelectValue>{(v: Role) => ROLE_LABELS[v]}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {ROLES.map((r) => (
-                    <SelectItem key={r} value={r}>
-                      {ROLE_LABELS[r]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Home branch</Label>
-              <Select value={watch("branchId") ?? NONE} onValueChange={(v) => setValue("branchId", v === NONE ? null : v)}>
-                <SelectTrigger aria-label="Home branch" className="w-full">
-                  <SelectValue>{(v: string) => branches.find((b) => b.id === v)?.name ?? "None"}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>None</SelectItem>
-                  {branches.map((b) => (
-                    <SelectItem key={b.id} value={b.id}>
-                      {b.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {role === "zone_manager" && (
-              <div className="space-y-1.5">
-                <Label>Zone oversight</Label>
-                <Select value={watch("zoneId") ?? NONE} onValueChange={(v) => setValue("zoneId", v === NONE ? null : v)}>
-                  <SelectTrigger aria-label="Zone oversight" className="w-full">
-                    <SelectValue>{(v: string) => zones.find((z) => z.id === v)?.name ?? "None"}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NONE}>None</SelectItem>
-                    {zones.map((z) => (
-                      <SelectItem key={z.id} value={z.id}>
-                        {z.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            {role === "regional_manager" && (
-              <div className="space-y-1.5">
-                <Label>Region oversight</Label>
-                <Select value={watch("regionId") ?? NONE} onValueChange={(v) => setValue("regionId", v === NONE ? null : v)}>
-                  <SelectTrigger aria-label="Region oversight" className="w-full">
-                    <SelectValue>{(v: string) => regions.find((r) => r.id === v)?.name ?? "None"}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NONE}>None</SelectItem>
-                    {regions.map((r) => (
-                      <SelectItem key={r.id} value={r.id}>
-                        {r.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : isEdit ? "Save changes" : "Create user"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+      <Field label="Full name" htmlFor="user-name" required error={errors.name?.message}>
+        <TextInput id="user-name" autoComplete="name" invalid={!!errors.name} {...register("name")} />
+      </Field>
+
+      <FieldGrid>
+        <Field label="Phone number" htmlFor="user-phone" required error={errors.phone?.message}>
+          <TextInput id="user-phone" type="tel" inputMode="tel" placeholder="0754000012" invalid={!!errors.phone} {...register("phone")} />
+        </Field>
+        <Field label="Email" htmlFor="user-email" error={errors.email?.message}>
+          <TextInput id="user-email" type="email" invalid={!!errors.email} {...register("email")} />
+        </Field>
+      </FieldGrid>
+
+      {/* Only offered on create, exactly as before. */}
+      {!isEdit && (
+        <Field
+          label="Temporary password"
+          htmlFor="user-password"
+          error={errors.password?.message}
+          help="The user is asked to change this at first sign-in."
+        >
+          <TextInput id="user-password" type="password" autoComplete="new-password" invalid={!!errors.password} {...register("password")} />
+        </Field>
+      )}
+
+      <FieldGrid>
+        <Field label="Role" htmlFor="user-role" error={errors.role?.message}>
+          <Select
+            id="user-role"
+            value={role}
+            onChange={(e) => setValue("role", e.target.value as Role, { shouldDirty: true })}
+          >
+            {ROLES.map((r) => (
+              <option key={r} value={r}>
+                {ROLE_LABELS[r]}
+              </option>
+            ))}
+          </Select>
+        </Field>
+
+        {/*
+          Nullable, so these stay controlled rather than registered: a native
+          select would submit "" where the action expects null.
+        */}
+        <Field label="Home branch" htmlFor="user-branch" error={errors.branchId?.message}>
+          <Select
+            id="user-branch"
+            value={branchId ?? NONE}
+            onChange={(e) => setValue("branchId", e.target.value === NONE ? null : e.target.value, { shouldDirty: true })}
+          >
+            <option value={NONE}>None</option>
+            {branches.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      </FieldGrid>
+
+      {/* Scope fields appear only for the two roles that carry one (§13). */}
+      {role === "zone_manager" && (
+        <Field label="Zone oversight" htmlFor="user-zone" error={errors.zoneId?.message} className="sm:max-w-sm">
+          <Select
+            id="user-zone"
+            value={zoneId ?? NONE}
+            onChange={(e) => setValue("zoneId", e.target.value === NONE ? null : e.target.value, { shouldDirty: true })}
+          >
+            <option value={NONE}>None</option>
+            {zones.map((z) => (
+              <option key={z.id} value={z.id}>
+                {z.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      )}
+
+      {role === "regional_manager" && (
+        <Field label="Region oversight" htmlFor="user-region" error={errors.regionId?.message} className="sm:max-w-sm">
+          <Select
+            id="user-region"
+            value={regionId ?? NONE}
+            onChange={(e) => setValue("regionId", e.target.value === NONE ? null : e.target.value, { shouldDirty: true })}
+          >
+            <option value={NONE}>None</option>
+            {regions.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      )}
+    </SettingsDialog>
   );
 }

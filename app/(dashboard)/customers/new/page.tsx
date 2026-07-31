@@ -1,49 +1,47 @@
-import { getBranches, getDistricts, getRegions, getStreets, getWards } from "@/lib/api/organization";
-import { getCustomerCategories } from "@/lib/api/customers";
+import Link from "next/link";
+import { UserPlus, Wand2 } from "lucide-react";
+import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
-import { hasPermission } from "@/config/permissions";
+import { hasAnyPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
-import { RegistrationWizard } from "@/features/customers/registration-wizard/registration-wizard";
+import { AccessDeniedState } from "@/components/feedback/access-denied-state";
+import { PageHeader } from "@/components/settings";
+import { SectionNav } from "@/features/ledger/section-nav";
+import { customerNavFor } from "@/features/ledger/nav-items";
+import { RegistrationFormPanel } from "@/features/customers/registration-form-panel";
 
-export default async function NewCustomerPage() {
+/**
+ * Customer → Register Customer.
+ *
+ * The legacy three-step form. The wired seven-step wizard that used to hold
+ * this route is at /customers/new/register, unchanged and still the thing that
+ * actually creates a customer — linked from the header so it stays one click
+ * away rather than orphaned.
+ */
+export default async function Page() {
   const user = await getCurrentUser();
-  const canPickAnyBranch = user ? hasPermission(user, PERMISSIONS.BRANCHES_VIEW_ALL) : false;
-
-  // The address cascade filters client-side as the officer picks, so every
-  // level is loaded up front. These are the API's own ids: the registration
-  // payload is validated against the geography tables, so seeded values from a
-  // local array would simply be rejected.
-  const [branches, categories, regions, districts, wards, streets] = await Promise.all([
-    getBranches(),
-    getCustomerCategories(),
-    getRegions(),
-    getDistricts(),
-    getWards(),
-    getStreets(),
-  ]);
-
-  const activeBranches = branches.filter((b) => b.status === "active" && !b.isHeadOffice);
-  const selectableBranches = canPickAnyBranch
-    ? activeBranches
-    : activeBranches.filter((b) => b.id === user?.branchId);
-  const activeCategories = categories.filter((c) => c.deletedAt === null);
+  if (!user) redirect("/login");
+  if (!hasAnyPermission(user, [PERMISSIONS.CUSTOMERS_MANAGE])) return <AccessDeniedState />;
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1>New Customer Registration</h1>
-        <p className="text-sm text-muted-foreground">Complete every step to bring a customer through KYC and make them loan-eligible.</p>
-      </div>
-      <RegistrationWizard
-        branches={selectableBranches}
-        branchLocked={!canPickAnyBranch}
-        homeBranchId={user?.branchId ?? selectableBranches[0]?.id ?? null}
-        categories={activeCategories}
-        regions={regions}
-        districts={districts}
-        wards={wards}
-        streets={streets}
+    <>
+      <PageHeader
+        icon={UserPlus}
+        title="Customer Registration Form"
+        description="Design pass — nothing here saves. Only the first of the old form's three steps was ever captured, and every dropdown but Branch is filled with inferred values."
+        breadcrumb={[
+          { label: "Customer", href: "/customers" },
+          { label: "Register Customer" },
+        ]}
+        actions={
+          <Link href="/customers/new/register" className="st-btn st-btn-secondary">
+            <Wand2 className="size-4" strokeWidth={1.9} aria-hidden />
+            Registration wizard
+          </Link>
+        }
       />
-    </div>
+      <SectionNav items={customerNavFor(user)} />
+      <RegistrationFormPanel />
+    </>
   );
 }

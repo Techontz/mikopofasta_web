@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, Loader2, type LucideIcon } from "lucide-react";
+import { AlertCircle, ChevronDown, Loader2, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -44,8 +44,13 @@ export function Field({
       {label && (
         <label htmlFor={htmlFor} className="st-field-label">
           {label}
+          {/*
+            The asterisk is decoration for a screen reader — "required" is
+            already on the control — but it is the only cue a sighted user gets,
+            so it keeps a colour of its own rather than inheriting the label's.
+          */}
           {required && (
-            <span className="ml-0.5 text-[#d92d20]" aria-hidden>
+            <span className="st-required ml-0.5" aria-hidden>
               *
             </span>
           )}
@@ -56,7 +61,9 @@ export function Field({
       {help && !error && <p className="st-field-help">{help}</p>}
       {error && (
         <p className="st-field-error" role="alert">
-          {error}
+          {/* Colour alone would not reach a red-green colour-blind reader. */}
+          <AlertCircle className="size-3.5 shrink-0" strokeWidth={2} aria-hidden />
+          <span>{error}</span>
         </p>
       )}
     </div>
@@ -76,7 +83,13 @@ export function FieldGrid({
   return (
     <div
       className={cn(
-        "grid gap-x-5 gap-y-4",
+        /*
+         * Rows are spaced wider than columns. A field's label belongs to the
+         * control beneath it, so the vertical gap has to beat the 6px
+         * label-to-control gap by enough that the pairing is never ambiguous;
+         * columns need only to be told apart.
+         */
+        "grid gap-x-5 gap-y-[18px]",
         columns === 2 && "sm:grid-cols-2",
         columns === 3 && "sm:grid-cols-2 lg:grid-cols-3",
         className
@@ -209,10 +222,13 @@ export function Toggle({
         onClick={() => onCheckedChange?.(!checked)}
         className={cn(
           "relative mt-0.5 h-[22px] w-[38px] shrink-0 rounded-full transition-colors duration-150",
-          checked ? "bg-[var(--st-accent)]" : "bg-[#d5dae1]",
+          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--st-accent)]",
+          checked ? "bg-[var(--st-accent)]" : "bg-[var(--st-line-strong)]",
           disabled && "cursor-not-allowed opacity-55"
         )}
       >
+        {/* The knob stays light in both themes — it reads as the thing that
+            moves, and a knob that changes colour with the track loses that. */}
         <span
           className={cn(
             "absolute top-[3px] size-4 rounded-full bg-white shadow-sm transition-transform duration-150",

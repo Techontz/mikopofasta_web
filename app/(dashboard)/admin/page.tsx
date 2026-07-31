@@ -36,11 +36,11 @@ export default async function AdminLandingPage() {
                   </span>
                   {section.href ? (
                     <ArrowRight
-                      className="mt-1 size-4 text-[#c8cdd5] transition-colors group-hover:text-[var(--st-accent)]"
+                      className="mt-1 size-4 text-[var(--st-line-strong)] transition-colors group-hover:text-[var(--st-accent)]"
                       aria-hidden
                     />
                   ) : (
-                    <Lock className="mt-1 size-3.5 text-[#c8cdd5]" aria-hidden />
+                    <Lock className="mt-1 size-3.5 text-[var(--st-line-strong)]" aria-hidden />
                   )}
                 </div>
                 <div>

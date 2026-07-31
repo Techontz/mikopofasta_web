@@ -16,6 +16,7 @@ import {
 import { Search, X, type LucideIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Button as SettingsButton } from "@/components/settings/form";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/feedback/empty-state";
@@ -49,6 +50,23 @@ interface DataTableProps<TData, TValue> {
   variant?: "default" | "settings";
   /** Rows to draw while loading; match the page size for a stable skeleton. */
   skeletonRows?: number;
+  /**
+   * A closing totals row. Receives every row the current filters leave — not
+   * just the visible page — because a total that changes when you turn the page
+   * is answering a question nobody asked. Return the `<td>`s; the row and its
+   * styling are supplied. Omitted when the table is empty, since a column of
+   * zeroes under an empty state is noise.
+   */
+  renderFooter?: (rows: TData[]) => React.ReactNode;
+  /**
+   * Keep the totals row under an empty table.
+   *
+   * Off by default, for the reason above. It is on for the screens being
+   * migrated where the *old* screen prints its zero totals over an empty body —
+   * Loan Withdrawal does exactly that — because on those the row is part of
+   * what is being reproduced rather than noise.
+   */
+  footerWhenEmpty?: boolean;
 }
 
 /**
@@ -69,6 +87,8 @@ export function DataTable<TData, TValue>({
   error,
   variant = "default",
   skeletonRows = 5,
+  renderFooter,
+  footerWhenEmpty = false,
 }: DataTableProps<TData, TValue>) {
   const settings = variant === "settings";
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -105,35 +125,59 @@ export function DataTable<TData, TValue>({
           <div className="relative w-full sm:w-72">
             <Search
               className={cn(
-                "absolute left-3 top-1/2 size-4 -translate-y-1/2",
+                "pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2",
                 settings ? "text-[var(--st-ink-faint)]" : "left-2.5 text-muted-foreground"
               )}
+              aria-hidden
             />
             <Input
+              type="search"
               value={globalFilter}
               onChange={(e) => setGlobalFilter(e.target.value)}
               placeholder={searchPlaceholder}
               aria-label={searchPlaceholder}
-              className={settings ? "st-control pl-9" : "pl-8"}
+              className={settings ? "st-control pl-9 pr-8" : "pl-8"}
             />
+            {settings && globalFilter && (
+              <button
+                type="button"
+                aria-label="Clear search"
+                onClick={() => setGlobalFilter("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-[var(--st-radius-xs)] p-1 text-[var(--st-ink-faint)] transition-colors hover:bg-[var(--st-subtle-strong)] hover:text-[var(--st-ink)] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--st-accent)]"
+              >
+                <X className="size-3.5" aria-hidden />
+              </button>
+            )}
           </div>
         )}
         {facetedFilters?.map((filter) => (
           <DataTableFacetedFilter key={filter.columnId} column={table.getColumn(filter.columnId)} title={filter.title} options={filter.options} />
         ))}
-        {isFiltered && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setColumnFilters([]);
-              setGlobalFilter("");
-            }}
-          >
-            Reset
-            <X className="size-4" />
-          </Button>
-        )}
+        {isFiltered &&
+          (settings ? (
+            <SettingsButton
+              tone="ghost"
+              icon={X}
+              onClick={() => {
+                setColumnFilters([]);
+                setGlobalFilter("");
+              }}
+            >
+              Reset
+            </SettingsButton>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setColumnFilters([]);
+                setGlobalFilter("");
+              }}
+            >
+              Reset
+              <X className="size-4" />
+            </Button>
+          ))}
         {toolbarAction && <div className="ml-auto">{toolbarAction}</div>}
       </div>
 
@@ -161,7 +205,9 @@ export function DataTable<TData, TValue>({
                 <TableRow key={i}>
                   {columns.map((_col, j) => (
                     <TableCell key={j}>
-                      <Skeleton className="h-5 w-full" />
+                      <Skeleton
+                        className={cn("h-5 w-full", settings && "bg-[var(--st-skeleton)]")}
+                      />
                     </TableCell>
                   ))}
                 </TableRow>
@@ -173,25 +219,37 @@ export function DataTable<TData, TValue>({
                 </TableCell>
               </TableRow>
             ) : table.getRowModel().rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-48 text-center">
-                  <EmptyState className="border-none" {...emptyState} />
-                </TableCell>
-              </TableRow>
-            ) : (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
-                  ))}
+              <>
+                <TableRow className={settings ? "hover:bg-transparent" : undefined}>
+                  <TableCell colSpan={columns.length} className="h-48 text-center">
+                    <EmptyState className="border-none" {...emptyState} />
+                  </TableCell>
                 </TableRow>
-              ))
+                {renderFooter && footerWhenEmpty && (
+                  <TableRow className="st-total-row hover:bg-transparent">{renderFooter([])}</TableRow>
+                )}
+              </>
+            ) : (
+              <>
+                {table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id}>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+                {renderFooter && (
+                  <TableRow className="st-total-row hover:bg-transparent">
+                    {renderFooter(table.getFilteredRowModel().rows.map((r) => r.original))}
+                  </TableRow>
+                )}
+              </>
             )}
           </TableBody>
         </Table>
       </div>
 
-      {!isLoading && !error && <DataTablePagination table={table} />}
+      {!isLoading && !error && <DataTablePagination table={table} variant={variant} />}
     </div>
   );
 }

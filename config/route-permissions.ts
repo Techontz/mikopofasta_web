@@ -21,16 +21,38 @@ export const ROUTE_PERMISSIONS: { prefix: string; permission: Permission | Permi
   // (§14) without holding hr.view — same any-of pattern as /admin/audit-logs.
   { prefix: "/hr/payroll", permission: [PERMISSIONS.HR_VIEW, PERMISSIONS.PAYROLL_FINALIZE] },
   { prefix: "/hr/staff-advances", permission: [PERMISSIONS.HR_VIEW, PERMISSIONS.PAYROLL_FINALIZE] },
+  // Salary Advance is the same work as staff advances, so it carries the same
+  // gate — a role that can see one can see the other.
+  { prefix: "/salary-advance", permission: [PERMISSIONS.HR_VIEW, PERMISSIONS.PAYROLL_FINALIZE] },
+  // Penalty and Loan Fee are loan work; the expense and headquarters
+  // transaction sections are money movement, gated like the rest of treasury.
+  { prefix: "/penalty", permission: [PERMISSIONS.LOANS_VIEW, PERMISSIONS.REPAYMENTS_VIEW] },
+  { prefix: "/loan-fee", permission: [PERMISSIONS.LOANS_VIEW, PERMISSIONS.REPAYMENTS_VIEW] },
+  { prefix: "/expenses", permission: PERMISSIONS.TREASURY_VIEW },
+  { prefix: "/hq", permission: PERMISSIONS.TREASURY_VIEW },
   { prefix: "/hr", permission: PERMISSIONS.HR_VIEW },
-  { prefix: "/ledger", permission: PERMISSIONS.LEDGER_VIEW },
   { prefix: "/treasury", permission: PERMISSIONS.TREASURY_VIEW },
+  // Capital is treasury work, not administration: it sits at its own prefix
+  // so it is not caught by the /admin rule's admin.org_settings requirement.
+  { prefix: "/capital", permission: PERMISSIONS.TREASURY_VIEW },
   { prefix: "/customers", permission: PERMISSIONS.CUSTOMERS_VIEW },
+  // Groups are customer work — a group is a set of customers who guarantee
+  // each other — so they ride on customers.view rather than a permission of
+  // their own.
+  { prefix: "/groups", permission: PERMISSIONS.CUSTOMERS_VIEW },
+  /*
+   * Teller, Agent, Insurance and VISA all handle money moving through a branch,
+   * so they ride on treasury.view. None has ever been captured from the legacy
+   * system, so the permission is a judgement rather than a reproduction — if a
+   * capture later shows these are branch-officer screens, this is the line to
+   * revisit.
+   */
+  { prefix: "/teller", permission: PERMISSIONS.TREASURY_VIEW },
+  { prefix: "/agent", permission: PERMISSIONS.TREASURY_VIEW },
+  { prefix: "/insurance", permission: PERMISSIONS.TREASURY_VIEW },
+  { prefix: "/visa", permission: PERMISSIONS.TREASURY_VIEW },
   { prefix: "/loans/new", permission: PERMISSIONS.LOANS_CREATE },
   { prefix: "/loans", permission: PERMISSIONS.LOANS_VIEW },
-  { prefix: "/repayments/cash-entry", permission: PERMISSIONS.REPAYMENTS_CASH_ENTRY },
-  { prefix: "/repayments/suspense", permission: PERMISSIONS.REPAYMENTS_MANAGE },
-  { prefix: "/repayments/reconciliation", permission: PERMISSIONS.REPAYMENTS_RECONCILE },
-  { prefix: "/repayments", permission: PERMISSIONS.REPAYMENTS_VIEW },
   { prefix: "/reports", permission: PERMISSIONS.REPORTS_VIEW },
 ];
 

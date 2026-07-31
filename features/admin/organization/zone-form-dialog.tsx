@@ -6,12 +6,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Pencil, Plus } from "lucide-react";
+import { SettingsDialog } from "@/components/settings/dialog";
+import { Button, Field, IconButton, Select, TextInput } from "@/components/settings/form";
 import { ZoneSchema, type Zone } from "@/types/branch";
 import { createZone, updateZone } from "@/features/admin/organization/zones-actions";
 import type { AuthenticatedUser } from "@/types/auth";
@@ -25,6 +22,8 @@ export function ZoneFormDialog({ zone, managers }: { zone?: Zone; managers: Pick
   const [pending, startTransition] = useTransition();
   const isEdit = Boolean(zone);
 
+  const defaults = { name: zone?.name ?? "", zoneManagerId: zone?.zoneManagerId ?? null };
+
   const {
     register,
     handleSubmit,
@@ -32,10 +31,7 @@ export function ZoneFormDialog({ zone, managers }: { zone?: Zone; managers: Pick
     watch,
     reset,
     formState: { errors },
-  } = useForm<FormValues>({
-    resolver: zodResolver(FormSchema),
-    defaultValues: { name: zone?.name ?? "", zoneManagerId: zone?.zoneManagerId ?? null },
-  });
+  } = useForm<FormValues>({ resolver: zodResolver(FormSchema), defaultValues: defaults });
 
   function onSubmit(values: FormValues) {
     startTransition(async () => {
@@ -50,64 +46,58 @@ export function ZoneFormDialog({ zone, managers }: { zone?: Zone; managers: Pick
   }
 
   return (
-    <Dialog
+    <SettingsDialog
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
-        if (next) reset({ name: zone?.name ?? "", zoneManagerId: zone?.zoneManagerId ?? null });
+        if (next) reset(defaults);
       }}
+      trigger={
+        isEdit ? (
+          <IconButton icon={Pencil} label={`Edit ${zone!.name}`} tone="secondary" />
+        ) : (
+          <Button tone="primary" icon={Plus}>
+            New Zone
+          </Button>
+        )
+      }
+      title={isEdit ? "Edit Zone" : "New Zone"}
+      description="Zones group branches for Zone Manager oversight and commission override."
+      formId="zone-form"
+      onSubmit={handleSubmit(onSubmit)}
+      submitLabel={isEdit ? "Save changes" : "Create zone"}
+      pending={pending}
     >
-      <DialogTrigger
-        render={
-          isEdit ? (
-            <Button variant="ghost" size="sm">
-              Edit
-            </Button>
-          ) : (
-            <Button size="sm">
-              <Plus className="size-4" />
-              New Zone
-            </Button>
-          )
-        }
-      />
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Zone" : "New Zone"}</DialogTitle>
-          <DialogDescription>Zones group branches for Zone Manager oversight and commission override.</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="zone-name">Name</Label>
-            <Input id="zone-name" placeholder="e.g. West Zone" {...register("name")} />
-            {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
-          </div>
-          <div className="space-y-1.5">
-            <Label>Zone Manager</Label>
-            <Select
-              value={watch("zoneManagerId") ?? UNASSIGNED}
-              onValueChange={(v) => setValue("zoneManagerId", v === UNASSIGNED ? null : v)}
-            >
-              <SelectTrigger aria-label="Zone Manager" className="w-full">
-                <SelectValue>{(v: string) => managers.find((m) => m.id === v)?.name ?? "Unassigned"}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={UNASSIGNED}>Unassigned</SelectItem>
-                {managers.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    {m.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <DialogFooter>
-            <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : isEdit ? "Save changes" : "Create zone"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+      <Field label="Name" htmlFor="zone-name" required error={errors.name?.message}>
+        <TextInput id="zone-name" placeholder="e.g. West Zone" invalid={!!errors.name} {...register("name")} />
+      </Field>
+
+      <Field
+        label="Zone Manager"
+        htmlFor="zone-manager"
+        error={errors.zoneManagerId?.message}
+        help="Optional. A zone can be created before its manager is appointed."
+      >
+        {/*
+          Controlled rather than registered: the field is nullable, and a
+          registered native select would submit "" where the schema expects
+          null. This keeps exactly the value the action received before.
+        */}
+        <Select
+          id="zone-manager"
+          value={watch("zoneManagerId") ?? UNASSIGNED}
+          onChange={(e) =>
+            setValue("zoneManagerId", e.target.value === UNASSIGNED ? null : e.target.value, { shouldDirty: true })
+          }
+        >
+          <option value={UNASSIGNED}>Unassigned</option>
+          {managers.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.name}
+            </option>
+          ))}
+        </Select>
+      </Field>
+    </SettingsDialog>
   );
 }

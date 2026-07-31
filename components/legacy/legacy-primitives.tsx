@@ -2,8 +2,9 @@ import Link from "next/link";
 import { House } from "lucide-react";
 
 /**
- * The handful of shapes the migrated screens share. Values are literal rather
- * than themed — see the note above the .lg-* rules in globals.css.
+ * The handful of shapes the migrated screens share. Colours come from the
+ * .lg-* tokens in globals.css, whose light values are the literal ones read off
+ * the original screenshots — see the note above those rules.
  */
 
 /** Plain grouped integer: the old screens print 350,000, never "TSh 350,000". */
@@ -15,8 +16,12 @@ export function legacyNumber(value: number): string {
 
 export function LegacyBreadcrumb({ trail }: { trail: string[] }) {
   return (
-    <div className="flex items-center gap-2 text-[13px] text-[#8a8f95]">
-      <Link href="/dashboard" aria-label="Home" className="hover:text-[#3c8dbc]">
+    <div className="flex items-center gap-2 text-[13px]" style={{ color: "var(--lg-muted)" }}>
+      <Link
+        href="/dashboard"
+        aria-label="Home"
+        className="hover:text-[var(--lg-link)]"
+      >
         <House className="size-4" strokeWidth={1.6} aria-hidden />
       </Link>
       {trail.map((crumb) => (
@@ -47,8 +52,8 @@ export function LegacyTh({
 }) {
   return (
     <th
-      className={`whitespace-nowrap border-b px-4 py-3.5 text-left text-[13px] font-bold uppercase tracking-wide text-[#4a4a4a] ${className}`}
-      style={{ background: "var(--lg-head)", borderColor: "var(--lg-line)" }}
+      className={`whitespace-nowrap border-b px-4 py-3.5 text-left text-[13px] font-bold uppercase tracking-wide ${className}`}
+      style={{ background: "var(--lg-head)", borderColor: "var(--lg-line)", color: "var(--lg-text)" }}
     >
       {children}
     </th>
@@ -63,7 +68,7 @@ export function LegacyTd({
   className?: string;
 }) {
   return (
-    <td className={`border-b px-4 py-3 ${className}`} style={{ borderColor: "#eef0f2" }}>
+    <td className={`border-b px-4 py-3 ${className}`} style={{ borderColor: "var(--lg-row-line)" }}>
       {children}
     </td>
   );

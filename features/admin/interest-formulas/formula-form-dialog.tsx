@@ -6,11 +6,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Pencil } from "lucide-react";
+import { SettingsDialog } from "@/components/settings/dialog";
+import { Button, Field, TextArea, TextInput } from "@/components/settings/form";
 import { InterestFormulaSchema, type InterestFormula } from "@/types/loan-product";
 import { updateInterestFormula } from "@/features/admin/interest-formulas/actions";
 
@@ -21,12 +19,14 @@ export function FormulaFormDialog({ formula }: { formula: InterestFormula }) {
   const [open, setOpen] = React.useState(false);
   const [pending, startTransition] = useTransition();
 
+  const defaults = { name: formula.name, description: formula.description };
+
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<FormValues>({ resolver: zodResolver(FormSchema), defaultValues: { name: formula.name, description: formula.description } });
+  } = useForm<FormValues>({ resolver: zodResolver(FormSchema), defaultValues: defaults });
 
   function onSubmit(values: FormValues) {
     startTransition(async () => {
@@ -41,39 +41,35 @@ export function FormulaFormDialog({ formula }: { formula: InterestFormula }) {
   }
 
   return (
-    <Dialog
+    <SettingsDialog
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
-        if (next) reset({ name: formula.name, description: formula.description });
+        if (next) reset(defaults);
       }}
+      trigger={
+        <Button tone="secondary" icon={Pencil}>
+          Edit
+        </Button>
+      }
+      title={`Edit ${formula.code} Formula`}
+      description="The calculation method is fixed — it drives the loan schedule generator. Only the label and description are editable."
+      formId="formula-form"
+      onSubmit={handleSubmit(onSubmit)}
+      submitLabel="Save changes"
+      pending={pending}
     >
-      <DialogTrigger render={<Button variant="ghost" size="sm">Edit</Button>} />
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Edit {formula.code} Formula</DialogTitle>
-          <DialogDescription>
-            The calculation method (code: <span className="font-mono">{formula.code}</span>) is fixed — it drives the loan schedule
-            generator. Only the label and description are editable.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="formula-name">Display name</Label>
-            <Input id="formula-name" {...register("name")} />
-            {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="formula-desc">Description</Label>
-            <Textarea id="formula-desc" {...register("description")} />
-          </div>
-          <DialogFooter>
-            <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : "Save changes"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+      <Field label="Display name" htmlFor="formula-name" required error={errors.name?.message}>
+        <TextInput id="formula-name" invalid={!!errors.name} {...register("name")} />
+      </Field>
+      <Field
+        label="Description"
+        htmlFor="formula-desc"
+        error={errors.description?.message}
+        help="Shown wherever this method is offered on the loan product form."
+      >
+        <TextArea id="formula-desc" rows={3} invalid={!!errors.description} {...register("description")} />
+      </Field>
+    </SettingsDialog>
   );
 }

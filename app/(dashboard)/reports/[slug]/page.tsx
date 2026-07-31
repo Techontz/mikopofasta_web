@@ -2,8 +2,9 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Suspense } from "react";
 import { ArrowLeft, ScrollText } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader, SettingsCard, StatCard } from "@/components/settings";
+import { SectionNav } from "@/features/ledger/section-nav";
+import { reportNavFor } from "@/features/ledger/nav-items";
 import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -67,58 +68,53 @@ export default async function ReportPage({
     .map((b) => ({ id: b.id, name: b.name }));
 
   return (
-    <div className="space-y-4">
+    <>
       <BreadcrumbLabel label={report.title} />
-      <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/reports"><ArrowLeft className="size-4" />All Reports</Link>} />
+      <PageHeader
+        icon={ScrollText}
+        title={report.title}
+        description={report.description}
+        breadcrumb={[{ label: "Report", href: "/reports" }, { label: report.title }]}
+        actions={
+          <Link href="/reports" className="st-btn st-btn-secondary">
+            <ArrowLeft className="size-4" strokeWidth={1.9} aria-hidden />
+            All Reports
+          </Link>
+        }
+      />
+      <SectionNav items={reportNavFor(user)} />
 
-      <div>
-        <h1>{report.title}</h1>
-        <p className="text-sm text-muted-foreground">{report.description}</p>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Filters</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Suspense fallback={<p className="text-sm text-muted-foreground">Loading filters…</p>}>
+      <SettingsCard title="Filters">
+        <div className="space-y-3">
+          <Suspense fallback={<p className="text-[13px] text-[var(--st-ink-soft)]">Loading filters…</p>}>
             <ReportFiltersBar supported={report.filters} branches={branches} />
           </Suspense>
           {!seesAllBranches && report.filters.includes("branchId") && (
-            <p className="text-xs text-muted-foreground">Scoped to your branch — you don&apos;t hold cross-branch visibility.</p>
+            <p className="text-[12.5px] text-[var(--st-ink-soft)]">Scoped to your branch — you don&apos;t hold cross-branch visibility.</p>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </SettingsCard>
 
       {result.summary && result.summary.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {result.summary.map((s) => (
-            <Card key={s.label}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{s.label}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="font-tabular text-2xl font-semibold">{s.value}</div>
-              </CardContent>
-            </Card>
+            <StatCard key={s.label} label={s.label} value={s.value} />
           ))}
         </div>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{report.title} ({result.rows.length} rows)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ReportTable result={result} />
-        </CardContent>
-      </Card>
+      <SettingsCard title={`${report.title} (${result.rows.length})`} bodyClassName="pt-0 sm:pt-0">
+        <ReportTable result={result} />
+      </SettingsCard>
 
       {result.reconciliation && (
-        <div className="flex gap-2 rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+        <div
+          className="flex gap-2 rounded-[var(--st-radius-sm)] border px-4 py-3 text-[13px] text-[var(--st-ink-soft)]"
+          style={{ borderColor: "var(--st-line-strong)", background: "var(--st-subtle)" }}
+        >
           <ScrollText className="mt-0.5 size-4 shrink-0" aria-hidden />
           <div>
-            <p className="font-medium text-foreground">How this ties back</p>
+            <p className="font-medium text-[var(--st-ink)]">How this ties back</p>
             <p>{result.reconciliation}</p>
           </div>
         </div>
@@ -128,11 +124,11 @@ export default async function ReportPage({
           a figure on screen is traceable to a specific computation — and both
           are now the server's own values rather than this page's account of
           what it asked for. */}
-      <p className="text-xs text-muted-foreground">
+      <p className="text-[12px] text-[var(--st-ink-faint)]">
         Generated {new Date(generatedAt).toLocaleString()} · filters applied:{" "}
         {Object.keys(filtersApplied).length === 0 ? "none" : JSON.stringify(filtersApplied)}
         {!seesAllBranches && report.filters.includes("branchId") && " (branch forced by your permissions)"}
       </p>
-    </div>
+    </>
   );
 }

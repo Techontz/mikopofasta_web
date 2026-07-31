@@ -6,11 +6,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Pencil, Plus } from "lucide-react";
+import { SettingsDialog } from "@/components/settings/dialog";
+import { Button, Field, IconButton, TextInput } from "@/components/settings/form";
 import { RegionSchema, type Region } from "@/types/branch";
 import { createRegion, updateRegion } from "@/features/admin/organization/regions-actions";
 
@@ -43,45 +41,31 @@ export function RegionFormDialog({ region }: { region?: Region }) {
   }
 
   return (
-    <Dialog
+    <SettingsDialog
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
         if (next) reset({ name: region?.name ?? "" });
       }}
+      trigger={
+        isEdit ? (
+          <IconButton icon={Pencil} label={`Edit ${region!.name}`} tone="secondary" />
+        ) : (
+          <Button tone="primary" icon={Plus}>
+            New Region
+          </Button>
+        )
+      }
+      title={isEdit ? "Edit Region" : "New Region"}
+      description="Regions group branches geographically and feed the customer address hierarchy."
+      formId="region-form"
+      onSubmit={handleSubmit(onSubmit)}
+      submitLabel={isEdit ? "Save changes" : "Create region"}
+      pending={pending}
     >
-      <DialogTrigger
-        render={
-          isEdit ? (
-            <Button variant="ghost" size="sm">
-              Edit
-            </Button>
-          ) : (
-            <Button size="sm">
-              <Plus className="size-4" />
-              New Region
-            </Button>
-          )
-        }
-      />
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Region" : "New Region"}</DialogTitle>
-          <DialogDescription>Regions group branches geographically and feed the customer address hierarchy.</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="region-name">Name</Label>
-            <Input id="region-name" placeholder="e.g. Mwanza" {...register("name")} />
-            {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
-          </div>
-          <DialogFooter>
-            <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : isEdit ? "Save changes" : "Create region"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+      <Field label="Name" htmlFor="region-name" required error={errors.name?.message}>
+        <TextInput id="region-name" placeholder="e.g. Mwanza" invalid={!!errors.name} {...register("name")} />
+      </Field>
+    </SettingsDialog>
   );
 }

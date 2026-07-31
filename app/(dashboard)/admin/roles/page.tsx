@@ -38,7 +38,7 @@ export default async function RolesPage() {
           {!canEditMatrix && (
             <div
               className="flex items-start gap-3 rounded-[14px] border px-4 py-3.5"
-              style={{ background: "#f9fafb", borderColor: "var(--st-line)" }}
+              style={{ background: "var(--st-subtle)", borderColor: "var(--st-line)" }}
             >
               <Info className="mt-0.5 size-4 shrink-0 text-[var(--st-ink-faint)]" strokeWidth={1.9} aria-hidden />
               <p className="text-[13px] leading-relaxed text-[var(--st-ink-soft)]">

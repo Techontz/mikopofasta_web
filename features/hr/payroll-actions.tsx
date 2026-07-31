@@ -3,12 +3,18 @@
 import * as React from "react";
 import { useTransition } from "react";
 import { toast } from "sonner";
-import { CheckCircle2, Loader2, Play, Send } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { CheckCircle2, Play, Send } from "lucide-react";
+import { Button, Field, TextInput } from "@/components/settings/form";
 import { finalizePayroll, generatePayroll, payPayroll } from "@/features/hr/actions";
 import type { ActionResult } from "@/lib/domain/action-result";
+
+/**
+ * The payroll run's controls.
+ *
+ * PRESENTATION ONLY. All three server actions, the period validation, the
+ * transition runner, the toasts and §11's generate/finalize/pay permission
+ * split are exactly as they were — only the controls are now the Menu module's.
+ */
 
 function useRunner() {
   const [pending, startTransition] = useTransition();
@@ -28,12 +34,22 @@ export function GeneratePayrollForm() {
 
   return (
     <div className="flex flex-wrap items-end gap-2">
-      <div className="space-y-1.5">
-        <Label htmlFor="payroll-period">Period</Label>
-        <Input id="payroll-period" value={period} onChange={(e) => setPeriod(e.target.value)} placeholder="2026-07" className="w-36" />
-      </div>
-      <Button size="sm" disabled={pending || !/^\d{4}-\d{2}$/.test(period)} onClick={() => run(() => generatePayroll(period))}>
-        {pending ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-4" />}
+      <Field label="Period" htmlFor="payroll-period">
+        <TextInput
+          id="payroll-period"
+          value={period}
+          onChange={(e) => setPeriod(e.target.value)}
+          placeholder="2026-07"
+          className="w-36"
+        />
+      </Field>
+      <Button
+        tone="primary"
+        icon={Play}
+        loading={pending}
+        disabled={pending || !/^\d{4}-\d{2}$/.test(period)}
+        onClick={() => run(() => generatePayroll(period))}
+      >
         Generate Draft
       </Button>
     </div>
@@ -56,28 +72,48 @@ export function PayrollRunActions({
   if (status === "draft") {
     if (!canFinalize) {
       return (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-[13px] text-[var(--st-ink-soft)]">
           Draft — awaiting Finance to finalize. {canGenerate && "HR can generate but never finalize."}
         </p>
       );
     }
     return (
-      <Button size="sm" disabled={pending} onClick={() => run(() => finalizePayroll(runId))}>
-        {pending ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
+      <Button
+        tone="primary"
+        icon={CheckCircle2}
+        loading={pending}
+        disabled={pending}
+        onClick={() => run(() => finalizePayroll(runId))}
+      >
         Finalize &amp; Post to Ledger
       </Button>
     );
   }
 
   if (status === "finalized") {
-    if (!canFinalize) return <p className="text-sm text-muted-foreground">Finalized — awaiting Finance to execute payment.</p>;
+    if (!canFinalize) {
+      return (
+        <p className="text-[13px] text-[var(--st-ink-soft)]">
+          Finalized — awaiting Finance to execute payment.
+        </p>
+      );
+    }
     return (
-      <Button size="sm" disabled={pending} onClick={() => run(() => payPayroll(runId))}>
-        {pending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+      <Button
+        tone="primary"
+        icon={Send}
+        loading={pending}
+        disabled={pending}
+        onClick={() => run(() => payPayroll(runId))}
+      >
         Execute Payment
       </Button>
     );
   }
 
-  return <p className="text-sm text-muted-foreground">Paid — salaries have been transferred and posted.</p>;
+  return (
+    <p className="text-[13px] text-[var(--st-ink-soft)]">
+      Paid — salaries have been transferred and posted.
+    </p>
+  );
 }

@@ -8,7 +8,7 @@ import { hasAnyPermission, hasPermission } from "@/config/permissions";
  *
  * This list is workflow, not decoration — operators have navigated it for
  * years — so the entries, their order and their wording are reproduced
- * verbatim from the old system, including its spellings ("Interest Formular",
+ * verbatim from the old system, including its spellings ("Interest Formula",
  * "Reserve Setting"). Nothing may be added here, and nothing reordered,
  * without that being a change to how people work.
  *
@@ -34,7 +34,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     permission: PERMISSIONS.ADMIN_ORG_SETTINGS,
   },
   {
-    title: "Interest Formular",
+    title: "Interest Formula",
     description: "Simple, flat rate, and reducing balance calculation methods.",
     icon: Percent,
     href: "/admin/interest-formulas",
@@ -58,21 +58,21 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     title: "Loan Fee",
     description: "Loan fee and insurance per loan category.",
     icon: Receipt,
-    href: null,
+    href: "/admin/loan-fees",
     permission: PERMISSIONS.ADMIN_ORG_SETTINGS,
   },
   {
     title: "Penalty",
     description: "Penalty calculation type and amount.",
     icon: Scale,
-    href: null,
+    href: "/admin/penalty",
     permission: PERMISSIONS.ADMIN_ORG_SETTINGS,
   },
   {
     title: "Reserve Setting",
     description: "Reserve percentage held against the portfolio.",
     icon: Vault,
-    href: null,
+    href: "/admin/reserve-setting",
     permission: PERMISSIONS.ADMIN_ORG_SETTINGS,
   },
 ];

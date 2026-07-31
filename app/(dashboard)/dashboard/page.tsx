@@ -47,11 +47,11 @@ export default async function DashboardPage() {
         <div className="flex flex-wrap gap-x-10 gap-y-3">
           {data.accounts.map((account) => (
             <div key={account.label}>
-              <div className="text-[11px] font-medium uppercase tracking-wider text-[#8a8f95]">
+              <div className="text-[11px] font-medium uppercase tracking-wider text-[var(--lg-muted)]">
                 {account.label}
               </div>
-              <div className="mt-1 flex items-center gap-1.5 text-[15px] text-[#4a4a4a]">
-                <Wallet className="size-4 text-[#8a8f95]" strokeWidth={1.6} aria-hidden />
+              <div className="mt-1 flex items-center gap-1.5 text-[15px] text-[var(--lg-text)]">
+                <Wallet className="size-4 text-[var(--lg-muted)]" strokeWidth={1.6} aria-hidden />
                 <span className="font-tabular">{legacyNumber(account.value)}</span>
               </div>
             </div>
@@ -63,8 +63,8 @@ export default async function DashboardPage() {
         <div className="mb-4 flex justify-end">
           <button
             type="button"
-            className="flex items-center gap-1.5 rounded px-2 py-1.5 text-[14px] text-white"
-            style={{ background: "#3c8dbc" }}
+            className="flex items-center gap-1.5 rounded px-2 py-1.5 text-[14px]"
+            style={{ background: "var(--lg-link)", color: "var(--lg-on-link)" }}
           >
             <List className="size-4" strokeWidth={2} aria-hidden />
             Branch
@@ -133,7 +133,7 @@ export default async function DashboardPage() {
                 style={{ color: action.color }}
                 aria-hidden
               />
-              <span className="mt-2 text-center text-[15px] text-[#4a4a4a]">{action.label}</span>
+              <span className="mt-2 text-center text-[15px] text-[var(--lg-text)]">{action.label}</span>
             </>
           );
 
@@ -174,7 +174,7 @@ export default async function DashboardPage() {
           </thead>
           <tbody>
             {data.byType.map((row, i) => (
-              <tr key={row.type} style={i % 2 === 0 ? { background: "#f7f7f7" } : undefined}>
+              <tr key={row.type} style={i % 2 === 0 ? { background: "var(--lg-hover)" } : undefined}>
                 <LegacyTd>{row.type}</LegacyTd>
                 <LegacyTd className="font-tabular">{legacyNumber(row.all)}</LegacyTd>
                 <LegacyTd className="font-tabular">{legacyNumber(row.active)}</LegacyTd>
@@ -188,8 +188,8 @@ export default async function DashboardPage() {
                     <Link
                       href={row.href}
                       aria-label={`View ${row.type} customers`}
-                      className="inline-flex items-center justify-center rounded px-2 py-1 text-white"
-                      style={{ background: "#3c8dbc" }}
+                      className="inline-flex items-center justify-center rounded px-2 py-1"
+                      style={{ background: "var(--lg-link)", color: "var(--lg-on-link)" }}
                     >
                       <Eye className="size-4" strokeWidth={2} aria-hidden />
                     </Link>

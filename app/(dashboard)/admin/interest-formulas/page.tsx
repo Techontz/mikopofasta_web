@@ -8,9 +8,9 @@ export default function InterestFormulasPage() {
     <div className="space-y-6">
       <PageHeader
         icon={Percent}
-        title="Interest Formular"
+        title="Interest Formula"
         description="Simple, flat rate, and reducing balance calculation methods."
-        breadcrumb={[{ label: "Settings", href: "/admin" }, { label: "Interest Formular" }]}
+        breadcrumb={[{ label: "Settings", href: "/admin" }, { label: "Interest Formula" }]}
       />
 
       {/*
@@ -18,11 +18,11 @@ export default function InterestFormulasPage() {
         front, rather than discovered when a field turns out to be read-only.
       */}
       <div
-        className="flex items-start gap-3 rounded-[14px] border px-4 py-3.5"
-        style={{ background: "var(--st-accent-soft)", borderColor: "#d8e3fc" }}
+        className="flex items-start gap-3 rounded-[var(--st-radius)] border px-4 py-3.5"
+        style={{ background: "var(--st-accent-soft)", borderColor: "var(--st-accent-line)" }}
       >
         <Lock className="mt-0.5 size-4 shrink-0 text-[var(--st-accent)]" strokeWidth={1.9} aria-hidden />
-        <p className="text-[13px] leading-relaxed text-[#2a4f9e]">
+        <p className="text-[13px] leading-relaxed text-[var(--st-accent-ink)]">
           These three calculation methods are fixed by the loan engine. Only the label and description are
           editable — the maths behind each one cannot be changed here.
         </p>

@@ -2,18 +2,14 @@
 
 import * as React from "react";
 import { useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Pencil, Plus } from "lucide-react";
+import { SettingsDialog } from "@/components/settings/dialog";
+import { SectionDivider } from "@/components/settings";
+import { Button, Field, FieldGrid, IconButton, Select, TextInput, Toggle } from "@/components/settings/form";
 import { LoanProductSchema, type LoanProduct, type InterestFormula, type RepaymentSchedule } from "@/types/loan-product";
 import { PENALTY_TYPES } from "@/types/enums";
 import { createLoanProduct, updateLoanProduct } from "@/features/admin/loan-products/actions";
@@ -72,7 +68,7 @@ export function ProductFormDialog({ product, formulas, schedules, productSchedul
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     reset,
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(FormSchema), defaultValues: defaultsFor(product, productScheduleIds) });
@@ -89,179 +85,199 @@ export function ProductFormDialog({ product, formulas, schedules, productSchedul
     });
   }
 
-  const selectedSchedules = watch("repaymentScheduleIds");
+  const selectedSchedules = useWatch({ control, name: "repaymentScheduleIds" }) ?? [];
+  const interestFormulaId = useWatch({ control, name: "interestFormulaId" });
+  const penaltyType = useWatch({ control, name: "penaltyType" });
+  const penaltyCapAmount = useWatch({ control, name: "penaltyCapAmount" });
+  const requiresMandate = useWatch({ control, name: "requiresMandate" });
+  const status = useWatch({ control, name: "status" });
 
   return (
-    <Dialog
+    <SettingsDialog
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
         if (next) reset(defaultsFor(product, productScheduleIds));
       }}
+      trigger={
+        isEdit ? (
+          <IconButton icon={Pencil} label={`Edit ${product!.name}`} tone="secondary" />
+        ) : (
+          <Button tone="primary" icon={Plus}>
+            New Product
+          </Button>
+        )
+      }
+      title={isEdit ? "Edit Loan Product" : "New Loan Product"}
+      description="Every commercial term is configured here — nothing is hardcoded in the loan engine."
+      formId="loan-product-form"
+      onSubmit={handleSubmit(onSubmit)}
+      submitLabel={isEdit ? "Save changes" : "Create product"}
+      pending={pending}
+      size="lg"
     >
-      <DialogTrigger
-        render={
-          isEdit ? (
-            <Button variant="ghost" size="sm">
-              Edit
-            </Button>
-          ) : (
-            <Button size="sm">
-              <Plus className="size-4" />
-              New Product
-            </Button>
-          )
-        }
+      <FieldGrid>
+        <Field label="Name" htmlFor="prod-name" required error={errors.name?.message}>
+          <TextInput id="prod-name" invalid={!!errors.name} {...register("name")} />
+        </Field>
+        <Field label="Code" htmlFor="prod-code" required error={errors.code?.message}>
+          <TextInput id="prod-code" className="font-mono" invalid={!!errors.code} {...register("code")} />
+        </Field>
+      </FieldGrid>
+
+      <SectionDivider label="Interest" />
+
+      <FieldGrid>
+        <Field label="Interest formula" htmlFor="prod-formula" error={errors.interestFormulaId?.message}>
+          <Select
+            id="prod-formula"
+            value={interestFormulaId}
+            onChange={(e) => setValue("interestFormulaId", e.target.value, { shouldDirty: true })}
+          >
+            {formulas.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Interest rate" htmlFor="prod-rate" required error={errors.interestRate?.message}>
+          <TextInput
+            id="prod-rate"
+            type="number"
+            step="0.1"
+            suffix="%"
+            invalid={!!errors.interestRate}
+            {...register("interestRate", { valueAsNumber: true })}
+          />
+        </Field>
+      </FieldGrid>
+
+      <SectionDivider label="Limits" />
+
+      <FieldGrid>
+        <Field label="Min amount" htmlFor="prod-min-amount" required error={errors.minAmount?.message}>
+          <TextInput id="prod-min-amount" type="number" suffix="TZS" invalid={!!errors.minAmount} {...register("minAmount", { valueAsNumber: true })} />
+        </Field>
+        <Field label="Max amount" htmlFor="prod-max-amount" required error={errors.maxAmount?.message}>
+          <TextInput id="prod-max-amount" type="number" suffix="TZS" invalid={!!errors.maxAmount} {...register("maxAmount", { valueAsNumber: true })} />
+        </Field>
+        <Field label="Min tenure" htmlFor="prod-min-tenure" required error={errors.minTenureDays?.message}>
+          <TextInput id="prod-min-tenure" type="number" suffix="days" invalid={!!errors.minTenureDays} {...register("minTenureDays", { valueAsNumber: true })} />
+        </Field>
+        <Field label="Max tenure" htmlFor="prod-max-tenure" required error={errors.maxTenureDays?.message}>
+          <TextInput id="prod-max-tenure" type="number" suffix="days" invalid={!!errors.maxTenureDays} {...register("maxTenureDays", { valueAsNumber: true })} />
+        </Field>
+      </FieldGrid>
+
+      <SectionDivider label="Penalty" />
+
+      <FieldGrid>
+        <Field
+          label="Penalty type"
+          htmlFor="prod-penalty-type"
+          error={errors.penaltyType?.message}
+          help="Decides whether the rate below is read as a percentage or a flat amount."
+        >
+          <Select
+            id="prod-penalty-type"
+            className="capitalize"
+            value={penaltyType}
+            onChange={(e) => setValue("penaltyType", e.target.value as FormValues["penaltyType"], { shouldDirty: true })}
+          >
+            {PENALTY_TYPES.map((t) => (
+              <option key={t} value={t} className="capitalize">
+                {t.replace(/_/g, " ")}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Penalty rate" htmlFor="prod-penalty-rate" error={errors.penaltyRate?.message}>
+          <TextInput
+            id="prod-penalty-rate"
+            type="number"
+            step="0.1"
+            suffix={penaltyType === "flat_fee" ? "TZS" : "%"}
+            invalid={!!errors.penaltyRate}
+            {...register("penaltyRate", { valueAsNumber: true })}
+          />
+        </Field>
+        <Field label="Penalty grace" htmlFor="prod-grace" error={errors.penaltyGraceDays?.message}>
+          <TextInput id="prod-grace" type="number" suffix="days" invalid={!!errors.penaltyGraceDays} {...register("penaltyGraceDays", { valueAsNumber: true })} />
+        </Field>
+        <Field label="Penalty cap" htmlFor="prod-cap" help="Optional ceiling on accrued penalty.">
+          {/* Nullable: an empty box means no cap, not zero. */}
+          <TextInput
+            id="prod-cap"
+            type="number"
+            suffix="TZS"
+            value={penaltyCapAmount ?? ""}
+            onChange={(e) => setValue("penaltyCapAmount", e.target.value ? Number(e.target.value) : null, { shouldDirty: true })}
+          />
+        </Field>
+      </FieldGrid>
+
+      <SectionDivider label="Terms" />
+
+      <Toggle
+        id="prod-mandate"
+        label="Requires E-Mandate"
+        help="The borrower must authorise direct debit before disbursement."
+        checked={requiresMandate}
+        onCheckedChange={(next) => setValue("requiresMandate", next, { shouldDirty: true })}
       />
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Loan Product" : "New Loan Product"}</DialogTitle>
-          <DialogDescription>Every commercial term is configured here — nothing is hardcoded in the loan engine.</DialogDescription>
-        </DialogHeader>
-        <ScrollArea className="max-h-[70vh]">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pr-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="prod-name">Name</Label>
-                <Input id="prod-name" {...register("name")} />
-                {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="prod-code">Code</Label>
-                <Input id="prod-code" {...register("code")} />
-                {errors.code && <p className="text-xs text-destructive">{errors.code.message}</p>}
-              </div>
 
-              <div className="space-y-1.5">
-                <Label>Interest formula</Label>
-                <Select value={watch("interestFormulaId")} onValueChange={(v) => v && setValue("interestFormulaId", v)}>
-                  <SelectTrigger aria-label="Interest formula" className="w-full">
-                    <SelectValue placeholder="Select formula">
-                      {(v: string) => formulas.find((f) => f.id === v)?.name ?? "Select formula"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {formulas.map((f) => (
-                      <SelectItem key={f.id} value={f.id}>
-                        {f.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.interestFormulaId && <p className="text-xs text-destructive">{errors.interestFormulaId.message}</p>}
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="prod-rate">Interest rate (%)</Label>
-                <Input id="prod-rate" type="number" step="0.1" {...register("interestRate", { valueAsNumber: true })} />
-              </div>
+      <Field label="Status" htmlFor="prod-status" error={errors.status?.message} className="sm:max-w-[220px]">
+        <Select
+          id="prod-status"
+          className="capitalize"
+          value={status}
+          onChange={(e) => setValue("status", e.target.value as FormValues["status"], { shouldDirty: true })}
+        >
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </Select>
+      </Field>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="prod-min-amount">Min amount (TZS)</Label>
-                <Input id="prod-min-amount" type="number" {...register("minAmount", { valueAsNumber: true })} />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="prod-max-amount">Max amount (TZS)</Label>
-                <Input id="prod-max-amount" type="number" {...register("maxAmount", { valueAsNumber: true })} />
-                {errors.maxAmount && <p className="text-xs text-destructive">{errors.maxAmount.message}</p>}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="prod-min-tenure">Min tenure (days)</Label>
-                <Input id="prod-min-tenure" type="number" {...register("minTenureDays", { valueAsNumber: true })} />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="prod-max-tenure">Max tenure (days)</Label>
-                <Input id="prod-max-tenure" type="number" {...register("maxTenureDays", { valueAsNumber: true })} />
-                {errors.maxTenureDays && <p className="text-xs text-destructive">{errors.maxTenureDays.message}</p>}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>Penalty type</Label>
-                <Select value={watch("penaltyType")} onValueChange={(v) => setValue("penaltyType", v as FormValues["penaltyType"])}>
-                  <SelectTrigger aria-label="Penalty type" className="w-full">
-                    <SelectValue className="capitalize">{(v: string) => v.replace(/_/g, " ")}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PENALTY_TYPES.map((t) => (
-                      <SelectItem key={t} value={t} className="capitalize">
-                        {t.replace(/_/g, " ")}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="prod-penalty-rate">Penalty rate</Label>
-                <Input id="prod-penalty-rate" type="number" step="0.1" {...register("penaltyRate", { valueAsNumber: true })} />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="prod-grace">Penalty grace (days)</Label>
-                <Input id="prod-grace" type="number" {...register("penaltyGraceDays", { valueAsNumber: true })} />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="prod-cap">Penalty cap (TZS, optional)</Label>
-                <Input
-                  id="prod-cap"
-                  type="number"
-                  defaultValue={watch("penaltyCapAmount") ?? ""}
-                  onChange={(e) => setValue("penaltyCapAmount", e.target.value ? Number(e.target.value) : null)}
+      <Field
+        label="Allowed repayment schedules"
+        error={errors.repaymentScheduleIds?.message}
+        help="Which cadences a borrower may choose for this product."
+      >
+        <div className="flex flex-wrap gap-2 pt-1">
+          {schedules.map((schedule) => {
+            const checked = selectedSchedules.includes(schedule.id);
+            return (
+              <label
+                key={schedule.id}
+                className="flex cursor-pointer items-center gap-2 rounded-[10px] border px-3 py-2 text-[13px] transition-colors"
+                style={{
+                  borderColor: checked ? "var(--st-accent)" : "var(--st-line)",
+                  background: checked ? "var(--st-accent-soft)" : "var(--st-card)",
+                  color: checked ? "var(--st-accent)" : "var(--st-ink-soft)",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  id={`sched-${schedule.id}`}
+                  className="size-3.5 accent-[var(--st-accent)]"
+                  checked={checked}
+                  onChange={(e) =>
+                    setValue(
+                      "repaymentScheduleIds",
+                      e.target.checked
+                        ? [...selectedSchedules, schedule.id]
+                        : selectedSchedules.filter((id) => id !== schedule.id),
+                      { shouldDirty: true }
+                    )
+                  }
                 />
-              </div>
-
-              <div className="flex items-center gap-2 pt-2">
-                <Checkbox checked={watch("requiresMandate")} onCheckedChange={(v) => setValue("requiresMandate", v === true)} id="prod-mandate" />
-                <Label htmlFor="prod-mandate" className="font-normal">Requires E-Mandate</Label>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Status</Label>
-                <Select value={watch("status")} onValueChange={(v) => setValue("status", v as FormValues["status"])}>
-                  <SelectTrigger aria-label="Status" className="w-full">
-                    <SelectValue className="capitalize" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2 rounded-lg border p-3">
-              <Label>Allowed repayment schedules</Label>
-              <div className="flex flex-wrap gap-3">
-                {schedules.map((schedule) => {
-                  const checked = selectedSchedules.includes(schedule.id);
-                  return (
-                    <div key={schedule.id} className="flex items-center gap-1.5">
-                      <Checkbox
-                        checked={checked}
-                        onCheckedChange={(v) =>
-                          setValue(
-                            "repaymentScheduleIds",
-                            v === true ? [...selectedSchedules, schedule.id] : selectedSchedules.filter((id) => id !== schedule.id)
-                          )
-                        }
-                        id={`sched-${schedule.id}`}
-                      />
-                      <Label htmlFor={`sched-${schedule.id}`} className="font-normal">
-                        {schedule.name}
-                      </Label>
-                    </div>
-                  );
-                })}
-              </div>
-              {errors.repaymentScheduleIds && <p className="text-xs text-destructive">{errors.repaymentScheduleIds.message}</p>}
-            </div>
-
-            <DialogFooter>
-              <Button type="submit" disabled={pending}>
-                {pending ? "Saving…" : isEdit ? "Save changes" : "Create product"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
+                {schedule.name}
+              </label>
+            );
+          })}
+        </div>
+      </Field>
+    </SettingsDialog>
   );
 }

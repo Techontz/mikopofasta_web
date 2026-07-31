@@ -210,7 +210,6 @@ export async function settleDisbursement(
   }
 
   revalidateLoan(loanId);
-  revalidatePath("/ledger");
   return {
     ok: true,
     message: success

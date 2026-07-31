@@ -1,11 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, UserRound } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { MOCK_USERS } from "@/lib/mock-data/users";
 import { MOCK_BRANCHES } from "@/lib/mock-data/branches";
 import { ZONES } from "@/lib/mock-data/zones";
@@ -14,7 +10,22 @@ import { MOCK_STAFF_PROFILES } from "@/lib/mock-data/staff-profiles";
 import { ROLE_LABELS, getEffectivePermissions } from "@/config/permissions";
 import { UserFormDialog } from "@/features/admin/users/user-form-dialog";
 import { UserStatusAction } from "@/features/admin/users/user-status-action";
+import { PageHeader, SectionDivider, SettingsCard, StatusBadge } from "@/components/settings";
 import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
+
+/**
+ * Pinned locale and timezone — a bare toLocaleString() renders differently on
+ * the server and in the browser, which fails hydration (React #418).
+ */
+const LAST_LOGIN = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Africa/Dar_es_Salaam",
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
 
 export default async function UserProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -28,83 +39,101 @@ export default async function UserProfilePage({ params }: { params: Promise<{ id
   const permissions = getEffectivePermissions(user);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <BreadcrumbLabel label={user.name} />
-      <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/admin/users"><ArrowLeft className="size-4" />Back to Staff List</Link>} />
+
+      <PageHeader
+        icon={UserRound}
+        title={user.name}
+        description={ROLE_LABELS[user.role]}
+        breadcrumb={[
+          { label: "Settings", href: "/admin" },
+          { label: "User Management", href: "/admin/users" },
+          { label: user.name },
+        ]}
+        actions={
+          <>
+            <UserFormDialog user={user} branches={MOCK_BRANCHES} zones={ZONES} regions={REGIONS} />
+            <UserStatusAction user={user} />
+          </>
+        }
+      />
+
+      <Link
+        href="/admin/users"
+        className="inline-flex items-center gap-1.5 text-[13px] text-[var(--st-ink-soft)] transition-colors hover:text-[var(--st-ink)]"
+      >
+        <ArrowLeft className="size-3.5" aria-hidden />
+        Back to Staff List
+      </Link>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
-          <CardContent className="flex flex-col items-center gap-3 pt-6 text-center">
+        <SettingsCard className="lg:col-span-1" bodyClassName="pt-5 sm:pt-6">
+          <div className="flex flex-col items-center gap-3 text-center">
             <Avatar className="size-16">
               <AvatarFallback className="text-lg">{user.avatarInitials}</AvatarFallback>
             </Avatar>
             <div>
-              <p className="font-semibold">{user.name}</p>
-              <p className="text-sm text-muted-foreground">{ROLE_LABELS[user.role]}</p>
+              <p className="text-[15px] font-semibold text-[var(--st-ink)]">{user.name}</p>
+              <p className="text-[13px] text-[var(--st-ink-soft)]">{ROLE_LABELS[user.role]}</p>
             </div>
-            <Badge variant={user.status === "active" ? "default" : "secondary"} className="capitalize">
+            <StatusBadge tone={user.status === "active" ? "active" : "inactive"} className="capitalize">
               {user.status}
-            </Badge>
-            <div className="flex w-full gap-2 pt-2">
-              <UserFormDialog user={user} branches={MOCK_BRANCHES} zones={ZONES} regions={REGIONS} />
-              <UserStatusAction user={user} />
-            </div>
-          </CardContent>
-        </Card>
+            </StatusBadge>
+          </div>
+        </SettingsCard>
 
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">Details</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
-            <Field label="Phone">{user.phone}</Field>
-            <Field label="Email">{user.email ?? "—"}</Field>
-            <Field label="Home branch">{branch?.name ?? "—"}</Field>
-            <Field label="Zone oversight">{zone?.name ?? "—"}</Field>
-            <Field label="Region oversight">{region?.name ?? "—"}</Field>
-            <Field label="Employee number">{staffProfile?.employeeNumber ?? "—"}</Field>
-            <Field label="Last login">{user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : "Never"}</Field>
-            <Field label="Commission eligible">{staffProfile?.commissionEligible ? "Yes" : "No"}</Field>
-          </CardContent>
-        </Card>
+        <SettingsCard className="lg:col-span-2" title="Details">
+          <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+            <Fact label="Phone">{user.phone}</Fact>
+            <Fact label="Email">{user.email ?? "—"}</Fact>
+            <Fact label="Home branch">{branch?.name ?? "—"}</Fact>
+            <Fact label="Zone oversight">{zone?.name ?? "—"}</Fact>
+            <Fact label="Region oversight">{region?.name ?? "—"}</Fact>
+            <Fact label="Employee number">{staffProfile?.employeeNumber ?? "—"}</Fact>
+            <Fact label="Last login">
+              {user.lastLoginAt ? LAST_LOGIN.format(new Date(user.lastLoginAt)) : "Never"}
+            </Fact>
+            <Fact label="Commission eligible">{staffProfile?.commissionEligible ? "Yes" : "No"}</Fact>
+          </dl>
+        </SettingsCard>
 
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle className="text-base">Effective Permissions ({permissions.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-1.5">
-              {permissions.map((p) => (
-                <Badge key={p} variant="outline" className="font-mono text-xs font-normal">
-                  {p}
-                </Badge>
-              ))}
-            </div>
-            {user.extraPermissions.length > 0 && (
-              <>
-                <Separator className="my-3" />
-                <p className="mb-2 text-xs font-medium text-muted-foreground">Explicit grants beyond the role default</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {user.extraPermissions.map((p) => (
-                    <Badge key={p} className="font-mono text-xs font-normal">
-                      {p}
-                    </Badge>
-                  ))}
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
+        <SettingsCard
+          className="lg:col-span-3"
+          title="Effective permissions"
+          description={`${permissions.length} granted by this role.`}
+        >
+          <div className="flex flex-wrap gap-1.5">
+            {permissions.map((p) => (
+              <StatusBadge key={p} tone="neutral" dot={false} className="font-mono">
+                {p}
+              </StatusBadge>
+            ))}
+          </div>
+
+          {user.extraPermissions.length > 0 && (
+            <>
+              <SectionDivider label="Explicit grants beyond the role default" className="my-4" />
+              <div className="flex flex-wrap gap-1.5">
+                {user.extraPermissions.map((p) => (
+                  <StatusBadge key={p} tone="default" dot={false} className="font-mono">
+                    {p}
+                  </StatusBadge>
+                ))}
+              </div>
+            </>
+          )}
+        </SettingsCard>
       </div>
     </div>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-0.5">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-sm font-medium">{children}</p>
+      <dt className="text-[12px] text-[var(--st-ink-faint)]">{label}</dt>
+      <dd className="text-[13.5px] font-medium text-[var(--st-ink)]">{children}</dd>
     </div>
   );
 }

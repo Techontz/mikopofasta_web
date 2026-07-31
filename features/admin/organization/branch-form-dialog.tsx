@@ -2,16 +2,13 @@
 
 import * as React from "react";
 import { useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Pencil, Plus } from "lucide-react";
+import { SettingsDialog } from "@/components/settings/dialog";
+import { Button, Field, FieldGrid, IconButton, Select, TextInput } from "@/components/settings/form";
 import { BranchSchema, type Branch } from "@/types/branch";
 import type { Region, Zone } from "@/types/branch";
 import { createBranch, updateBranch } from "@/features/admin/organization/branches-actions";
@@ -54,7 +51,7 @@ export function BranchFormDialog({ branch, regions, zones, branches }: BranchFor
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     reset,
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(FormSchema), defaultValues: defaults });
@@ -71,131 +68,118 @@ export function BranchFormDialog({ branch, regions, zones, branches }: BranchFor
     });
   }
 
-  const type = watch("type");
+  const type = useWatch({ control, name: "type" });
+  const regionId = useWatch({ control, name: "regionId" });
+  const zoneId = useWatch({ control, name: "zoneId" });
+  const parentBranchId = useWatch({ control, name: "parentBranchId" });
+  const status = useWatch({ control, name: "status" });
+
+  /* Nullable selects stay controlled: a registered native select would submit
+     "" where the action expects null. */
+  const nullable = (name: "regionId" | "zoneId" | "parentBranchId") => (e: React.ChangeEvent<HTMLSelectElement>) =>
+    setValue(name, e.target.value === NONE ? null : e.target.value, { shouldDirty: true });
 
   return (
-    <Dialog
+    <SettingsDialog
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
         if (next) reset(defaults);
       }}
+      trigger={
+        isEdit ? (
+          <IconButton icon={Pencil} label={`Edit ${branch!.name}`} tone="secondary" />
+        ) : (
+          <Button tone="primary" icon={Plus}>
+            New Branch
+          </Button>
+        )
+      }
+      title={isEdit ? "Edit Branch" : "New Branch"}
+      description="Every branch automatically gets its own Teller Cash ledger account."
+      formId="branch-form"
+      onSubmit={handleSubmit(onSubmit)}
+      submitLabel={isEdit ? "Save changes" : "Create branch"}
+      pending={pending}
+      size="lg"
     >
-      <DialogTrigger
-        render={
-          isEdit ? (
-            <Button variant="ghost" size="sm">
-              Edit
-            </Button>
-          ) : (
-            <Button size="sm">
-              <Plus className="size-4" />
-              New Branch
-            </Button>
-          )
-        }
-      />
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Branch" : "New Branch"}</DialogTitle>
-          <DialogDescription>Every branch automatically gets its own Teller Cash ledger account.</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="branch-name">Branch name</Label>
-              <Input id="branch-name" placeholder="e.g. Kakonko" {...register("name")} />
-              {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="branch-phone">Phone</Label>
-              <Input id="branch-phone" {...register("phone")} />
-              {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
-            </div>
-            <div className="space-y-1.5">
-              <Label>Branch type</Label>
-              <Select value={type} onValueChange={(v) => setValue("type", v as FormValues["type"])}>
-                <SelectTrigger aria-label="Branch type" className="w-full">
-                  <SelectValue className="capitalize" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="main">Main</SelectItem>
-                  <SelectItem value="sub">Sub</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Region</Label>
-              <Select value={watch("regionId") ?? NONE} onValueChange={(v) => setValue("regionId", v === NONE ? null : v)}>
-                <SelectTrigger aria-label="Region" className="w-full">
-                  <SelectValue>{(v: string) => regions.find((r) => r.id === v)?.name ?? "None"}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>None</SelectItem>
-                  {regions.map((r) => (
-                    <SelectItem key={r.id} value={r.id}>
-                      {r.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Zone</Label>
-              <Select value={watch("zoneId") ?? NONE} onValueChange={(v) => setValue("zoneId", v === NONE ? null : v)}>
-                <SelectTrigger aria-label="Zone" className="w-full">
-                  <SelectValue>{(v: string) => zones.find((z) => z.id === v)?.name ?? "None"}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>None</SelectItem>
-                  {zones.map((z) => (
-                    <SelectItem key={z.id} value={z.id}>
-                      {z.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {type === "sub" && (
-              <div className="space-y-1.5">
-                <Label>Parent branch</Label>
-                <Select value={watch("parentBranchId") ?? NONE} onValueChange={(v) => setValue("parentBranchId", v === NONE ? null : v)}>
-                  <SelectTrigger aria-label="Parent branch" className="w-full">
-                    <SelectValue>{(v: string) => branches.find((b) => b.id === v)?.name ?? "None"}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NONE}>None</SelectItem>
-                    {branches
-                      .filter((b) => b.id !== branch?.id && b.type === "main")
-                      .map((b) => (
-                        <SelectItem key={b.id} value={b.id}>
-                          {b.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            <div className="space-y-1.5">
-              <Label>Status</Label>
-              <Select value={watch("status")} onValueChange={(v) => setValue("status", v as FormValues["status"])}>
-                <SelectTrigger aria-label="Status" className="w-full">
-                  <SelectValue className="capitalize" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : isEdit ? "Save changes" : "Create branch"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+      <Field label="Branch name" htmlFor="branch-name" required error={errors.name?.message}>
+        <TextInput id="branch-name" placeholder="e.g. Kakonko" invalid={!!errors.name} {...register("name")} />
+      </Field>
+
+      <FieldGrid>
+        <Field label="Phone" htmlFor="branch-phone" error={errors.phone?.message}>
+          <TextInput id="branch-phone" type="tel" inputMode="tel" invalid={!!errors.phone} {...register("phone")} />
+        </Field>
+        <Field label="Branch type" htmlFor="branch-type" error={errors.type?.message}>
+          <Select
+            id="branch-type"
+            className="capitalize"
+            value={type}
+            onChange={(e) => setValue("type", e.target.value as FormValues["type"], { shouldDirty: true })}
+          >
+            <option value="main">Main</option>
+            <option value="sub">Sub</option>
+          </Select>
+        </Field>
+      </FieldGrid>
+
+      <FieldGrid>
+        <Field label="Region" htmlFor="branch-region" error={errors.regionId?.message}>
+          <Select id="branch-region" value={regionId ?? NONE} onChange={nullable("regionId")}>
+            <option value={NONE}>None</option>
+            {regions.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Zone" htmlFor="branch-zone" error={errors.zoneId?.message}>
+          <Select id="branch-zone" value={zoneId ?? NONE} onChange={nullable("zoneId")}>
+            <option value={NONE}>None</option>
+            {zones.map((z) => (
+              <option key={z.id} value={z.id}>
+                {z.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      </FieldGrid>
+
+      <FieldGrid>
+        {/* Only a sub-branch rolls up into a parent — same condition as before. */}
+        {type === "sub" && (
+          <Field
+            label="Parent branch"
+            htmlFor="branch-parent"
+            error={errors.parentBranchId?.message}
+            help="Only main branches can be a parent."
+          >
+            <Select id="branch-parent" value={parentBranchId ?? NONE} onChange={nullable("parentBranchId")}>
+              <option value={NONE}>None</option>
+              {branches
+                .filter((b) => b.id !== branch?.id && b.type === "main")
+                .map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+            </Select>
+          </Field>
+        )}
+        <Field label="Status" htmlFor="branch-status" error={errors.status?.message}>
+          <Select
+            id="branch-status"
+            className="capitalize"
+            value={status}
+            onChange={(e) => setValue("status", e.target.value as FormValues["status"], { shouldDirty: true })}
+          >
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </Select>
+        </Field>
+      </FieldGrid>
+    </SettingsDialog>
   );
 }

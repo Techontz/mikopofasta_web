@@ -77,15 +77,15 @@ export function LegacyCustomerTable({ rows }: { rows: LegacyCustomerRow[] }) {
         <button
           type="button"
           aria-label="Search"
-          className="h-[30px] rounded px-3.5 text-white"
-          style={{ background: "#3c8dbc" }}
+          className="h-[30px] rounded px-3.5"
+          style={{ background: "var(--lg-link)", color: "var(--lg-on-link)" }}
         >
           <Search className="size-4" strokeWidth={2.2} aria-hidden />
         </button>
       </div>
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <label className="flex items-center gap-2 text-[14px] text-[#4a4a4a]">
+        <label className="flex items-center gap-2 text-[14px] text-[var(--lg-text)]">
           Show
           <select
             aria-label="Entries per page"
@@ -94,8 +94,8 @@ export function LegacyCustomerTable({ rows }: { rows: LegacyCustomerRow[] }) {
               setPageSize(Number(e.target.value));
               setPage(1);
             }}
-            className="h-[27px] w-[71px] rounded border bg-white px-2 text-[14px]"
-            style={{ borderColor: "#ced4da" }}
+            className="h-[27px] w-[71px] rounded border px-2 text-[14px]"
+            style={{ borderColor: "var(--lg-ctrl-line)", background: "var(--lg-surface)" }}
           >
             {PAGE_SIZES.map((size) => (
               <option key={size} value={size}>
@@ -106,7 +106,7 @@ export function LegacyCustomerTable({ rows }: { rows: LegacyCustomerRow[] }) {
           entries
         </label>
 
-        <label className="flex items-center gap-2 text-[14px] text-[#4a4a4a]">
+        <label className="flex items-center gap-2 text-[14px] text-[var(--lg-text)]">
           Search:
           <input
             type="search"
@@ -115,8 +115,8 @@ export function LegacyCustomerTable({ rows }: { rows: LegacyCustomerRow[] }) {
               setQuery(e.target.value);
               setPage(1);
             }}
-            className="h-[29px] w-[160px] rounded border bg-white px-2 text-[14px] outline-none focus:border-[#3c8dbc]"
-            style={{ borderColor: "#ced4da" }}
+            className="h-[29px] w-[160px] rounded border px-2 text-[14px] outline-none focus:border-[var(--lg-link)]"
+            style={{ borderColor: "var(--lg-ctrl-line)", background: "var(--lg-surface)" }}
           />
         </label>
       </div>
@@ -124,12 +124,12 @@ export function LegacyCustomerTable({ rows }: { rows: LegacyCustomerRow[] }) {
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-[14px]">
           <thead>
-            <tr style={{ background: "#4a90c2" }}>
+            <tr style={{ background: "var(--lg-thead)" }}>
               {COLUMNS.map((column) => (
                 <th
                   key={column}
                   scope="col"
-                  className="lg-sort whitespace-nowrap px-3 py-2 text-left text-[14px] font-bold text-white"
+                  className="lg-sort whitespace-nowrap px-3 py-2 text-left text-[14px] font-bold text-[var(--lg-on-thead)]"
                 >
                   {column}
                 </th>
@@ -138,7 +138,7 @@ export function LegacyCustomerTable({ rows }: { rows: LegacyCustomerRow[] }) {
           </thead>
           <tbody>
             {visible.map((row) => (
-              <tr key={row.id} className="hover:bg-[#f5f5f5]">
+              <tr key={row.id} className="hover:bg-[var(--lg-hover)]">
                 <Cell className="w-[126px]">
                   {row.photoUrl ? (
                     /* eslint-disable-next-line @next/next/no-img-element -- customer
@@ -147,18 +147,18 @@ export function LegacyCustomerTable({ rows }: { rows: LegacyCustomerRow[] }) {
                       src={row.photoUrl}
                       alt=""
                       className="h-[84px] w-[101px] border object-cover"
-                      style={{ borderColor: "#dcdcdc" }}
+                      style={{ borderColor: "var(--lg-photo-line)" }}
                     />
                   ) : (
                     <div
-                      className="h-[84px] w-[101px] border bg-[#f5f5f5]"
-                      style={{ borderColor: "#dcdcdc" }}
+                      className="h-[84px] w-[101px] border bg-[var(--lg-head)]"
+                      style={{ borderColor: "var(--lg-photo-line)" }}
                       aria-hidden
                     />
                   )}
                 </Cell>
                 <Cell>
-                  <Link href={`/customers/${row.id}`} className="text-[#3c8dbc] hover:underline">
+                  <Link href={`/customers/${row.id}`} className="text-[var(--lg-link)] hover:underline">
                     {row.name}
                   </Link>
                 </Cell>
@@ -173,7 +173,7 @@ export function LegacyCustomerTable({ rows }: { rows: LegacyCustomerRow[] }) {
                   {row.loanStatus && (
                     <span
                       className="lg-status"
-                      style={{ color: RUNNING.has(row.loanStatus) ? "#4a9d2f" : "#8a8f95" }}
+                      style={{ color: RUNNING.has(row.loanStatus) ? "var(--lg-brand-b)" : "var(--lg-muted)" }}
                     >
                       {row.loanStatusLabel ?? row.loanStatus}
                     </span>
@@ -183,7 +183,7 @@ export function LegacyCustomerTable({ rows }: { rows: LegacyCustomerRow[] }) {
             ))}
             {visible.length === 0 && (
               <tr>
-                <td colSpan={COLUMNS.length} className="px-4 py-8 text-center text-[#8a8f95]">
+                <td colSpan={COLUMNS.length} className="px-4 py-8 text-center text-[var(--lg-muted)]">
                   No matching records found
                 </td>
               </tr>
@@ -193,7 +193,7 @@ export function LegacyCustomerTable({ rows }: { rows: LegacyCustomerRow[] }) {
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-        <p className="text-[14px] text-[#4a4a4a]">
+        <p className="text-[14px] text-[var(--lg-text)]">
           Showing {firstShown} to {lastShown} of {filtered.length} entries
         </p>
         <nav className="flex" aria-label="Pagination">

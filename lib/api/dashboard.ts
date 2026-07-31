@@ -22,7 +22,7 @@ import type { LoanStatus } from "@/types/enums";
  */
 
 /** Rows reproduced for layout fidelity that no endpoint can currently feed. */
-export const UNSOURCED_ROWS = ["Agent", "Insurelance", "Saving withdrawal"] as const;
+export const UNSOURCED_ROWS = ["Agent", "Insurance", "Saving withdrawal"] as const;
 
 // §5 fixed account codes. The old header read these four by name.
 const ACCOUNT = {
@@ -71,7 +71,7 @@ export interface TodayCell {
  *
  * They are NOT one grid of customer types: the fourth line reads "Groups"
  * under CUSTOMER TYPE but "Salary advance" under both money columns, and the
- * fifth line exists only for Agent, Insurelance and Saving withdrawal. The
+ * fifth line exists only for Agent, Insurance and Saving withdrawal. The
  * columns are therefore modelled independently, exactly as they read.
  */
 export interface TodayColumns {
@@ -252,12 +252,12 @@ export async function getDashboardData(): Promise<DashboardData> {
       { label: "-", value: null },
     ],
     income: [
-      { label: "Penarty", value: creditedToday(ACCOUNT.penalty) },
+      { label: "Penalty", value: creditedToday(ACCOUNT.penalty) },
       { label: "Loan fee", value: creditedToday(ACCOUNT.loanFee) },
       { label: "Capital", value: creditedToday(ACCOUNT.capital) },
       { label: "Transfer", value: movedToday("transfer") },
       // No insurance product exists in this system — see UNSOURCED_ROWS.
-      { label: "Insurelance", value: 0 },
+      { label: "Insurance", value: 0 },
     ],
     expenses: [
       { label: "Today Expenses", value: debitedTodayByType("expense") },

@@ -1,20 +1,24 @@
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Coins, PiggyBank, Plus, Users } from "lucide-react";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { getCurrentUser } from "@/lib/auth/session";
 import { hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
 import { formatMoney, round2 } from "@/lib/domain/money";
-import { buildTrialBalance } from "@/lib/domain/trial-balance";
-import { CHART_OF_ACCOUNTS } from "@/lib/mock-data/chart-of-accounts";
-import { MOCK_JOURNAL_ENTRIES, MOCK_JOURNAL_ENTRY_LINES, MOCK_CAPITAL_CONTRIBUTIONS } from "@/lib/mock-data/journal-entries";
-import { MOCK_DIVIDENDS } from "@/lib/mock-data/reversals";
-import { MOCK_BANK_ACCOUNTS } from "@/lib/mock-data/bank-accounts";
+import { getTrialBalance } from "@/lib/api/ledger";
+import { getCapitalContributions } from "@/lib/api/capital";
+import { Money, PageHeader, SettingsCard, StatCard } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { treasuryNavFor } from "@/features/ledger/nav-items";
-import { CapitalContributionForm, DividendForm } from "@/features/ledger/treasury-forms";
+
+/** Pinned so the server and the client agree (React #418). */
+const DATE = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Africa/Dar_es_Salaam",
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+});
 
 export default async function CapitalPage() {
   const user = await getCurrentUser();
@@ -22,119 +26,144 @@ export default async function CapitalPage() {
   const canManage = hasPermission(user, PERMISSIONS.TREASURY_MANAGE);
 
   /*
-   * STILL ON MOCK DATA, deliberately. Capital injection and dividend
-   * distribution have no API — the backend exposes no treasury routes at all,
-   * though `treasury.manage` exists as a permission. This page posts to the
-   * mock journal, which is a different book from the one /ledger reads.
-   * See features/ledger/treasury-actions.ts.
+   * This page used to run entirely on fixtures, and — worse — carried two forms
+   * that posted into the *mock* journal, a different book from the one /ledger
+   * reads. A screen that looks like it records capital and actually records
+   * nothing is the one thing a financial UI must not do, so both are gone:
+   *
+   *   - Capital contributions are a real endpoint now (the Capital module owns
+   *     them), so the list below reads the same API that Capital → Add Capitals
+   *     writes to, and recording is a link to that screen rather than a second,
+   *     divergent form.
+   *   - Dividend distribution has no endpoint at all. The panel stays, stating
+   *     that plainly, instead of a form that would silently drop the entry.
+   *
+   * Distributable profit is real: it comes from the trial balance.
    */
-  const trial = buildTrialBalance(CHART_OF_ACCOUNTS, MOCK_JOURNAL_ENTRY_LINES);
+  const [trial, capital] = await Promise.all([
+    getTrialBalance(),
+    getCapitalContributions().catch(() => null),
+  ]);
+
   const income = trial.rows.filter((r) => r.type === "income").reduce((s, r) => s + r.balance, 0);
   const expense = trial.rows.filter((r) => r.type === "expense").reduce((s, r) => s + r.balance, 0);
   const distributable = round2(income - expense);
 
-  const entryNumberOf = (id: string) => MOCK_JOURNAL_ENTRIES.find((e) => e.id === id)?.entryNumber ?? "—";
-  const bankNameOf = (id: string) => MOCK_BANK_ACCOUNTS.find((b) => b.id === id)?.bankName ?? "—";
+  const contributions = capital?.contributions ?? [];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1>Capital &amp; Dividends</h1>
-        <p className="text-sm text-muted-foreground">
-          Capital injections and profit distribution. Every action posts to the ledger — nothing is recorded outside it.
-        </p>
-      </div>
+    <>
+      <PageHeader
+        icon={PiggyBank}
+        title="Capital &amp; Dividends"
+        description="Equity paid into the company, and the profit available to distribute. Both figures come from the ledger."
+        breadcrumb={[{ label: "Bank", href: "/treasury" }, { label: "Capital & Dividends" }]}
+        actions={
+          canManage ? (
+            <Link href="/capital/contributions" className="st-btn st-btn-primary">
+              <Plus className="size-4" strokeWidth={1.9} aria-hidden />
+              Record capital
+            </Link>
+          ) : undefined
+        }
+      />
 
       <SectionNav items={treasuryNavFor(user)} />
 
-      {canManage && (
-        <div className="space-y-4">
-          <CapitalContributionForm
-            banks={MOCK_BANK_ACCOUNTS.filter((b) => b.deletedAt === null).map((b) => ({ id: b.id, label: `${b.bankName} — ${b.accountNumber}` }))}
-          />
-          <DividendForm distributableProfit={distributable} />
-        </div>
-      )}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatCard
+          label="Shareholder capital"
+          value={capital ? formatMoney(capital.totals.shareholderCapital) : "—"}
+          icon={Users}
+          hint={capital ? `${contributions.length} contribution${contributions.length === 1 ? "" : "s"}` : "Unavailable for this role"}
+        />
+        <StatCard
+          label="Total company capital"
+          value={capital ? formatMoney(capital.totals.companyCapital) : "—"}
+          icon={PiggyBank}
+          tone="accent"
+        />
+        <StatCard
+          label="Distributable profit"
+          value={formatMoney(distributable)}
+          icon={Coins}
+          hint="Income less expense, from the trial balance"
+        />
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Capital Contributions ({MOCK_CAPITAL_CONTRIBUTIONS.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {MOCK_CAPITAL_CONTRIBUTIONS.length === 0 ? (
-            <EmptyState title="No capital recorded" description="Record the first contribution above." />
-          ) : (
-            <div className="overflow-x-auto rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Contributor</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Received into</TableHead>
-                    <TableHead>Journal entry</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {MOCK_CAPITAL_CONTRIBUTIONS.map((c) => (
-                    <TableRow key={c.id}>
-                      <TableCell className="font-medium">{c.contributorName}</TableCell>
-                      <TableCell className="whitespace-nowrap">{c.contributedAt}</TableCell>
-                      <TableCell>{bankNameOf(c.bankAccountId)}</TableCell>
-                      <TableCell>
-                        <Link href={`/ledger/entries/${c.journalEntryId}`} className="font-tabular hover:underline">
-                          {entryNumberOf(c.journalEntryId)}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="font-tabular text-right font-medium">{formatMoney(c.amount)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <SettingsCard
+        title={`Capital Contributions (${contributions.length})`}
+        description="The equity register, read from the same endpoint Capital → Add Capitals writes to."
+        bodyClassName="p-0 sm:p-0"
+      >
+        {contributions.length === 0 ? (
+          <div className="px-5 pb-6 sm:px-6">
+            <EmptyState
+              icon={PiggyBank}
+              title={capital === null ? "Capital register unavailable" : "No capital recorded"}
+              description={
+                capital === null
+                  ? "This role cannot read the capital register, or the request failed. Distributable profit above is unaffected — it comes from the ledger."
+                  : "Record the first contribution from Capital → Add Capitals."
+              }
+              className="border-none"
+            />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="st-table w-full border-collapse">
+              <thead>
+                <tr>
+                  <th scope="col">Shareholder</th>
+                  <th scope="col">Method</th>
+                  <th scope="col">Reference</th>
+                  <th scope="col">Date</th>
+                  <th scope="col" className="!text-right">
+                    Amount
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {contributions.map((c) => (
+                  <tr key={c.id}>
+                    <td className="font-medium text-[var(--st-ink)]">{c.shareholderName}</td>
+                    <td className="text-[var(--st-ink-soft)]">{c.payMethodLabel}</td>
+                    <td className="font-tabular text-[var(--st-ink-soft)]">
+                      {c.receiptNo ?? c.chequeNo ?? <span className="text-[var(--st-ink-faint)]">—</span>}
+                    </td>
+                    <td className="font-tabular whitespace-nowrap text-[var(--st-ink-soft)]">
+                      {c.createdAt ? DATE.format(new Date(c.createdAt)) : "—"}
+                    </td>
+                    <td>
+                      <Money strong>{formatMoney(c.amount)}</Money>
+                    </td>
+                  </tr>
+                ))}
+                <tr className="st-total-row">
+                  <td colSpan={4} className="font-semibold text-[var(--st-ink)]">
+                    Total company capital
+                  </td>
+                  <td>
+                    <Money strong>{formatMoney(capital?.totals.companyCapital ?? 0)}</Money>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+      </SettingsCard>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Dividend History ({MOCK_DIVIDENDS.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {MOCK_DIVIDENDS.length === 0 ? (
-            <EmptyState title="No dividends distributed" description="Profit stays in the Profit Account until a dividend is declared." />
-          ) : (
-            <div className="overflow-x-auto rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Period</TableHead>
-                    <TableHead>Journal entry</TableHead>
-                    <TableHead className="text-right">Total profit</TableHead>
-                    <TableHead className="text-right">Reinvested (70%)</TableHead>
-                    <TableHead className="text-right">Shareholders (30%)</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {MOCK_DIVIDENDS.map((d) => (
-                    <TableRow key={d.id}>
-                      <TableCell className="font-medium">{d.period}</TableCell>
-                      <TableCell>
-                        <Link href={`/ledger/entries/${d.journalEntryId}`} className="font-tabular hover:underline">
-                          {entryNumberOf(d.journalEntryId)}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="font-tabular text-right">{formatMoney(d.totalProfit)}</TableCell>
-                      <TableCell className="font-tabular text-right">{formatMoney(d.reinvestmentAmount)}</TableCell>
-                      <TableCell className="font-tabular text-right">{formatMoney(d.shareholderAmount)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+      <SettingsCard
+        title="Dividend History"
+        description="Profit distribution — 70% reinvested, 30% to shareholders."
+      >
+        <EmptyState
+          icon={Coins}
+          title="Not available yet"
+          description="No dividend endpoint exists on the API, so there is nothing to read and nothing that could be recorded here. Profit stays in the Profit Account until one is declared; the distributable figure above is live."
+          className="border-none"
+        />
+      </SettingsCard>
+    </>
   );
 }

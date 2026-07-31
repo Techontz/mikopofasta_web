@@ -2,18 +2,13 @@
 
 import * as React from "react";
 import { useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Pencil, Plus } from "lucide-react";
+import { SettingsDialog } from "@/components/settings/dialog";
+import { Button, Field, FieldGrid, IconButton, Select, TextArea, TextInput, Toggle } from "@/components/settings/form";
 import { NotificationTemplateSchema, NOTIFICATION_TRIGGER_EVENTS, type NotificationTemplate } from "@/types/notification-template";
 import { NOTIFICATION_CHANNELS } from "@/types/enums";
 import { createNotificationTemplate, updateNotificationTemplate } from "@/features/admin/notification-templates/actions";
@@ -48,7 +43,7 @@ export function TemplateFormDialog({ template }: { template?: NotificationTempla
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     reset,
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(FormSchema), defaultValues: defaultsFor(template) });
@@ -65,95 +60,94 @@ export function TemplateFormDialog({ template }: { template?: NotificationTempla
     });
   }
 
-  const channel = watch("channel");
+  const channel = useWatch({ control, name: "channel" });
+  const triggerEvent = useWatch({ control, name: "triggerEvent" });
+  const active = useWatch({ control, name: "active" });
 
   return (
-    <Dialog
+    <SettingsDialog
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
         if (next) reset(defaultsFor(template));
       }}
+      trigger={
+        isEdit ? (
+          <IconButton icon={Pencil} label={`Edit ${template!.name}`} tone="secondary" />
+        ) : (
+          <Button tone="primary" icon={Plus}>
+            New Template
+          </Button>
+        )
+      }
+      title={isEdit ? "Edit Notification Template" : "New Notification Template"}
+      description={`Use double-curly placeholders like ${"{{customer_name}}"} — the dispatch engine fills these in per event.`}
+      formId="template-form"
+      onSubmit={handleSubmit(onSubmit)}
+      submitLabel={isEdit ? "Save changes" : "Create template"}
+      pending={pending}
+      size="lg"
     >
-      <DialogTrigger
-        render={
-          isEdit ? (
-            <Button variant="ghost" size="sm">
-              Edit
-            </Button>
-          ) : (
-            <Button size="sm">
-              <Plus className="size-4" />
-              New Template
-            </Button>
-          )
-        }
+      <Field label="Name" htmlFor="tmpl-name" required error={errors.name?.message}>
+        <TextInput id="tmpl-name" invalid={!!errors.name} {...register("name")} />
+      </Field>
+
+      <FieldGrid>
+        <Field label="Trigger event" htmlFor="tmpl-trigger" error={errors.triggerEvent?.message}>
+          <Select
+            id="tmpl-trigger"
+            className="capitalize"
+            value={triggerEvent}
+            onChange={(e) => setValue("triggerEvent", e.target.value as FormValues["triggerEvent"], { shouldDirty: true })}
+          >
+            {NOTIFICATION_TRIGGER_EVENTS.map((e) => (
+              <option key={e} value={e} className="capitalize">
+                {e.replace(/_/g, " ")}
+              </option>
+            ))}
+          </Select>
+        </Field>
+
+        <Field label="Channel" htmlFor="tmpl-channel" error={errors.channel?.message}>
+          <Select
+            id="tmpl-channel"
+            className="uppercase"
+            value={channel}
+            onChange={(e) => setValue("channel", e.target.value as FormValues["channel"], { shouldDirty: true })}
+          >
+            {NOTIFICATION_CHANNELS.map((c) => (
+              <option key={c} value={c} className="uppercase">
+                {c}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      </FieldGrid>
+
+      {/* A subject only exists for email — the same condition as before. */}
+      {channel === "email" && (
+        <Field label="Subject" htmlFor="tmpl-subject" error={errors.subject?.message}>
+          <TextInput id="tmpl-subject" invalid={!!errors.subject} {...register("subject")} />
+        </Field>
+      )}
+
+      <Field
+        label="Body"
+        htmlFor="tmpl-body"
+        required
+        error={errors.body?.message}
+        help="Placeholders are replaced at send time."
+      >
+        <TextArea id="tmpl-body" rows={5} invalid={!!errors.body} {...register("body")} />
+      </Field>
+
+      <Toggle
+        id="tmpl-active"
+        label="Active"
+        help="Inactive templates are kept but never dispatched."
+        checked={active}
+        onCheckedChange={(next) => setValue("active", next, { shouldDirty: true })}
       />
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Notification Template" : "New Notification Template"}</DialogTitle>
-          <DialogDescription>Use double-curly placeholders like {"{{customer_name}}"} — the dispatch engine fills these in per event.</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="tmpl-name">Name</Label>
-              <Input id="tmpl-name" {...register("name")} />
-              {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
-            </div>
-            <div className="space-y-1.5">
-              <Label>Trigger event</Label>
-              <Select value={watch("triggerEvent")} onValueChange={(v) => setValue("triggerEvent", v as FormValues["triggerEvent"])}>
-                <SelectTrigger aria-label="Trigger event" className="w-full">
-                  <SelectValue className="capitalize">{(v: string) => v.replace(/_/g, " ")}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {NOTIFICATION_TRIGGER_EVENTS.map((e) => (
-                    <SelectItem key={e} value={e}>
-                      {e.replace(/_/g, " ")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Channel</Label>
-              <Select value={channel} onValueChange={(v) => setValue("channel", v as FormValues["channel"])}>
-                <SelectTrigger aria-label="Channel" className="w-full">
-                  <SelectValue className="uppercase" />
-                </SelectTrigger>
-                <SelectContent>
-                  {NOTIFICATION_CHANNELS.map((c) => (
-                    <SelectItem key={c} value={c} className="uppercase">
-                      {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {channel === "email" && (
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="tmpl-subject">Subject</Label>
-                <Input id="tmpl-subject" {...register("subject")} />
-              </div>
-            )}
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="tmpl-body">Body</Label>
-              <Textarea id="tmpl-body" rows={4} {...register("body")} />
-              {errors.body && <p className="text-xs text-destructive">{errors.body.message}</p>}
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox id="tmpl-active" checked={watch("active")} onCheckedChange={(v) => setValue("active", v === true)} />
-              <Label htmlFor="tmpl-active" className="font-normal">Active</Label>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : isEdit ? "Save changes" : "Create template"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    </SettingsDialog>
   );
 }

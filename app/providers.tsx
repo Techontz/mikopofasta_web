@@ -6,25 +6,20 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 
 /*
- * Theme is pinned light.
+ * Theme follows the OS by default and can be overridden from the top bar.
  *
- * Both surfaces this app now presents are light-only by design: the migrated
- * shell reproduces a light system pixel for pixel, and the Settings screens are
- * specified as a white interface. Following the OS into dark mode handed those
- * surfaces shadcn's dark tokens — white label text on white cards — and the
- * toggle that used to switch back left with the old header. Until a dark form
- * of both surfaces exists, this is the honest setting rather than a
- * half-inverted one.
+ * This was previously pinned light, because dark mode handed both surfaces
+ * shadcn's generic dark tokens and produced white-on-white text. Both now have
+ * a designed dark form of their own — see the `.dark .lg-shell` and
+ * `.dark .st-scope` blocks in globals.css — so the pin is gone.
+ *
+ * `disableTransitionOnChange` suppresses colour transitions for the frame in
+ * which the class flips: without it every element with a colour transition
+ * animates at once and the switch reads as a smear rather than a change.
  */
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="light"
-      forcedTheme="light"
-      enableSystem={false}
-      disableTransitionOnChange
-    >
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <TooltipProvider delay={200}>
         {children}
         <Toaster richColors closeButton position="top-right" />

@@ -3,8 +3,10 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Bell, CalendarDays, ChevronDown, LogOut, Mail, MessageSquare, SlidersHorizontal } from "lucide-react";
+import { Bell, CalendarDays, ChevronDown, LogOut, Mail, MessageSquare, Moon, Sun } from "lucide-react";
 import { logoutAction } from "@/lib/auth/actions";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { cn } from "@/lib/utils";
 import type { AppNotification } from "@/types/notification";
 
 export interface CustomerOption {
@@ -18,6 +20,12 @@ export interface CustomerOption {
  *
  * The two dotted icons (mail, bell) carry the same unread affordance the old
  * bar used — a small filled dot on the icon's top-right corner, not a count.
+ *
+ * One slot has changed meaning. The sixth action was "Preferences", an inert
+ * button in the original screenshots and inert here; it is now the theme
+ * control. Putting the toggle in an existing slot rather than appending a
+ * seventh icon keeps the row's geometry identical to the screenshots, and
+ * turning a dead control live costs nothing that was working.
  */
 export function LegacyTopbar({
   customers,
@@ -31,26 +39,32 @@ export function LegacyTopbar({
 
   return (
     <header
-      className="flex h-[var(--lg-topbar-h)] shrink-0 items-center gap-4 border-b bg-white px-4"
-      style={{ borderColor: "var(--lg-line)" }}
+      className="flex h-[var(--lg-topbar-h)] shrink-0 items-center gap-4 border-b px-4"
+      style={{ borderColor: "var(--lg-line)", background: "var(--lg-surface)" }}
     >
       <Link
         href="/dashboard"
         className="hidden w-[calc(var(--lg-sidebar-w)-16px)] shrink-0 text-[13px] font-bold leading-none tracking-tight lg:block"
       >
-        <span className="text-[#e8710a]">mikopofasta</span>
-        <span className="text-[#4a9d2f]">software</span>
+        <span style={{ color: "var(--lg-brand-a)" }}>mikopofasta</span>
+        <span style={{ color: "var(--lg-brand-b)" }}>software</span>
       </Link>
 
-      <div className="relative w-full max-w-[300px]">
+      {/* min-w-0 so the selector yields to the icon row on a narrow viewport
+          instead of pushing it past the edge. */}
+      <div className="relative w-full min-w-0 max-w-[300px]">
         <select
           aria-label="Select customer"
           defaultValue=""
           onChange={(e) => {
             if (e.target.value) router.push(`/customers/${e.target.value}`);
           }}
-          className="h-11 w-full appearance-none rounded border bg-white px-3 pr-9 text-[15px] text-[#6b7075] outline-none focus:border-[#3c8dbc]"
-          style={{ borderColor: "#ced4da" }}
+          className="h-11 w-full appearance-none rounded border px-3 pr-9 text-[15px] outline-none focus:border-[var(--lg-link)]"
+          style={{
+            borderColor: "var(--lg-ctrl-line)",
+            background: "var(--lg-surface)",
+            color: "var(--lg-ink-tab)",
+          }}
         >
           <option value="">Select customer</option>
           {customers.map((c) => (
@@ -60,22 +74,46 @@ export function LegacyTopbar({
           ))}
         </select>
         <ChevronDown
-          className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[#6b7075]"
+          className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2"
+          style={{ color: "var(--lg-ink-tab)" }}
           aria-hidden
         />
       </div>
 
-      <div className="ml-auto flex items-center gap-5 sm:gap-7">
-        <IconAction label="Calendar" icon={CalendarDays} />
-        <IconAction label="Messages" icon={MessageSquare} />
-        <IconAction label="Mail" icon={Mail} dot="#2fa84f" />
-        <IconAction label="Notifications" icon={Bell} dot={hasUnread ? "#2c2c2c" : undefined} />
-        <IconAction label="Preferences" icon={SlidersHorizontal} />
+      {/*
+        The icon row sheds its lowest-value actions before it wraps. Calendar
+        and Messages are inert in the original too, so on a phone they are the
+        first to go — the theme control and Log out always stay.
+      */}
+      <div className="ml-auto flex shrink-0 items-center gap-4 sm:gap-5 lg:gap-7">
+        <IconAction label="Calendar" icon={CalendarDays} className="hidden md:block" />
+        <IconAction label="Messages" icon={MessageSquare} className="hidden md:block" />
+        <IconAction label="Mail" icon={Mail} dot="var(--lg-dot)" className="hidden sm:block" />
+        <IconAction
+          label="Notifications"
+          icon={Bell}
+          dot={hasUnread ? "var(--lg-ink-strong)" : undefined}
+        />
+        <ThemeToggle
+          trigger={
+            <button
+              type="button"
+              aria-label="Theme"
+              title="Theme"
+              className="relative block transition-opacity hover:opacity-60"
+              style={{ color: "var(--lg-icon-action)" }}
+            >
+              <Sun className="size-[22px] dark:hidden" strokeWidth={1.5} aria-hidden />
+              <Moon className="hidden size-[22px] dark:block" strokeWidth={1.5} aria-hidden />
+            </button>
+          }
+        />
         <form action={logoutAction}>
           <button
             type="submit"
             aria-label="Log out"
-            className="block text-[#3d3d3d] transition-opacity hover:opacity-60"
+            className="block transition-opacity hover:opacity-60"
+            style={{ color: "var(--lg-icon-action)" }}
           >
             <LogOut className="size-[22px]" strokeWidth={1.5} aria-hidden />
           </button>
@@ -89,16 +127,19 @@ function IconAction({
   label,
   icon: Icon,
   dot,
+  className,
 }: {
   label: string;
   icon: React.ComponentType<{ className?: string; strokeWidth?: number; "aria-hidden"?: boolean }>;
   dot?: string;
+  className?: string;
 }) {
   return (
     <button
       type="button"
       aria-label={label}
-      className="relative block text-[#3d3d3d] transition-opacity hover:opacity-60"
+      className={cn("relative block transition-opacity hover:opacity-60", className)}
+      style={{ color: "var(--lg-icon-action)" }}
     >
       <Icon className="size-[22px]" strokeWidth={1.5} aria-hidden />
       {dot && (

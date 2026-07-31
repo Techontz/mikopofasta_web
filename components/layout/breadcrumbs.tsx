@@ -29,9 +29,6 @@ const LABEL_OVERRIDES: Record<string, string> = Object.fromEntries(
 const ENTITY_FALLBACKS: { prefix: string; label: string }[] = [
   { prefix: "/customers", label: "Customer" },
   { prefix: "/loans", label: "Loan" },
-  { prefix: "/repayments", label: "Payment" },
-  { prefix: "/ledger/accounts", label: "Account" },
-  { prefix: "/ledger/entries", label: "Entry" },
   { prefix: "/admin/users", label: "Staff" },
   { prefix: "/hr/staff", label: "Staff" },
   { prefix: "/hr/payroll", label: "Payroll Run" },

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
+import { PageContainer } from "@/components/settings";
 
 /**
  * The Settings surface.
@@ -17,9 +18,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="st-scope min-h-full" style={{ background: "var(--st-page)" }}>
-      <div className="mx-auto w-full max-w-[1240px] space-y-6 px-4 py-6 sm:px-6 sm:py-8">
-        {children}
-      </div>
+      <PageContainer>{children}</PageContainer>
     </div>
   );
 }
