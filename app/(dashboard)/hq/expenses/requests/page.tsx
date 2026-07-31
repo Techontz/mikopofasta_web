@@ -8,7 +8,6 @@ import { PageHeader } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { hqExpensesNavFor } from "@/features/ledger/nav-items";
 import { getExpenseRequests } from "@/lib/api/expenses";
-import { getBranches } from "@/lib/api/organization";
 import { ExpenseClaimsPanel } from "@/features/operations/expense-panels";
 
 export default async function Page() {
