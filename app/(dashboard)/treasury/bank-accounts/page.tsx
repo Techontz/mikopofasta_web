@@ -7,13 +7,17 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { PageHeader } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { treasuryNavFor } from "@/features/ledger/nav-items";
-import { MOCK_BANK_ACCOUNT_RECORDS } from "@/lib/mock-data/bank";
+import { getBankAccounts } from "@/lib/api/bank";
 import { AccountBalancePanel } from "@/features/bank/account-balance-panel";
 
 export default async function AccountBalancePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (!hasPermission(user, PERMISSIONS.TREASURY_VIEW)) return <AccessDeniedState />;
+
+  // The one screen that shows today's movement, so the one that asks for it —
+  // it costs a grouped query over the day's journal lines.
+  const { accounts } = await getBankAccounts({ withMovement: true });
 
   return (
     <>
@@ -24,7 +28,7 @@ export default async function AccountBalancePage() {
         breadcrumb={[{ label: "Bank", href: "/treasury" }, { label: "Account Balance" }]}
       />
       <SectionNav items={treasuryNavFor(user)} />
-      <AccountBalancePanel accounts={MOCK_BANK_ACCOUNT_RECORDS} />
+      <AccountBalancePanel accounts={accounts} />
     </>
   );
 }

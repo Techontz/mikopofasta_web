@@ -7,13 +7,20 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { PageHeader } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { treasuryNavFor } from "@/features/ledger/nav-items";
-import { MOCK_BANK_TRANSACTIONS } from "@/lib/mock-data/bank";
+import { getBankAccounts, getBankTransactions } from "@/lib/api/bank";
+import { getBranches } from "@/lib/api/organization";
 import { TransactionsPanel } from "@/features/bank/transactions-panel";
 
-export default async function BankTransactionPage() {
+export default async function Page() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (!hasPermission(user, PERMISSIONS.TREASURY_VIEW)) return <AccessDeniedState />;
+
+  const [{ transactions }, { accounts }, branches] = await Promise.all([
+    getBankTransactions(),
+    getBankAccounts(),
+    getBranches(),
+  ]);
 
   return (
     <>
@@ -25,10 +32,12 @@ export default async function BankTransactionPage() {
       />
       <SectionNav items={treasuryNavFor(user)} />
       <TransactionsPanel
-        transactions={MOCK_BANK_TRANSACTIONS}
-        decidable
-        emptyTitle="No transactions yet"
-        emptyDescription="A request appears here as soon as a branch raises one."
+        transactions={transactions}
+        decidable={true}
+        emptyTitle="EMPTY_Bank Transaction"
+        emptyDescription="EMPTY_Money requested into or out of a bank account. Each request carries who raised it, so the person deciding is never the person asking."
+        bankNames={[...new Set(accounts.map((a) => a.bankName))].sort()}
+        branches={branches.map((b) => b.name)}
       />
     </>
   );

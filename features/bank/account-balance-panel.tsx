@@ -8,7 +8,7 @@ import { SettingsTable } from "@/components/settings/table";
 import { DateInput, Select } from "@/components/settings/form";
 import { formatMoney, round2 } from "@/lib/domain/money";
 import type { BankAccountRecord } from "@/types/bank";
-import { BANK_NAMES, BRANCHES } from "@/lib/mock-data/bank";
+
 import { ACCOUNT_TONE } from "@/features/bank/shared";
 
 const ALL = "__all__";
@@ -20,7 +20,25 @@ const ALL = "__all__";
  * up. The tiles are computed from the *filtered* rows, not the whole set —
  * a total that ignores the filter above it answers a question nobody asked.
  */
-export function AccountBalancePanel({ accounts }: { accounts: BankAccountRecord[] }) {
+export function AccountBalancePanel({
+  accounts,
+  bankNames,
+  branches,
+}: {
+  accounts: BankAccountRecord[];
+  /** Filter options. Derived from the rows when not supplied. */
+  bankNames?: string[];
+  branches?: string[];
+}) {
+  const bankOptions = React.useMemo(
+    () => bankNames ?? [...new Set(accounts.map((a) => a.bankName).filter(Boolean))].sort(),
+    [bankNames, accounts]
+  );
+  const branchOptions = React.useMemo(
+    () => branches ?? [...new Set(accounts.map((a) => a.branch).filter(Boolean))].sort(),
+    [branches, accounts]
+  );
+
   const [bank, setBank] = React.useState(ALL);
   const [branch, setBranch] = React.useState(ALL);
   const [date, setDate] = React.useState("");
@@ -155,7 +173,7 @@ export function AccountBalancePanel({ accounts }: { accounts: BankAccountRecord[
             <Filter label="Bank" htmlFor="ab-bank">
               <Select id="ab-bank" value={bank} onChange={(e) => setBank(e.target.value)}>
                 <option value={ALL}>All banks</option>
-                {BANK_NAMES.map((b) => (
+                {bankOptions.map((b) => (
                   <option key={b} value={b}>
                     {b}
                   </option>
@@ -165,7 +183,7 @@ export function AccountBalancePanel({ accounts }: { accounts: BankAccountRecord[
             <Filter label="Branch" htmlFor="ab-branch">
               <Select id="ab-branch" value={branch} onChange={(e) => setBranch(e.target.value)}>
                 <option value={ALL}>All branches</option>
-                {BRANCHES.map((b) => (
+                {branchOptions.map((b) => (
                   <option key={b} value={b}>
                     {b}
                   </option>

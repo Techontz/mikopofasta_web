@@ -7,13 +7,23 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { PageHeader } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { treasuryNavFor } from "@/features/ledger/nav-items";
-import { MOCK_BANK_ACCOUNT_RECORDS } from "@/lib/mock-data/bank";
+import { getBankAccounts } from "@/lib/api/bank";
+import { getBranches } from "@/lib/api/organization";
 import { RegisterAccountPanel } from "@/features/bank/register-account-panel";
 
 export default async function RegisterAccountPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (!hasPermission(user, PERMISSIONS.TREASURY_VIEW)) return <AccessDeniedState />;
+
+  const [{ accounts }, branches] = await Promise.all([getBankAccounts(), getBranches()]);
+
+  /*
+   * The bank select offers the banks the company already deals with, taken from
+   * the accounts themselves rather than a fixed list — a fixed one would
+   * eventually be missing whichever bank someone needs next.
+   */
+  const bankNames = [...new Set(accounts.map((a) => a.bankName))].sort();
 
   return (
     <>
@@ -24,7 +34,11 @@ export default async function RegisterAccountPage() {
         breadcrumb={[{ label: "Bank", href: "/treasury" }, { label: "Register Account" }]}
       />
       <SectionNav items={treasuryNavFor(user)} />
-      <RegisterAccountPanel accounts={MOCK_BANK_ACCOUNT_RECORDS} />
+      <RegisterAccountPanel
+        accounts={accounts}
+        bankNames={bankNames}
+        branches={branches.map((b) => b.name)}
+      />
     </>
   );
 }

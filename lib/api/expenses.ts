@@ -132,6 +132,9 @@ interface ExpenseRequestWire {
   status: ApprovalStatus;
   date: string;
   branchId: string;
+  bankAccountId: string | null;
+  bankName?: string | null;
+  bankAccountName?: string | null;
   expenseCategoryId: string;
   requestedBy: string;
   decidedBy: string | null;
@@ -148,6 +151,13 @@ interface ExpenseRequestWire {
 export interface ExpenseClaimRecord extends ExpenseClaim {
   reference: string;
   branchId: string;
+  /**
+   * Set only when the cost was paid from a bank account rather than the branch
+   * till — Bank → Register Bank Expenses. Null on an ordinary expense.
+   */
+  bankAccountId: string | null;
+  bankName: string | null;
+  bankAccountName: string | null;
   expenseCategoryId: string;
   requestedBy: string;
   decidedByName: string | null;
@@ -172,6 +182,9 @@ function toClaim(wire: ExpenseRequestWire): ExpenseClaimRecord {
     status: wire.status,
     date: wire.date,
     branchId: wire.branchId,
+    bankAccountId: wire.bankAccountId,
+    bankName: wire.bankName ?? null,
+    bankAccountName: wire.bankAccountName ?? null,
     expenseCategoryId: wire.expenseCategoryId,
     requestedBy: wire.requestedBy,
     decidedByName: wire.decidedByName ?? null,
@@ -216,6 +229,11 @@ export async function getExpenseRequests(filters?: {
 export interface FileExpenseInput {
   expenseCategoryId: string;
   branchId?: string;
+  /**
+   * The bank account the money left, when it was not the branch till.
+   * Approval credits this account instead — Bank → Register Bank Expenses.
+   */
+  bankAccountId?: string;
   amount: number;
   description: string;
   comment?: string | null;
@@ -238,6 +256,7 @@ export async function fileExpenseRequest(input: FileExpenseInput): Promise<Expen
       body: {
         expenseCategoryId: input.expenseCategoryId,
         branchId: input.branchId,
+        bankAccountId: input.bankAccountId,
         amount: input.amount,
         description: input.description,
         comment: input.comment ?? null,

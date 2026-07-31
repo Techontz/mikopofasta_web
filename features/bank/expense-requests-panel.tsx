@@ -10,7 +10,7 @@ import { ConfirmDialog } from "@/components/settings/dialog";
 import { IconButton, Select } from "@/components/settings/form";
 import { formatMoney } from "@/lib/domain/money";
 import { EXPENSE_STATUSES, type ExpenseRequest, type ExpenseStatus } from "@/types/bank";
-import { BRANCHES, EXPENSE_CATEGORIES } from "@/lib/mock-data/bank";
+import { decideBankExpense } from "@/features/bank/expense-actions";
 import { EXPENSE_TONE, formatDate } from "@/features/bank/shared";
 
 const ALL = "__all__";
@@ -22,8 +22,18 @@ const ALL = "__all__";
  * awaiting one — a decided row keeps its place in the list as the record of what
  * was decided, but offers nothing to click.
  */
-export function ExpenseRequestsPanel({ requests }: { requests: ExpenseRequest[] }) {
-  const [rows, setRows] = React.useState(requests);
+export function ExpenseRequestsPanel({
+  requests,
+  categories,
+  branches,
+}: {
+  requests: ExpenseRequest[];
+  /** Filter options, from the expense register and the branch register. */
+  categories?: string[];
+  branches?: string[];
+}) {
+  const rows = requests;
+  const [, startTransition] = React.useTransition();
   const [status, setStatus] = React.useState(ALL);
   const [category, setCategory] = React.useState(ALL);
   const [branch, setBranch] = React.useState(ALL);
@@ -41,9 +51,29 @@ export function ExpenseRequestsPanel({ requests }: { requests: ExpenseRequest[] 
 
   const active = [status, category, branch].some((v) => v !== ALL);
 
+  // Fall back to what the rows contain, so a filter is never an empty select.
+  const categoryOptions = React.useMemo(
+    () => categories ?? [...new Set(rows.map((r) => r.category).filter(Boolean))].sort(),
+    [categories, rows]
+  );
+  const branchOptions = React.useMemo(
+    () => branches ?? [...new Set(rows.map((r) => r.branch).filter(Boolean))].sort(),
+    [branches, rows]
+  );
+
+  /*
+   * Approving posts the cost to the ledger and is refused if this person raised
+   * it (§14), so the row is not edited here — the action revalidates and the
+   * list re-renders from what the server actually did.
+   */
   function decide(request: ExpenseRequest, next: ExpenseStatus) {
-    setRows((prev) => prev.map((r) => (r.id === request.id ? { ...r, status: next } : r)));
-    toast.success(`${request.requestNo} ${next}.`);
+    if (next === "pending") return;
+
+    startTransition(async () => {
+      const result = await decideBankExpense(request.id, next, request.category);
+      if (result.ok) toast.success(result.message);
+      else toast.error(result.message ?? "Something went wrong.");
+    });
   }
 
   const columns: ColumnDef<ExpenseRequest>[] = [
@@ -144,7 +174,7 @@ export function ExpenseRequestsPanel({ requests }: { requests: ExpenseRequest[] 
           <Filter label="Category" htmlFor="er-category">
             <Select id="er-category" value={category} onChange={(e) => setCategory(e.target.value)}>
               <option value={ALL}>All categories</option>
-              {EXPENSE_CATEGORIES.map((c) => (
+              {categoryOptions.map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>
@@ -154,7 +184,7 @@ export function ExpenseRequestsPanel({ requests }: { requests: ExpenseRequest[] 
           <Filter label="Branch" htmlFor="er-branch">
             <Select id="er-branch" value={branch} onChange={(e) => setBranch(e.target.value)}>
               <option value={ALL}>All branches</option>
-              {BRANCHES.map((b) => (
+              {branchOptions.map((b) => (
                 <option key={b} value={b}>
                   {b}
                 </option>

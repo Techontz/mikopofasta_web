@@ -12,7 +12,7 @@ import { ConfirmDialog } from "@/components/settings/dialog";
 import { Button, Field, FieldGrid, IconButton, Select, TextArea, TextInput } from "@/components/settings/form";
 import { formatMoney, round2 } from "@/lib/domain/money";
 import { BankExpenseInputSchema, type BankExpense, type BankExpenseInput } from "@/types/bank";
-import { BANK_NAMES, EXPENSE_CATEGORIES, MOCK_BANK_ACCOUNT_RECORDS } from "@/lib/mock-data/bank";
+import { fileBankExpense, withdrawBankExpense } from "@/features/bank/expense-actions";
 import { formatDate } from "@/features/bank/shared";
 
 const EMPTY: BankExpenseInput = {
@@ -26,13 +26,31 @@ const EMPTY: BankExpenseInput = {
 /**
  * Bank → Register Bank Expenses.
  *
- * Records an expense already paid out of a bank account. The receipt is held in
- * component state as a file name only — nothing is uploaded, because there is
- * no endpoint to upload to, and a control that appears to attach a document
- * while discarding it is worse than one that shows what it captured.
+ * Records an expense paid out of a bank account. It is the same record as any
+ * other expense request — same table, same approval — with the bank account
+ * named on it, which is why this posts to the Expenses endpoints rather than to
+ * a bank-specific one.
+ *
+ * The receipt is still held as a file name only. Nothing is uploaded, because
+ * there is no endpoint to upload to, and a control that appears to attach a
+ * document while discarding it is worse than one that shows what it captured.
+ *
+ * `categories` and `accounts` come from the API — the expense register and the
+ * registered bank accounts — rather than from constants.
  */
-export function ExpensesPanel({ expenses }: { expenses: BankExpense[] }) {
-  const [rows, setRows] = React.useState(expenses);
+export function ExpensesPanel({
+  expenses,
+  categories,
+  accounts: allAccounts,
+  bankNames,
+}: {
+  expenses: BankExpense[];
+  categories: { id: string; name: string }[];
+  accounts: { id: string; bankName: string; accountName: string; status: string }[];
+  bankNames: string[];
+}) {
+  const rows = expenses;
+  const [pending, startTransition] = React.useTransition();
   const [receipt, setReceipt] = React.useState<File | null>(null);
   /*
    * A file input's value cannot be set from React, so clearing it usually means
@@ -55,7 +73,7 @@ export function ExpensesPanel({ expenses }: { expenses: BankExpense[] }) {
   const bank = useWatch({ control, name: "bankName" });
   // The account list narrows to the chosen bank: an account belongs to one bank,
   // and offering all of them invites a mismatched pair.
-  const accounts = MOCK_BANK_ACCOUNT_RECORDS.filter(
+  const accounts = allAccounts.filter(
     (a) => a.status === "active" && (bank === "" || a.bankName === bank)
   );
 
@@ -65,29 +83,35 @@ export function ExpensesPanel({ expenses }: { expenses: BankExpense[] }) {
     setFileKey((k) => k + 1);
   }
 
+  /*
+   * `category` holds the expense category's id, not its name: the backend files
+   * the request against a category that owns a ledger account, and matching on
+   * a display name would break the first time one is renamed.
+   */
   function onSubmit(values: BankExpenseInput) {
-    const account = MOCK_BANK_ACCOUNT_RECORDS.find((a) => a.id === values.accountId);
-    setRows((prev) => [
-      {
-        id: `exp-new-${prev.length + 1}`,
-        category: values.category,
-        bankName: values.bankName,
-        accountName: account?.accountName ?? values.accountId,
+    startTransition(async () => {
+      const result = await fileBankExpense({
+        expenseCategoryId: values.category,
+        bankAccountId: values.accountId,
         amount: values.amount,
-        description: values.description || null,
-        receiptName: receipt?.name ?? null,
-        date: rows[0]?.date ?? "2026-07-28",
-        recordedBy: "You",
-      },
-      ...prev,
-    ]);
-    toast.success(`${formatMoney(values.amount)} recorded against ${values.category}.`);
-    clearForm();
+        description: values.description,
+      });
+
+      if (result.ok) {
+        toast.success(result.message);
+        clearForm();
+      } else {
+        toast.error(result.message ?? "Something went wrong.");
+      }
+    });
   }
 
   function remove(expense: BankExpense) {
-    setRows((prev) => prev.filter((e) => e.id !== expense.id));
-    toast.success(`${expense.category} expense removed.`);
+    startTransition(async () => {
+      const result = await withdrawBankExpense(expense.id, expense.category);
+      if (result.ok) toast.success(result.message);
+      else toast.error(result.message ?? "Something went wrong.");
+    });
   }
 
   const total = round2(rows.reduce((s, e) => s + e.amount, 0));
@@ -154,7 +178,7 @@ export function ExpensesPanel({ expenses }: { expenses: BankExpense[] }) {
             <Button type="button" tone="secondary" onClick={clearForm}>
               Cancel
             </Button>
-            <Button type="submit" form="bank-expense-form" tone="primary" loading={isSubmitting}>
+            <Button type="submit" form="bank-expense-form" tone="primary" loading={isSubmitting || pending}>
               Submit
             </Button>
           </>
@@ -165,9 +189,9 @@ export function ExpensesPanel({ expenses }: { expenses: BankExpense[] }) {
             <Field label="Expense Category" htmlFor="be-category" required error={errors.category?.message}>
               <Select id="be-category" invalid={!!errors.category} {...register("category")}>
                 <option value="">Select category</option>
-                {EXPENSE_CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
                   </option>
                 ))}
               </Select>
@@ -175,7 +199,7 @@ export function ExpensesPanel({ expenses }: { expenses: BankExpense[] }) {
             <Field label="Bank" htmlFor="be-bank" required error={errors.bankName?.message}>
               <Select id="be-bank" invalid={!!errors.bankName} {...register("bankName")}>
                 <option value="">Select bank</option>
-                {BANK_NAMES.map((b) => (
+                {bankNames.map((b) => (
                   <option key={b} value={b}>
                     {b}
                   </option>

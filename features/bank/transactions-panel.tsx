@@ -15,7 +15,8 @@ import {
   type BankTransaction,
   type TransactionStatus,
 } from "@/types/bank";
-import { BANK_NAMES, BRANCHES } from "@/lib/mock-data/bank";
+import { decideBankMovement } from "@/features/bank/actions";
+import type { ActionResult } from "@/lib/domain/action-result";
 import { FactGrid, TRANSACTION_TONE, TYPE_LABEL, formatDate, type Fact } from "@/features/bank/shared";
 
 const ALL = "__all__";
@@ -34,19 +35,35 @@ export function TransactionsPanel({
   decidable = false,
   emptyTitle,
   emptyDescription,
+  bankNames,
+  branches,
 }: {
   transactions: BankTransaction[];
   decidable?: boolean;
   emptyTitle: string;
   emptyDescription: string;
+  /** Filter options, from the registered accounts and the branch register. */
+  bankNames?: string[];
+  branches?: string[];
 }) {
-  const [rows, setRows] = React.useState(transactions);
+  const rows = transactions;
+  const [, startTransition] = React.useTransition();
   const [bank, setBank] = React.useState(ALL);
   const [branch, setBranch] = React.useState(ALL);
   const [type, setType] = React.useState(ALL);
   const [status, setStatus] = React.useState(ALL);
   const [date, setDate] = React.useState("");
   const [viewing, setViewing] = React.useState<BankTransaction | null>(null);
+
+  // Fall back to what the rows contain, so a filter is never an empty select.
+  const bankOptions = React.useMemo(
+    () => bankNames ?? [...new Set(rows.map((t) => t.bankName).filter(Boolean))].sort(),
+    [bankNames, rows]
+  );
+  const branchOptions = React.useMemo(
+    () => branches ?? [...new Set(rows.map((t) => t.branch).filter(Boolean))].sort(),
+    [branches, rows]
+  );
 
   const filtered = React.useMemo(
     () =>
@@ -63,15 +80,20 @@ export function TransactionsPanel({
 
   const active = [bank, branch, type, status].some((v) => v !== ALL) || date !== "";
 
+  /*
+   * Approving posts to the ledger and can be refused for reasons only the
+   * server knows — the account may not cover a withdrawal, and §14 forbids
+   * approving one's own request. So the row is not edited here; the action
+   * revalidates and the list re-renders from what the server actually did.
+   */
   function decide(txn: BankTransaction, next: TransactionStatus) {
-    setRows((prev) =>
-      prev.map((t) =>
-        t.id === txn.id
-          ? { ...t, status: next, decidedBy: "You", decidedAt: new Date(txn.date).toISOString().slice(0, 10) }
-          : t
-      )
-    );
-    toast.success(`${txn.reference} ${next}.`);
+    if (next === "pending") return;
+
+    startTransition(async () => {
+      const result: ActionResult = await decideBankMovement(txn.id, next, txn.reference);
+      if (result.ok) toast.success(result.message);
+      else toast.error(result.message ?? "Something went wrong.");
+    });
   }
 
   const columns: ColumnDef<BankTransaction>[] = [
@@ -202,7 +224,7 @@ export function TransactionsPanel({
             <Filter label="Bank" htmlFor="tx-bank">
               <Select id="tx-bank" value={bank} onChange={(e) => setBank(e.target.value)}>
                 <option value={ALL}>All banks</option>
-                {BANK_NAMES.map((b) => (
+                {bankOptions.map((b) => (
                   <option key={b} value={b}>
                     {b}
                   </option>
@@ -212,7 +234,7 @@ export function TransactionsPanel({
             <Filter label="Branch" htmlFor="tx-branch">
               <Select id="tx-branch" value={branch} onChange={(e) => setBranch(e.target.value)}>
                 <option value={ALL}>All branches</option>
-                {BRANCHES.map((b) => (
+                {branchOptions.map((b) => (
                   <option key={b} value={b}>
                     {b}
                   </option>

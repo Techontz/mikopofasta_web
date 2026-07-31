@@ -8,7 +8,8 @@ import { PageHeader, StatCard } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { treasuryNavFor } from "@/features/ledger/nav-items";
 import { formatMoney, round2 } from "@/lib/domain/money";
-import { MOCK_EXPENSE_REQUESTS } from "@/lib/mock-data/bank";
+import { getExpenseCategories, getExpenseRequests } from "@/lib/api/expenses";
+import { getBranches } from "@/lib/api/organization";
 import { ExpenseRequestsPanel } from "@/features/bank/expense-requests-panel";
 
 export default async function RequestExpensesPage() {
@@ -16,7 +17,31 @@ export default async function RequestExpensesPage() {
   if (!user) redirect("/login");
   if (!hasPermission(user, PERMISSIONS.TREASURY_VIEW)) return <AccessDeniedState />;
 
-  const requests = MOCK_EXPENSE_REQUESTS;
+  /*
+   * Every expense request, not only the bank-paid ones: this screen is head
+   * office's view of what branches are asking for, and a branch request paid
+   * out of a till is exactly the thing it exists to decide.
+   */
+  const [{ claims }, categories, branches] = await Promise.all([
+    getExpenseRequests(),
+    getExpenseCategories(),
+    getBranches(),
+  ]);
+
+  // `ExpenseRequest` in types/bank.ts is the same record under different column
+  // names — requestNo for the reference, category for the expense name.
+  const requests = claims.map((c) => ({
+    id: c.id,
+    requestNo: c.reference,
+    category: c.expense,
+    requestedBy: c.staff,
+    branch: c.branch,
+    amount: c.amount,
+    status: c.status,
+    requestedDate: c.date,
+    comment: c.comment,
+  }));
+
   const by = (status: string) => requests.filter((r) => r.status === status);
   const pending = by("pending");
   const approved = by("approved");
@@ -52,7 +77,11 @@ export default async function RequestExpensesPage() {
         <StatCard label="Total Amount" value={formatMoney(committed)} icon={Sigma} hint="Approved requests only" />
       </div>
 
-      <ExpenseRequestsPanel requests={requests} />
+      <ExpenseRequestsPanel
+        requests={requests}
+        categories={[...new Set(categories.map((c) => c.name))].sort()}
+        branches={branches.map((b) => b.name)}
+      />
     </>
   );
 }

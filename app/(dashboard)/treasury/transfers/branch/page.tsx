@@ -7,7 +7,8 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { PageHeader } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { treasuryNavFor } from "@/features/ledger/nav-items";
-import { BRANCHES, MOCK_BANK_ACCOUNT_RECORDS, MOCK_BANK_TRANSFERS } from "@/lib/mock-data/bank";
+import { getBankAccounts, getBankTransfers } from "@/lib/api/bank";
+import { getBranches } from "@/lib/api/organization";
 import { TransferPanel } from "@/features/bank/transfer-panel";
 
 export default async function TransferBranchPage() {
@@ -15,8 +16,19 @@ export default async function TransferBranchPage() {
   if (!user) redirect("/login");
   if (!hasPermission(user, PERMISSIONS.TREASURY_VIEW)) return <AccessDeniedState />;
 
-  // Only an active account can fund a transfer.
-  const sources = MOCK_BANK_ACCOUNT_RECORDS.filter((a) => a.status === "active").map((a) => ({
+  const [{ accounts }, { transfers }, branches] = await Promise.all([
+    getBankAccounts({ status: "active" }),
+    getBankTransfers({ kind: "branch" }),
+    getBranches(),
+  ]);
+
+  /*
+   * Only an active account can fund a transfer — the backend refuses an
+   * inactive one anyway, and offering it here would be inviting a rejection.
+   * The balance travels with each option so the form can warn before the
+   * server has to.
+   */
+  const sources = accounts.map((a) => ({
     value: a.id,
     label: `${a.bankName} — ${a.accountName}`,
     balance: a.balance,
@@ -33,13 +45,15 @@ export default async function TransferBranchPage() {
       <SectionNav items={treasuryNavFor(user)} />
       <TransferPanel
         kind="branch"
-        transfers={MOCK_BANK_TRANSFERS.filter((t) => t.kind === "branch")}
+        transfers={transfers}
         sources={sources}
-        destinations={BRANCHES.map((b) => ({ value: b, label: b }))}
+        // The value is the branch id: a branch transfer names a branch, and the
+        // backend resolves its teller cash account from it.
+        destinations={branches.map((b) => ({ value: b.id, label: b.name }))}
         destinationLabel="Transfer To"
         destinationColumnLabel="To Branch"
         formTitle="Transfer to Branch Account"
-        formDescription="The amount leaves the bank account immediately and reaches the branch once the bank settles it."
+        formDescription="The amount leaves the bank account and reaches the branch till immediately; any bank charge is posted alongside it."
         historyTitle="Transfer History"
       />
     </>

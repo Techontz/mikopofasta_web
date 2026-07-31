@@ -18,7 +18,8 @@ import {
   type BankAccountInput,
   type BankAccountRecord,
 } from "@/types/bank";
-import { BANK_NAMES, BRANCHES } from "@/lib/mock-data/bank";
+import { saveBankAccount } from "@/features/bank/actions";
+import type { ActionResult } from "@/lib/domain/action-result";
 import { ACCOUNT_TONE, FactGrid, formatDate, type Fact } from "@/features/bank/shared";
 
 const EMPTY: BankAccountInput = {
@@ -39,11 +40,25 @@ const EMPTY: BankAccountInput = {
  * screen uses, and the one the Share Holder page established. Editing reuses
  * the form in place rather than opening a second copy of the same eight fields.
  *
- * State is local. Every mutation moves the visible list so the screen can be
- * exercised end to end; nothing is persisted.
+ * Every mutation goes through a Server Action and the list re-renders from what
+ * the server sends back. It is not edited locally as well: registering an
+ * account posts an opening balance to the ledger, and a row showing a balance
+ * this component invented would disagree with the one the ledger holds.
+ *
+ * `bankNames` and `branches` are passed in rather than read from a constant, so
+ * the two selects offer what the company actually has.
  */
-export function RegisterAccountPanel({ accounts }: { accounts: BankAccountRecord[] }) {
-  const [rows, setRows] = React.useState(accounts);
+export function RegisterAccountPanel({
+  accounts,
+  bankNames,
+  branches,
+}: {
+  accounts: BankAccountRecord[];
+  bankNames: string[];
+  branches: string[];
+}) {
+  const rows = accounts;
+  const [pending, startTransition] = React.useTransition();
   const [editing, setEditing] = React.useState<BankAccountRecord | null>(null);
   const [viewing, setViewing] = React.useState<BankAccountRecord | null>(null);
   const formRef = React.useRef<HTMLDivElement>(null);
@@ -79,38 +94,51 @@ export function RegisterAccountPanel({ accounts }: { accounts: BankAccountRecord
     formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  function onSubmit(values: BankAccountInput) {
-    if (editing) {
-      setRows((prev) =>
-        prev.map((r) =>
-          r.id === editing.id
-            ? { ...r, ...values, description: values.description || null }
-            : r
-        )
-      );
-      toast.success(`${values.accountName} updated.`);
-      setEditing(null);
-      return;
-    }
-    setRows((prev) => [
-      {
-        ...values,
-        id: `acc-${prev.length + 1}-${values.accountNumber}`,
-        description: values.description || null,
-        // A new account starts at its opening balance with no movement yet.
-        balance: values.openingBalance,
-        todayDeposit: 0,
-        todayWithdrawal: 0,
-      },
-      ...prev,
-    ]);
-    toast.success(`${values.accountName} registered.`);
-    reset(EMPTY);
+  function run(action: () => Promise<ActionResult>, onSuccess?: () => void) {
+    startTransition(async () => {
+      const result = await action();
+      if (result.ok) {
+        toast.success(result.message);
+        onSuccess?.();
+      } else {
+        toast.error(result.message ?? "Something went wrong.");
+      }
+    });
   }
 
+  function onSubmit(values: BankAccountInput) {
+    const id = editing?.id;
+
+    run(
+      () => saveBankAccount(values, id),
+      () => {
+        if (id) setEditing(null);
+        else reset(EMPTY);
+      }
+    );
+  }
+
+  /*
+   * Deactivating goes through the same save as any other edit, because it is
+   * one: the backend takes the account's chart row out of service with it, so
+   * a deactivated account genuinely cannot be posted to.
+   */
   function setStatus(account: BankAccountRecord, status: BankAccountRecord["status"]) {
-    setRows((prev) => prev.map((r) => (r.id === account.id ? { ...r, status } : r)));
-    toast.success(`${account.accountName} ${status === "active" ? "reactivated" : "deactivated"}.`);
+    run(() =>
+      saveBankAccount(
+        {
+          bankName: account.bankName,
+          accountName: account.accountName,
+          accountNumber: account.accountNumber,
+          branch: account.branch,
+          currency: account.currency,
+          openingBalance: account.openingBalance,
+          status,
+          description: account.description ?? "",
+        },
+        account.id
+      )
+    );
   }
 
   const columns: ColumnDef<BankAccountRecord>[] = [
@@ -197,7 +225,7 @@ export function RegisterAccountPanel({ accounts }: { accounts: BankAccountRecord
               <Button type="button" tone="secondary" icon={RotateCcw} onClick={() => reset(defaults)}>
                 Reset
               </Button>
-              <Button type="submit" form="bank-account-form" tone="primary" icon={editing ? undefined : Plus} loading={isSubmitting}>
+              <Button type="submit" form="bank-account-form" tone="primary" icon={editing ? undefined : Plus} loading={isSubmitting || pending}>
                 {editing ? "Save changes" : "Save"}
               </Button>
             </>
@@ -208,7 +236,7 @@ export function RegisterAccountPanel({ accounts }: { accounts: BankAccountRecord
               <Field label="Bank Name" htmlFor="ba-bank" required error={errors.bankName?.message}>
                 <Select id="ba-bank" invalid={!!errors.bankName} {...register("bankName")}>
                   <option value="">Select bank</option>
-                  {BANK_NAMES.map((b) => (
+                  {bankNames.map((b) => (
                     <option key={b} value={b}>
                       {b}
                     </option>
@@ -238,7 +266,7 @@ export function RegisterAccountPanel({ accounts }: { accounts: BankAccountRecord
               <Field label="Branch" htmlFor="ba-branch" required error={errors.branch?.message}>
                 <Select id="ba-branch" invalid={!!errors.branch} {...register("branch")}>
                   <option value="">Select branch</option>
-                  {BRANCHES.map((b) => (
+                  {branches.map((b) => (
                     <option key={b} value={b}>
                       {b}
                     </option>

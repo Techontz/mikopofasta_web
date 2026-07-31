@@ -4,6 +4,7 @@ import * as React from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { transferBankBalance } from "@/features/bank/actions";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowRight, Ban, Send } from "lucide-react";
 import { Money, SettingsCard, StatusBadge } from "@/components/settings";
@@ -12,7 +13,7 @@ import { ConfirmDialog } from "@/components/settings/dialog";
 import { Button, Field, FieldGrid, IconButton, Select, TextArea, TextInput } from "@/components/settings/form";
 import { formatMoney, round2 } from "@/lib/domain/money";
 import { TransferInputSchema, type BankTransfer, type TransferInput, type TransferKind } from "@/types/bank";
-import { TRANSFER_REASONS } from "@/lib/mock-data/bank";
+import { TRANSFER_REASONS } from "@/config/transfer-reasons";
 import { TRANSFER_TONE, formatDate } from "@/features/bank/shared";
 
 const EMPTY: TransferInput = {
@@ -61,7 +62,8 @@ export function TransferPanel({
   historyTitle: string;
   destinationColumnLabel: string;
 }) {
-  const [rows, setRows] = React.useState(transfers);
+  const rows = transfers;
+  const [pending, startTransition] = React.useTransition();
 
   const {
     register,
@@ -77,33 +79,37 @@ export function TransferPanel({
   const amount = useWatch({ control, name: "amount" });
   const sourceBalance = sources.find((s) => s.value === from)?.balance;
 
+  /*
+   * A transfer applies immediately and comes back `completed` — the legacy
+   * screens have no approval step, and both kinds are one person moving the
+   * company's own money between the company's own accounts.
+   *
+   * Which destination field is sent depends on `kind`: a branch transfer names
+   * a branch, a salary-advance one names another account. The backend refuses a
+   * mismatch rather than guessing, so this sends exactly one.
+   */
   function onSubmit(values: TransferInput) {
-    setRows((prev) => [
-      {
-        id: `trf-new-${prev.length + 1}`,
-        reference: values.reference.trim() || `TRF-${String(prev.length + 22).padStart(4, "0")}`,
+    startTransition(async () => {
+      const result = await transferBankBalance({
         kind,
-        fromAccount: sources.find((s) => s.value === values.fromAccount)?.label ?? values.fromAccount,
-        toAccount: destinations.find((d) => d.value === values.toAccount)?.label ?? values.toAccount,
+        fromAccountId: values.fromAccount,
+        toAccountId: kind === "branch" ? undefined : values.toAccount,
+        toBranchId: kind === "branch" ? values.toAccount : undefined,
         amount: values.amount,
-        // The fee is set by the bank, not by this form, so a new record carries
-        // none until the bank confirms one.
-        chargeFee: 0,
         reason: values.reason,
-        description: values.description || null,
-        date: rows[0]?.date ?? "2026-07-28",
-        status: "pending",
-        requestedBy: "You",
-      },
-      ...prev,
-    ]);
-    toast.success(`${formatMoney(values.amount)} queued for transfer.`);
-    reset(EMPTY);
-  }
+        reference: values.reference.trim() || undefined,
+        description: values.description || undefined,
+      });
 
-  function cancel(transfer: BankTransfer) {
-    setRows((prev) => prev.map((t) => (t.id === transfer.id ? { ...t, status: "cancelled" } : t)));
-    toast.success(`${transfer.reference} cancelled.`);
+      if (result.ok) {
+        toast.success(result.message);
+        reset(EMPTY);
+      } else {
+        // Covers "the account cannot cover the amount plus the charge", which
+        // only the ledger can answer.
+        toast.error(result.message ?? "Something went wrong.");
+      }
+    });
   }
 
   const totals = React.useMemo(
@@ -171,11 +177,18 @@ export function TransferPanel({
         </StatusBadge>
       ),
     },
-    {
-      id: "actions",
-      header: () => <span className="block text-right">Action</span>,
-      cell: ({ row }) => <CancelTransferAction transfer={row.original} onConfirm={cancel} />,
-    },
+    /*
+     * No Action column.
+     *
+     * The fixture version offered Cancel, which made sense while a new transfer
+     * sat `pending`. Real ones do not: a transfer applies immediately and comes
+     * back `completed`, because the legacy screens have no approval step. Money
+     * that has already moved is not un-moved by a status change — it is undone
+     * by reversing the journal entry, which is the Ledger module's job and
+     * leaves both entries on the record.
+     *
+     * A disabled button on every row would have been honest and useless.
+     */
   ];
 
   return (
@@ -188,7 +201,7 @@ export function TransferPanel({
             <Button type="button" tone="secondary" onClick={() => reset(EMPTY)}>
               Cancel
             </Button>
-            <Button type="submit" form="transfer-form" tone="primary" icon={Send} loading={isSubmitting}>
+            <Button type="submit" form="transfer-form" tone="primary" icon={Send} loading={isSubmitting || pending}>
               Transfer
             </Button>
           </>
@@ -301,44 +314,3 @@ export function TransferPanel({
   );
 }
 
-function CancelTransferAction({
-  transfer,
-  onConfirm,
-}: {
-  transfer: BankTransfer;
-  onConfirm: (transfer: BankTransfer) => void;
-}) {
-  const [open, setOpen] = React.useState(false);
-
-  /* Only a transfer that has not settled can be pulled back. */
-  if (transfer.status !== "pending") {
-    return (
-      <div className="flex justify-end">
-        <IconButton
-          icon={Ban}
-          tone="secondary"
-          disabled
-          label={`${transfer.reference} is ${transfer.status} and cannot be cancelled`}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="st-row-action flex justify-end">
-      <ConfirmDialog
-        open={open}
-        onOpenChange={setOpen}
-        trigger={<IconButton icon={Ban} label={`Cancel ${transfer.reference}`} tone="secondary" />}
-        title={`Cancel ${transfer.reference}?`}
-        consequence={`${formatMoney(transfer.amount)} will not leave ${transfer.fromAccount}. The record stays in the history marked cancelled, so the attempt is still auditable.`}
-        confirmLabel="Cancel transfer"
-        pendingLabel="Cancelling…"
-        onConfirm={() => {
-          onConfirm(transfer);
-          setOpen(false);
-        }}
-      />
-    </div>
-  );
-}

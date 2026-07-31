@@ -7,7 +7,7 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { PageHeader } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { treasuryNavFor } from "@/features/ledger/nav-items";
-import { MOCK_BANK_ACCOUNT_RECORDS, MOCK_BANK_TRANSFERS } from "@/lib/mock-data/bank";
+import { getBankAccounts, getBankTransfers } from "@/lib/api/bank";
 import { TransferPanel } from "@/features/bank/transfer-panel";
 
 export default async function TransferSalaryAdvancePage() {
@@ -15,7 +15,11 @@ export default async function TransferSalaryAdvancePage() {
   if (!user) redirect("/login");
   if (!hasPermission(user, PERMISSIONS.TREASURY_VIEW)) return <AccessDeniedState />;
 
-  const active = MOCK_BANK_ACCOUNT_RECORDS.filter((a) => a.status === "active");
+  const [{ accounts: active }, { transfers }] = await Promise.all([
+    getBankAccounts({ status: "active" }),
+    getBankTransfers({ kind: "salary_advance" }),
+  ]);
+
   const sources = active.map((a) => ({
     value: a.id,
     label: `${a.bankName} — ${a.accountName}`,
@@ -50,7 +54,7 @@ export default async function TransferSalaryAdvancePage() {
       <SectionNav items={treasuryNavFor(user)} />
       <TransferPanel
         kind="salary_advance"
-        transfers={MOCK_BANK_TRANSFERS.filter((t) => t.kind === "salary_advance")}
+        transfers={transfers}
         sources={sources}
         destinations={destinations}
         destinationLabel="Salary Advance / Disbursement Account"
