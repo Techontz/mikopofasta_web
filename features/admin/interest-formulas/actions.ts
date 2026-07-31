@@ -3,28 +3,51 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { InterestFormulaSchema } from "@/types/loan-product";
-import { MOCK_INTEREST_FORMULAS } from "@/lib/mock-data/interest-formulas";
-import { upsert } from "@/lib/domain/mock-store";
-import { getCurrentUser } from "@/lib/auth/session";
-import { hasPermission } from "@/config/permissions";
-import { PERMISSIONS } from "@/types/auth";
+import { updateInterestFormulaRequest } from "@/lib/api/system-configuration";
+import { ApiError } from "@/lib/api/errors";
 import type { ActionResult } from "@/lib/domain/action-result";
 
-// Name/description only — `code` is fixed because lib/domain/loan-schedule.ts
-// branches on SIMPLE/FLAT/REDUCING by code; it isn't a free-text CRUD field.
+/**
+ * Settings → Interest Formula.
+ *
+ * Name/description only — `code` is fixed because lib/domain/loan-schedule.ts
+ * branches on SIMPLE/FLAT/REDUCING by code; it isn't a free-text CRUD field.
+ * The API agrees and routes no create or delete at all, so this is the whole
+ * surface of the screen.
+ *
+ * Authorization is the API's: SystemConfigurationPolicy gates the write on
+ * `admin.org_settings` and answers 403 otherwise. This translates that refusal
+ * into a message rather than deciding it a second time.
+ */
 const FormulaInputSchema = InterestFormulaSchema.pick({ name: true, description: true });
 
-export async function updateInterestFormula(id: string, input: z.infer<typeof FormulaInputSchema>): Promise<ActionResult> {
-  const user = await getCurrentUser();
-  if (!user || !hasPermission(user, PERMISSIONS.ADMIN_ORG_SETTINGS)) {
-    return { ok: false, message: "You don't have permission to do that." };
+function fail(error: unknown): ActionResult {
+  if (error instanceof ApiError) {
+    // A 422 names the field it rejected — a duplicate name, most often.
+    const field = error.fieldErrors && Object.values(error.fieldErrors)[0]?.[0];
+    return { ok: false, message: field ?? error.message };
   }
+  return { ok: false, message: "Something went wrong. Please try again." };
+}
+
+export async function updateInterestFormula(
+  id: string,
+  input: z.infer<typeof FormulaInputSchema>
+): Promise<ActionResult> {
   const parsed = FormulaInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid input." };
 
-  const existing = MOCK_INTEREST_FORMULAS.find((f) => f.id === id);
-  if (!existing) return { ok: false, message: "Interest formula not found." };
-  upsert(MOCK_INTEREST_FORMULAS, { ...existing, ...parsed.data });
+  try {
+    await updateInterestFormulaRequest(id, {
+      name: parsed.data.name,
+      description: parsed.data.description ?? null,
+    });
+  } catch (error) {
+    return fail(error);
+  }
+
   revalidatePath("/admin/interest-formulas");
+  // The product form names the formula beside each product.
+  revalidatePath("/admin/loan-products");
   return { ok: true, message: "Interest formula updated." };
 }

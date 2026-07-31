@@ -9,16 +9,30 @@ import { z } from "zod";
 import { Pencil, Plus } from "lucide-react";
 import { SettingsDialog } from "@/components/settings/dialog";
 import { Button, Field, FieldGrid, IconButton, TextInput } from "@/components/settings/form";
-import { RepaymentScheduleSchema, type RepaymentSchedule } from "@/types/loan-product";
+import { RepaymentScheduleSchema } from "@/types/loan-product";
+import type { RepaymentScheduleRecord } from "@/lib/api/system-configuration";
 import { createRepaymentSchedule, updateRepaymentSchedule } from "@/features/admin/repayment-schedules/actions";
 
 const FormSchema = RepaymentScheduleSchema.pick({ name: true, code: true, frequencyDays: true });
 type FormValues = z.infer<typeof FormSchema>;
 
-export function ScheduleFormDialog({ schedule }: { schedule?: RepaymentSchedule }) {
+export function ScheduleFormDialog({ schedule }: { schedule?: RepaymentScheduleRecord }) {
   const [open, setOpen] = React.useState(false);
   const [pending, startTransition] = useTransition();
   const isEdit = Boolean(schedule);
+
+  /*
+   * The frequency is what generated every instalment date on every loan using
+   * this schedule. Changing it would leave those loans with a cadence their own
+   * configuration no longer explains, and nothing regenerates them — so the API
+   * refuses with a 409 and the field is read-only here.
+   *
+   * The name and code stay editable. They are labels, and correcting one
+   * changes no arithmetic.
+   */
+  // readOnly rather than disabled, where it is applied below: a disabled input
+  // submits nothing, and the save would then fail on a field nobody touched.
+  const frequencyLocked = (schedule?.loanCount ?? 0) > 0;
 
   const defaults: FormValues = { name: schedule?.name ?? "", code: schedule?.code ?? "", frequencyDays: schedule?.frequencyDays ?? 7 };
 
@@ -84,7 +98,11 @@ export function ScheduleFormDialog({ schedule }: { schedule?: RepaymentSchedule 
         htmlFor="sched-freq"
         required
         error={errors.frequencyDays?.message}
-        help="Days between installments. 7 is weekly, 30 monthly."
+        help={
+          frequencyLocked
+            ? `Locked — ${schedule!.loanCount} loan${schedule!.loanCount === 1 ? " is" : "s are"} running on this cadence.`
+            : "Days between installments. 7 is weekly, 30 monthly."
+        }
         className="sm:max-w-[220px]"
       >
         <TextInput
@@ -93,6 +111,7 @@ export function ScheduleFormDialog({ schedule }: { schedule?: RepaymentSchedule 
           min="1"
           inputMode="numeric"
           suffix="days"
+          readOnly={frequencyLocked}
           invalid={!!errors.frequencyDays}
           {...register("frequencyDays", { valueAsNumber: true })}
         />

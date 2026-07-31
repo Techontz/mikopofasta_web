@@ -1,9 +1,22 @@
 import { Lock, Percent } from "lucide-react";
-import { MOCK_INTEREST_FORMULAS } from "@/lib/mock-data/interest-formulas";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth/session";
+import { getInterestFormulas } from "@/lib/api/loans";
 import { FormulaFormDialog } from "@/features/admin/interest-formulas/formula-form-dialog";
 import { PageHeader, SettingsCard, StatusBadge } from "@/components/settings";
 
-export default function InterestFormulasPage() {
+export default async function InterestFormulasPage() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  /*
+   * No permission gate on the read. Formulas are reference data half the
+   * application needs to render a loan product, and the API says the same —
+   * SystemConfigurationPolicy::view() is open. Editing needs
+   * `admin.org_settings`, and the API refuses without it.
+   */
+  const formulas = await getInterestFormulas();
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -29,7 +42,7 @@ export default function InterestFormulasPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {MOCK_INTEREST_FORMULAS.map((formula) => (
+        {formulas.map((formula) => (
           <SettingsCard
             key={formula.id}
             className="flex flex-col"
@@ -40,7 +53,15 @@ export default function InterestFormulasPage() {
                 {formula.code}
               </StatusBadge>
             }
-            footer={<FormulaFormDialog formula={formula} />}
+            footer={
+              <div className="flex w-full items-center justify-between gap-3">
+                {/* What is riding on the label being clear. */}
+                <span className="text-[12px] text-muted-foreground">
+                  {formula.productCount} product{formula.productCount === 1 ? "" : "s"}
+                </span>
+                <FormulaFormDialog formula={formula} />
+              </div>
+            }
           />
         ))}
       </div>

@@ -16,7 +16,7 @@ import {
 import { getBranches, getDistricts, getRegions, getStreets, getWards } from "@/lib/api/organization";
 import { ApiError } from "@/lib/api/errors";
 import { MOCK_ACCOUNT_FREEZES } from "@/lib/mock-data/account-freezes";
-import { MOCK_AUDIT_LOGS } from "@/lib/mock-data/audit-logs";
+import { getAuditLogs } from "@/lib/api/system-configuration";
 import { MOCK_GROUPS, MOCK_GROUP_MEMBERS } from "@/lib/mock-data/groups";
 import { MOCK_USERS } from "@/lib/mock-data/users";
 import { buildCustomerTimeline } from "@/lib/domain/customer-timeline";
@@ -83,7 +83,21 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
   // Freezes, the audit trail and groups have no endpoint in this phase, so they
   // stay on seeded data and read empty for API-registered customers.
   const freezes = MOCK_ACCOUNT_FREEZES.filter((f) => f.freezableType === "customer" && f.freezableId === customer.id);
-  const auditLogs = MOCK_AUDIT_LOGS.filter((l) => l.auditableType === "customer" && l.auditableId === customer.id);
+  /*
+   * This record's own history, from the audit trail.
+   *
+   * The whole trail needs `audit.view`; a read pinned to one record is
+   * authorised against the record's own policy instead, so anyone who may see
+   * this page may see how it got here. An empty list if that read is refused —
+   * the panel is context, not the reason the page exists.
+   */
+  const auditLogs = await getAuditLogs({
+    auditableType: "Customer",
+    auditableId: customer.id,
+    perPage: 100,
+  })
+    .then((result) => result.logs)
+    .catch(() => []);
   const membership = MOCK_GROUP_MEMBERS.find((m) => m.customerId === customer.id);
   const group = membership ? MOCK_GROUPS.find((g) => g.id === membership.groupId) : undefined;
 
@@ -183,7 +197,7 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
         <TabsContent value="audit">
           <Card>
             <CardContent className="pt-6">
-              <AuditTrailPanel logs={auditLogs} actorNames={userNames} />
+              <AuditTrailPanel logs={auditLogs} />
             </CardContent>
           </Card>
         </TabsContent>

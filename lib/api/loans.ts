@@ -1,14 +1,13 @@
 import "server-only";
+import type {
+  InterestFormulaRecord,
+  RepaymentScheduleRecord,
+} from "@/lib/api/system-configuration";
 import { apiData, apiRequest } from "@/lib/api/client";
 import { getApiToken } from "@/lib/auth/session";
 import type { ApiPagination } from "@/lib/api/types";
 import type { Loan, LoanSchedule, LoanStatusHistory } from "@/types/loan";
-import type {
-  CategoryProductEligibility,
-  InterestFormula,
-  LoanProduct,
-  RepaymentSchedule,
-} from "@/types/loan-product";
+import type { CategoryProductEligibility, LoanProduct } from "@/types/loan-product";
 import type { DisbursementChannel, LoanStatus } from "@/types/enums";
 
 /**
@@ -656,17 +655,24 @@ export async function deleteLoanProductRequest(id: string): Promise<void> {
 }
 
 /**
- * Interest formulas and repayment cadences are read-only reference data: the
- * API exposes an index for each and no write route, because the loan engine
- * branches on the formula codes and a new one would have no implementation
- * behind it.
+ * Interest formulas and repayment cadences — the two lookups the application
+ * form needs, and the two Settings screens read the same endpoints.
+ *
+ * A formula has no create and no delete: the loan engine branches on its code,
+ * so a fourth one would have no implementation behind it. Only its name and
+ * description can be edited. Schedules are fully editable, because
+ * `frequencyDays` is a number the generator divides by rather than a branch —
+ * see lib/api/system-configuration.ts for both write paths.
+ *
+ * Each row carries what is using it, which is what the Settings screens show
+ * and what their guards are about. The application form ignores the counts.
  */
-export async function getInterestFormulas(): Promise<InterestFormula[]> {
-  return apiData<InterestFormula[]>("/api/v1/interest-formulas", { token: await token() });
+export async function getInterestFormulas(): Promise<InterestFormulaRecord[]> {
+  return apiData<InterestFormulaRecord[]>("/api/v1/interest-formulas", { token: await token() });
 }
 
-export async function getRepaymentSchedules(): Promise<RepaymentSchedule[]> {
-  return apiData<RepaymentSchedule[]>("/api/v1/repayment-schedules", { token: await token() });
+export async function getRepaymentSchedules(): Promise<RepaymentScheduleRecord[]> {
+  return apiData<RepaymentScheduleRecord[]>("/api/v1/repayment-schedules", { token: await token() });
 }
 
 /**

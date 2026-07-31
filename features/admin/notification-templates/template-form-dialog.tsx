@@ -9,8 +9,8 @@ import { z } from "zod";
 import { Pencil, Plus } from "lucide-react";
 import { SettingsDialog } from "@/components/settings/dialog";
 import { Button, Field, FieldGrid, IconButton, Select, TextArea, TextInput, Toggle } from "@/components/settings/form";
-import { NotificationTemplateSchema, NOTIFICATION_TRIGGER_EVENTS, type NotificationTemplate } from "@/types/notification-template";
-import { NOTIFICATION_CHANNELS } from "@/types/enums";
+import { NotificationTemplateSchema, type NotificationTemplate } from "@/types/notification-template";
+import type { NotificationTemplateVocabulary } from "@/lib/api/system-configuration";
 import { createNotificationTemplate, updateNotificationTemplate } from "@/features/admin/notification-templates/actions";
 
 const FormSchema = NotificationTemplateSchema.pick({
@@ -34,7 +34,22 @@ function defaultsFor(template?: NotificationTemplate): FormValues {
   };
 }
 
-export function TemplateFormDialog({ template }: { template?: NotificationTemplate }) {
+/**
+ * `vocabulary` is the server's — which events exist, which placeholders each can
+ * fill, and which channels carry a subject.
+ *
+ * It is not duplicated here on purpose. The save endpoint validates a body's
+ * placeholders against the event, so a list kept on this side could drift into
+ * offering one the server then rejects: the message would look valid while it
+ * was being written and fail on submit.
+ */
+export function TemplateFormDialog({
+  template,
+  vocabulary,
+}: {
+  template?: NotificationTemplate;
+  vocabulary: NotificationTemplateVocabulary;
+}) {
   const [open, setOpen] = React.useState(false);
   const [pending, startTransition] = useTransition();
   const isEdit = Boolean(template);
@@ -50,7 +65,17 @@ export function TemplateFormDialog({ template }: { template?: NotificationTempla
 
   function onSubmit(values: FormValues) {
     startTransition(async () => {
-      const result = isEdit ? await updateNotificationTemplate(template!.id, values) : await createNotificationTemplate(values);
+      /*
+       * The subject is dropped for a channel that has none. Switching to SMS
+       * hides the field but leaves whatever was typed in form state, and the
+       * API refuses a subject on an SMS rather than silently ignoring it — so
+       * without this, a template that looks fine on screen is rejected on save.
+       */
+      const payload: FormValues = { ...values, subject: hasSubject ? values.subject : null };
+
+      const result = isEdit
+        ? await updateNotificationTemplate(template!.id, payload)
+        : await createNotificationTemplate(payload);
       if (result.ok) {
         toast.success(result.message);
         setOpen(false);
@@ -63,6 +88,14 @@ export function TemplateFormDialog({ template }: { template?: NotificationTempla
   const channel = useWatch({ control, name: "channel" });
   const triggerEvent = useWatch({ control, name: "triggerEvent" });
   const active = useWatch({ control, name: "active" });
+  const body = useWatch({ control, name: "body" });
+
+  const hasSubject = vocabulary.channels.find((c) => c.value === channel)?.hasSubject ?? false;
+
+  // What this event can fill. Every {{placeholder}} in the body must be one of
+  // these — an unknown one reaches the customer as the literal text.
+  const placeholders =
+    vocabulary.triggerEvents.find((e) => e.value === triggerEvent)?.placeholders ?? [];
 
   return (
     <SettingsDialog
@@ -100,9 +133,9 @@ export function TemplateFormDialog({ template }: { template?: NotificationTempla
             value={triggerEvent}
             onChange={(e) => setValue("triggerEvent", e.target.value as FormValues["triggerEvent"], { shouldDirty: true })}
           >
-            {NOTIFICATION_TRIGGER_EVENTS.map((e) => (
-              <option key={e} value={e} className="capitalize">
-                {e.replace(/_/g, " ")}
+            {vocabulary.triggerEvents.map((e) => (
+              <option key={e.value} value={e.value}>
+                {e.label}
               </option>
             ))}
           </Select>
@@ -115,17 +148,17 @@ export function TemplateFormDialog({ template }: { template?: NotificationTempla
             value={channel}
             onChange={(e) => setValue("channel", e.target.value as FormValues["channel"], { shouldDirty: true })}
           >
-            {NOTIFICATION_CHANNELS.map((c) => (
-              <option key={c} value={c} className="uppercase">
-                {c}
+            {vocabulary.channels.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
               </option>
             ))}
           </Select>
         </Field>
       </FieldGrid>
 
-      {/* A subject only exists for email — the same condition as before. */}
-      {channel === "email" && (
+      {/* A subject only exists for email, and the server is what says so. */}
+      {hasSubject && (
         <Field label="Subject" htmlFor="tmpl-subject" error={errors.subject?.message}>
           <TextInput id="tmpl-subject" invalid={!!errors.subject} {...register("subject")} />
         </Field>
@@ -140,6 +173,38 @@ export function TemplateFormDialog({ template }: { template?: NotificationTempla
       >
         <TextArea id="tmpl-body" rows={5} invalid={!!errors.body} {...register("body")} />
       </Field>
+
+      {/*
+        The palette for the chosen event. Clicking one appends it, because
+        typing a placeholder from memory is how an unknown one gets in — and an
+        unknown one is not a validation nicety: it reaches the customer as the
+        literal text {{amount}}.
+      */}
+      <div className="space-y-1.5">
+        <p className="text-[12px] text-muted-foreground">Available placeholders</p>
+        <div className="flex flex-wrap gap-1.5">
+          {placeholders.map((placeholder) => {
+            const token = `{{${placeholder}}}`;
+            const used = (body ?? "").includes(token);
+
+            return (
+              <button
+                key={placeholder}
+                type="button"
+                onClick={() => setValue("body", `${body ?? ""}${token}`, { shouldDirty: true })}
+                className={`rounded-md border px-2 py-1 font-mono text-[11px] transition-colors ${
+                  used
+                    ? "border-[var(--st-accent-line)] bg-[var(--st-accent-soft)] text-[var(--st-accent-ink)]"
+                    : "text-muted-foreground hover:bg-muted"
+                }`}
+                title={used ? "Already in the message" : "Insert"}
+              >
+                {token}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       <Toggle
         id="tmpl-active"

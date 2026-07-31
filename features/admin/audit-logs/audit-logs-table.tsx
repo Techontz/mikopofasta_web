@@ -5,8 +5,7 @@ import { History } from "lucide-react";
 import { StatusBadge } from "@/components/settings";
 import { SettingsTable } from "@/components/settings/table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
-import type { AuditLog } from "@/types/audit";
-import type { MockCredential } from "@/lib/mock-data/users";
+import type { AuditLogRecord } from "@/lib/api/system-configuration";
 
 const AUGMENTED_KEY = "__searchable" as const;
 
@@ -29,11 +28,29 @@ const AUDIT_TIMESTAMP = new Intl.DateTimeFormat("en-GB", {
   hour12: false,
 });
 
-export function AuditLogsTable({ logs, users }: { logs: AuditLog[]; users: MockCredential[] }) {
-  const userName = (id: string | null) => (id ? users.find((u) => u.id === id)?.name ?? "System" : "System");
-  const actions = Array.from(new Set(logs.map((l) => l.action))).sort();
+/**
+ * `actions` is the filter's vocabulary and comes from the API, which lists the
+ * actions actually present in the trail. Deriving it from `logs` would offer
+ * only what this page happens to be showing, so a filter could never reach a
+ * row on the next page.
+ */
+export function AuditLogsTable({
+  logs,
+  actions,
+  total,
+}: {
+  logs: AuditLogRecord[];
+  actions: string[];
+  total: number;
+}) {
+  // Resolved server-side, beside the row. "System" for an anonymous event — a
+  // failed login has no user yet, and that is worth showing rather than hiding.
+  const userName = (log: AuditLogRecord) => log.userName ?? "System";
 
-  const rows = logs.map((log) => ({ ...log, [AUGMENTED_KEY]: `${userName(log.userId)} ${log.action} ${log.auditableType}` }));
+  const rows = logs.map((log) => ({
+    ...log,
+    [AUGMENTED_KEY]: `${userName(log)} ${log.action} ${log.auditableLabel}`,
+  }));
 
   const columns: ColumnDef<(typeof rows)[number]>[] = [
     {
@@ -45,7 +62,7 @@ export function AuditLogsTable({ logs, users }: { logs: AuditLog[]; users: MockC
         </span>
       ),
     },
-    { id: "user", header: "User", cell: ({ row }) => userName(row.original.userId) },
+    { id: "user", header: "User", cell: ({ row }) => userName(row.original) },
     {
       accessorKey: "action",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Action" />,
@@ -57,7 +74,10 @@ export function AuditLogsTable({ logs, users }: { logs: AuditLog[]; users: MockC
       header: "Target",
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground">
-          {row.original.auditableType} <span className="font-mono">#{row.original.auditableId}</span>
+          {/* The short name reads; the full class is on the title for anyone
+              tracing an entry back to the record it belongs to. */}
+          <span title={row.original.auditableType}>{row.original.auditableLabel}</span>{" "}
+          <span className="font-mono">#{row.original.auditableId}</span>
         </span>
       ),
     },
@@ -70,7 +90,14 @@ export function AuditLogsTable({ logs, users }: { logs: AuditLog[]; users: MockC
       searchFields={[AUGMENTED_KEY]}
       searchPlaceholder="Search by user, action, or target…"
       facetedFilters={[{ columnId: "action", title: "Action", options: actions.map((a) => ({ label: a, value: a })) }]}
-      emptyState={{ icon: History, title: "No audit activity yet", description: "System actions will appear here as they happen." }}
+      emptyState={{
+        icon: History,
+        title: "No audit activity yet",
+        description:
+          total > 0
+            ? "No entries match these filters."
+            : "System actions will appear here as they happen.",
+      }}
     />
   );
 }

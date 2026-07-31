@@ -12,10 +12,12 @@ import { DataTableColumnHeader } from "@/components/data-table/data-table-column
 import { ConfirmDeleteDialog } from "@/components/data-table/confirm-delete-dialog";
 import { TemplateFormDialog } from "@/features/admin/notification-templates/template-form-dialog";
 import { deleteNotificationTemplate, toggleTemplateActive } from "@/features/admin/notification-templates/actions";
-import { NOTIFICATION_CHANNELS } from "@/types/enums";
-import type { NotificationTemplate } from "@/types/notification-template";
+import type {
+  NotificationTemplateRecord,
+  NotificationTemplateVocabulary,
+} from "@/lib/api/system-configuration";
 
-function ActiveSwitch({ template }: { template: NotificationTemplate }) {
+function ActiveSwitch({ template }: { template: NotificationTemplateRecord }) {
   const [pending, startTransition] = useTransition();
   return (
     <Switch
@@ -23,7 +25,16 @@ function ActiveSwitch({ template }: { template: NotificationTemplate }) {
       disabled={pending}
       onCheckedChange={(checked) =>
         startTransition(async () => {
-          const result = await toggleTemplateActive(template.id, checked);
+          /*
+           * The whole template goes up, not just the flag. The API validates a
+           * message as a whole — placeholders against the event, subject against
+           * the channel — so there is no partial update to send.
+           *
+           * Activating one while another is already live for the same event and
+           * channel is refused: two live SMS templates for `payment_received`
+           * would leave the sender picking arbitrarily.
+           */
+          const result = await toggleTemplateActive(template, checked);
           if (!result.ok) toast.error(result.message);
         })
       }
@@ -31,18 +42,30 @@ function ActiveSwitch({ template }: { template: NotificationTemplate }) {
   );
 }
 
-export function TemplatesTable({ templates }: { templates: NotificationTemplate[] }) {
-  const columns: ColumnDef<NotificationTemplate>[] = [
+export function TemplatesTable({
+  templates,
+  vocabulary,
+}: {
+  templates: NotificationTemplateRecord[];
+  vocabulary: NotificationTemplateVocabulary;
+}) {
+  const columns: ColumnDef<NotificationTemplateRecord>[] = [
     { accessorKey: "name", header: ({ column }) => <DataTableColumnHeader column={column} title="Name" /> },
     {
       accessorKey: "triggerEvent",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Trigger" />,
-      cell: ({ row }) => <span className="capitalize">{row.original.triggerEvent.replace(/_/g, " ")}</span>,
+      // The server's label, not a regex on the value: it decides the vocabulary
+      // and knows that `disbursement_success` reads as "Disbursement successful".
+      cell: ({ row }) => <span>{row.original.triggerEventLabel}</span>,
     },
     {
       accessorKey: "channel",
       header: "Channel",
-      cell: ({ row }) => <StatusBadge tone="info" dot={false} className="uppercase">{row.original.channel}</StatusBadge>,
+      cell: ({ row }) => (
+        <StatusBadge tone="info" dot={false} className="uppercase">
+          {row.original.channelLabel}
+        </StatusBadge>
+      ),
       filterFn: "arrIncludesSome",
     },
     { id: "active", header: "Active", cell: ({ row }) => <ActiveSwitch template={row.original} /> },
@@ -50,7 +73,7 @@ export function TemplatesTable({ templates }: { templates: NotificationTemplate[
       id: "actions",
       cell: ({ row }) => (
         <div className="flex justify-end gap-1">
-          <TemplateFormDialog template={row.original} />
+          <TemplateFormDialog template={row.original} vocabulary={vocabulary} />
           <ConfirmDeleteDialog
             trigger={
               <Button variant="ghost" size="icon-sm" className="text-destructive hover:text-destructive">
@@ -58,7 +81,7 @@ export function TemplatesTable({ templates }: { templates: NotificationTemplate[
               </Button>
             }
             title="Delete notification template?"
-            description={`"${row.original.name}" will be permanently removed. This can't be undone.`}
+            description={`"${row.original.name}" will be retired. What customers were already told stays on the record.`}
             successMessage="Notification template deleted."
             onConfirm={() => deleteNotificationTemplate(row.original.id)}
           />
@@ -73,8 +96,14 @@ export function TemplatesTable({ templates }: { templates: NotificationTemplate[
       data={templates}
       searchFields={["name", "body"]}
       searchPlaceholder="Search templates…"
-      facetedFilters={[{ columnId: "channel", title: "Channel", options: NOTIFICATION_CHANNELS.map((c) => ({ label: c.toUpperCase(), value: c })) }]}
-      toolbarAction={<TemplateFormDialog />}
+      facetedFilters={[
+        {
+          columnId: "channel",
+          title: "Channel",
+          options: vocabulary.channels.map((c) => ({ label: c.label, value: c.value })),
+        },
+      ]}
+      toolbarAction={<TemplateFormDialog vocabulary={vocabulary} />}
       emptyState={{ icon: BellRing, title: "No notification templates yet", description: "Create a template to start sending event-triggered messages." }}
     />
   );

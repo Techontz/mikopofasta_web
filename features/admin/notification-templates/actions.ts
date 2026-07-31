@@ -1,72 +1,122 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
-import { NotificationTemplateSchema } from "@/types/notification-template";
-import { MOCK_NOTIFICATION_TEMPLATES } from "@/lib/mock-data/notification-templates";
-import { nextId, upsert, removeById } from "@/lib/domain/mock-store";
-import { getCurrentUser } from "@/lib/auth/session";
-import { hasPermission } from "@/config/permissions";
-import { PERMISSIONS } from "@/types/auth";
+import {
+  createNotificationTemplateRequest,
+  deleteNotificationTemplateRequest,
+  updateNotificationTemplateRequest,
+} from "@/lib/api/system-configuration";
+import { ApiError } from "@/lib/api/errors";
 import type { ActionResult } from "@/lib/domain/action-result";
+import {
+  SaveNotificationTemplateInputSchema,
+  type NotificationTemplate,
+  type SaveNotificationTemplateInput,
+} from "@/types/notification-template";
 
-const TemplateInputSchema = NotificationTemplateSchema.pick({
-  name: true,
-  triggerEvent: true,
-  channel: true,
-  subject: true,
-  body: true,
-  active: true,
-});
+/**
+ * Settings → Notification Templates.
+ *
+ * Three rules are the API's, and each needs something this side cannot see:
+ *
+ *   - **Placeholders must be ones the event can supply.** The set depends on
+ *     the trigger event, and the server is what decides it. An unknown one
+ *     would otherwise reach a customer as the literal text `{{amount}}`.
+ *   - **One active template per event and channel.** Two live SMS templates for
+ *     `payment_received` would leave the sender picking arbitrarily.
+ *   - **SMS carries no subject.** Supplying one is refused rather than dropped.
+ *
+ * Authorization is SystemConfigurationPolicy's — `admin.org_settings` for every
+ * write. None of it is re-decided here.
+ */
 
-async function requirePermission(): Promise<ActionResult | null> {
-  const user = await getCurrentUser();
-  if (!user || !hasPermission(user, PERMISSIONS.ADMIN_ORG_SETTINGS)) {
-    return { ok: false, message: "You don't have permission to do that." };
+function fail(error: unknown): ActionResult {
+  if (error instanceof ApiError) {
+    // A 422 names what it rejected: the unknown placeholder, or which template
+    // is already live for this event. Both are worth showing verbatim.
+    const field = error.fieldErrors && Object.values(error.fieldErrors)[0]?.[0];
+    return { ok: false, message: field ?? error.message };
   }
-  return null;
+  return { ok: false, message: "Something went wrong. Please try again." };
 }
 
-export async function createNotificationTemplate(input: z.infer<typeof TemplateInputSchema>): Promise<ActionResult> {
-  const denied = await requirePermission();
-  if (denied) return denied;
-  const parsed = TemplateInputSchema.safeParse(input);
+export async function createNotificationTemplate(
+  input: SaveNotificationTemplateInput
+): Promise<ActionResult> {
+  const parsed = SaveNotificationTemplateInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid input." };
 
-  const actor = await getCurrentUser();
-  upsert(MOCK_NOTIFICATION_TEMPLATES, { id: nextId("tmpl"), ...parsed.data, updatedBy: actor?.id ?? null, updatedAt: new Date().toISOString() });
+  try {
+    await createNotificationTemplateRequest(parsed.data);
+  } catch (error) {
+    return fail(error);
+  }
+
   revalidatePath("/admin/notification-templates");
   return { ok: true, message: "Notification template created." };
 }
 
-export async function updateNotificationTemplate(id: string, input: z.infer<typeof TemplateInputSchema>): Promise<ActionResult> {
-  const denied = await requirePermission();
-  if (denied) return denied;
-  const parsed = TemplateInputSchema.safeParse(input);
+export async function updateNotificationTemplate(
+  id: string,
+  input: SaveNotificationTemplateInput
+): Promise<ActionResult> {
+  const parsed = SaveNotificationTemplateInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid input." };
 
-  const existing = MOCK_NOTIFICATION_TEMPLATES.find((t) => t.id === id);
-  if (!existing) return { ok: false, message: "Template not found." };
-  const actor = await getCurrentUser();
-  upsert(MOCK_NOTIFICATION_TEMPLATES, { ...existing, ...parsed.data, updatedBy: actor?.id ?? null, updatedAt: new Date().toISOString() });
+  try {
+    await updateNotificationTemplateRequest(id, parsed.data);
+  } catch (error) {
+    return fail(error);
+  }
+
   revalidatePath("/admin/notification-templates");
   return { ok: true, message: "Notification template updated." };
 }
 
 export async function deleteNotificationTemplate(id: string): Promise<ActionResult> {
-  const denied = await requirePermission();
-  if (denied) return denied;
-  removeById(MOCK_NOTIFICATION_TEMPLATES, id);
+  try {
+    /*
+     * Soft-deleted on the API side. What was being sent to customers last
+     * quarter is part of the record of what the company told them, and a
+     * support question about a message someone received is unanswerable once
+     * the template is really gone.
+     */
+    await deleteNotificationTemplateRequest(id);
+  } catch (error) {
+    return fail(error);
+  }
+
   revalidatePath("/admin/notification-templates");
   return { ok: true, message: "Notification template deleted." };
 }
 
-export async function toggleTemplateActive(id: string, active: boolean): Promise<ActionResult> {
-  const denied = await requirePermission();
-  if (denied) return denied;
-  const existing = MOCK_NOTIFICATION_TEMPLATES.find((t) => t.id === id);
-  if (!existing) return { ok: false, message: "Template not found." };
-  existing.active = active;
-  revalidatePath("/admin/notification-templates");
+/**
+ * The row's Active switch.
+ *
+ * Takes the whole template rather than an id, because there is no partial
+ * update: the API's save endpoint validates the message as a whole — the
+ * placeholders against the event, the subject against the channel — and a patch
+ * carrying only `active` would ask it to re-approve a body it could not see.
+ *
+ * Turning the last live template for an event off is allowed. An event with
+ * nothing configured sends nothing, which is a state the business may
+ * legitimately want for a month — and is the reason inactive rows are kept
+ * rather than deleted.
+ */
+export async function toggleTemplateActive(
+  template: NotificationTemplate,
+  active: boolean
+): Promise<ActionResult> {
+  const result = await updateNotificationTemplate(template.id, {
+    name: template.name,
+    triggerEvent: template.triggerEvent,
+    channel: template.channel,
+    subject: template.subject,
+    body: template.body,
+    active,
+  });
+
+  if (!result.ok) return result;
+
   return { ok: true, message: active ? "Template activated." : "Template deactivated." };
 }

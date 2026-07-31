@@ -16,7 +16,7 @@ import {
 } from "@/lib/api/loans";
 import { ApiError } from "@/lib/api/errors";
 import { MOCK_USERS } from "@/lib/mock-data/users";
-import { MOCK_AUDIT_LOGS } from "@/lib/mock-data/audit-logs";
+import { getAuditLogs } from "@/lib/api/system-configuration";
 import { buildLoanTimeline } from "@/lib/domain/loan-timeline";
 import { LOAN_STATUS_LABELS } from "@/lib/domain/loan-status-machine";
 import { formatMoney } from "@/lib/domain/money";
@@ -64,7 +64,21 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
   ]);
 
   const schedule = schedules.find((s) => s.id === loan.repaymentScheduleId);
-  const auditLogs = MOCK_AUDIT_LOGS.filter((l) => l.auditableType === "loan" && l.auditableId === loan.id);
+  /*
+   * This record's own history, from the audit trail.
+   *
+   * The whole trail needs `audit.view`; a read pinned to one record is
+   * authorised against the record's own policy instead, so anyone who may see
+   * this page may see how it got here. An empty list if that read is refused —
+   * the panel is context, not the reason the page exists.
+   */
+  const auditLogs = await getAuditLogs({
+    auditableType: "Loan",
+    auditableId: loan.id,
+    perPage: 100,
+  })
+    .then((result) => result.logs)
+    .catch(() => []);
 
   // The API resolves no names for officer/approver/actor ids, and /users needs
   // `users.manage`, which the roles that work loans do not hold — so these read
@@ -295,7 +309,7 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
         <TabsContent value="audit">
           <Card>
             <CardContent className="pt-6">
-              <AuditTrailPanel logs={auditLogs} actorNames={userNames} />
+              <AuditTrailPanel logs={auditLogs} />
             </CardContent>
           </Card>
         </TabsContent>

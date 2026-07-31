@@ -3,60 +3,91 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { RepaymentScheduleSchema } from "@/types/loan-product";
-import { MOCK_REPAYMENT_SCHEDULES } from "@/lib/mock-data/repayment-schedules";
-import { MOCK_LOAN_PRODUCT_REPAYMENT_SCHEDULES } from "@/lib/mock-data/loan-products";
-import { MOCK_LOANS } from "@/lib/mock-data/loans";
-import { nextId, upsert, removeById } from "@/lib/domain/mock-store";
-import { getCurrentUser } from "@/lib/auth/session";
-import { hasPermission } from "@/config/permissions";
-import { PERMISSIONS } from "@/types/auth";
+import {
+  createRepaymentScheduleRequest,
+  deleteRepaymentScheduleRequest,
+  updateRepaymentScheduleRequest,
+} from "@/lib/api/system-configuration";
+import { ApiError } from "@/lib/api/errors";
 import type { ActionResult } from "@/lib/domain/action-result";
 
+/**
+ * Settings → Repayment Schedules.
+ *
+ * The two guards that used to be checked here against fixtures — loans running
+ * on a schedule, and products offering it — are the API's, and have to be: only
+ * the server can see every loan. It refuses with a 409 naming what is in the
+ * way, and that message is shown rather than replaced.
+ *
+ * The frequency is guarded too, and that one is new: changing it on a schedule
+ * loans are already running would leave those loans with a cadence their own
+ * configuration no longer explains, since `frequencyDays` is what generated
+ * every one of their instalment dates.
+ */
 const ScheduleInputSchema = RepaymentScheduleSchema.pick({ name: true, code: true, frequencyDays: true });
 
-async function requirePermission(): Promise<ActionResult | null> {
-  const user = await getCurrentUser();
-  if (!user || !hasPermission(user, PERMISSIONS.ADMIN_ORG_SETTINGS)) {
-    return { ok: false, message: "You don't have permission to do that." };
+function fail(error: unknown): ActionResult {
+  if (error instanceof ApiError) {
+    const field = error.fieldErrors && Object.values(error.fieldErrors)[0]?.[0];
+    return { ok: false, message: field ?? error.message };
   }
-  return null;
+  return { ok: false, message: "Something went wrong. Please try again." };
 }
 
-export async function createRepaymentSchedule(input: z.infer<typeof ScheduleInputSchema>): Promise<ActionResult> {
-  const denied = await requirePermission();
-  if (denied) return denied;
+/**
+ * The schedules screen and everything that reads the cadence list.
+ *
+ * A product's form offers schedules, and the loan application form picks one,
+ * so a schedule added or retired here changes both.
+ */
+function revalidateSchedules(): void {
+  revalidatePath("/admin/repayment-schedules");
+  revalidatePath("/admin/loan-products");
+  revalidatePath("/loans/apply");
+}
+
+export async function createRepaymentSchedule(
+  input: z.infer<typeof ScheduleInputSchema>
+): Promise<ActionResult> {
   const parsed = ScheduleInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid input." };
 
-  upsert(MOCK_REPAYMENT_SCHEDULES, { id: nextId("rs"), ...parsed.data, deletedAt: null });
-  revalidatePath("/admin/repayment-schedules");
+  try {
+    await createRepaymentScheduleRequest(parsed.data);
+  } catch (error) {
+    return fail(error);
+  }
+
+  revalidateSchedules();
   return { ok: true, message: "Repayment schedule created." };
 }
 
-export async function updateRepaymentSchedule(id: string, input: z.infer<typeof ScheduleInputSchema>): Promise<ActionResult> {
-  const denied = await requirePermission();
-  if (denied) return denied;
+export async function updateRepaymentSchedule(
+  id: string,
+  input: z.infer<typeof ScheduleInputSchema>
+): Promise<ActionResult> {
   const parsed = ScheduleInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid input." };
 
-  const existing = MOCK_REPAYMENT_SCHEDULES.find((s) => s.id === id);
-  if (!existing) return { ok: false, message: "Repayment schedule not found." };
-  upsert(MOCK_REPAYMENT_SCHEDULES, { ...existing, ...parsed.data });
-  revalidatePath("/admin/repayment-schedules");
+  try {
+    // A 409 here means the frequency was changed on a schedule loans are
+    // running on. The name and code may still be corrected at any time.
+    await updateRepaymentScheduleRequest(id, parsed.data);
+  } catch (error) {
+    return fail(error);
+  }
+
+  revalidateSchedules();
   return { ok: true, message: "Repayment schedule updated." };
 }
 
 export async function deleteRepaymentSchedule(id: string): Promise<ActionResult> {
-  const denied = await requirePermission();
-  if (denied) return denied;
+  try {
+    await deleteRepaymentScheduleRequest(id);
+  } catch (error) {
+    return fail(error);
+  }
 
-  if (MOCK_LOANS.some((l) => l.repaymentScheduleId === id)) {
-    return { ok: false, message: "Can't delete — loans exist using this schedule." };
-  }
-  if (MOCK_LOAN_PRODUCT_REPAYMENT_SCHEDULES.some((p) => p.repaymentScheduleId === id)) {
-    return { ok: false, message: "Can't delete — a loan product allows this schedule. Remove it there first." };
-  }
-  removeById(MOCK_REPAYMENT_SCHEDULES, id);
-  revalidatePath("/admin/repayment-schedules");
+  revalidateSchedules();
   return { ok: true, message: "Repayment schedule deleted." };
 }
