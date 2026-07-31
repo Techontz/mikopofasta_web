@@ -4,6 +4,23 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { removeAdvanceCategory, saveAdvanceCategory } from "@/features/salary-advance/actions";
+import type { ActionResult } from "@/lib/domain/action-result";
+import type { SalaryAdvanceCategoryRecord } from "@/lib/api/salary-advance";
+import { z } from "zod";
+
+/**
+ * At least one period — an advance recovered over none is never recovered.
+ * Capped at 60 so a typo cannot commit an employee to a five-year deduction;
+ * the backend enforces the same bounds.
+ */
+const RecoveryPeriodsSchema = z.object({
+  recoveryPeriods: z
+    .number()
+    .int("Whole payroll periods only.")
+    .min(1, "An advance must be recovered over at least one payroll period.")
+    .max(60, "Keep the recovery term under 60 payroll periods."),
+});
 import type { ColumnDef } from "@tanstack/react-table";
 import { Layers, Pencil, Plus, Trash2 } from "lucide-react";
 import { Money, SettingsCard } from "@/components/settings";
@@ -13,16 +30,27 @@ import { Button, Field, FieldGrid, IconButton, TextInput } from "@/components/se
 import { formatMoney } from "@/lib/domain/money";
 import {
   SalaryAdvanceCategoryInputSchema,
-  type SalaryAdvanceCategory,
   type SalaryAdvanceCategoryInput,
 } from "@/types/salary-advance";
 
-const EMPTY: SalaryAdvanceCategoryInput = {
+/**
+ * The form's shape: the frontend schema's five fields plus the recovery term.
+ *
+ * `recoveryPeriods` is not on `SalaryAdvanceCategoryInputSchema` because the
+ * fixture this screen ran on had no notion of a repayment schedule. It is what
+ * turns a band into terms rather than a price list — the instalment taken from
+ * each payslip is the total repayable spread across it — so the form collects
+ * it and the zod schema validates the rest.
+ */
+type CategoryFormValues = SalaryAdvanceCategoryInput & { recoveryPeriods: number };
+
+const EMPTY: CategoryFormValues = {
   name: "",
   interestRate: 0,
   fromAmount: 0,
   toAmount: 0,
   chargeFee: 0,
+  recoveryPeriods: 1,
 };
 
 /**
@@ -32,27 +60,35 @@ const EMPTY: SalaryAdvanceCategoryInput = {
  * amount range it applies to, and its charge fee. Add and Edit share one dialog
  * — the fields are identical, and two copies would drift.
  */
-export function CategoriesPanel({ categories }: { categories: SalaryAdvanceCategory[] }) {
-  const [rows, setRows] = React.useState(categories);
-  const [editing, setEditing] = React.useState<SalaryAdvanceCategory | null>(null);
+export function CategoriesPanel({ categories }: { categories: SalaryAdvanceCategoryRecord[] }) {
+  const rows = categories;
+  const [editing, setEditing] = React.useState<SalaryAdvanceCategoryRecord | null>(null);
   const [adding, setAdding] = React.useState(false);
+  const [, startTransition] = React.useTransition();
 
-  function upsert(values: SalaryAdvanceCategoryInput, id?: string) {
-    if (id) {
-      setRows((prev) => prev.map((c) => (c.id === id ? { ...c, ...values } : c)));
-      toast.success(`${values.name} updated.`);
-    } else {
-      setRows((prev) => [...prev, { id: `cat-${prev.length + 1}-${Date.parse("2026-07-28")}`, ...values }]);
-      toast.success(`${values.name} added.`);
-    }
+  function run(action: () => Promise<ActionResult>) {
+    startTransition(async () => {
+      const result = await action();
+      if (result.ok) toast.success(result.message);
+      else toast.error(result.message ?? "Something went wrong.");
+    });
   }
 
-  function remove(category: SalaryAdvanceCategory) {
-    setRows((prev) => prev.filter((c) => c.id !== category.id));
-    toast.success(`${category.name} deleted.`);
+  /*
+   * The server decides whether a band is acceptable — it is the only side that
+   * can see whether this one overlaps another — so the row is not edited here.
+   * The action revalidates and the list re-renders from what was actually
+   * saved.
+   */
+  function upsert(values: CategoryFormValues, id?: string) {
+    run(() => saveAdvanceCategory(values, id));
   }
 
-  const columns: ColumnDef<SalaryAdvanceCategory>[] = [
+  function remove(category: SalaryAdvanceCategoryRecord) {
+    run(() => removeAdvanceCategory(category.id, category.name));
+  }
+
+  const columns: ColumnDef<SalaryAdvanceCategoryRecord>[] = [
     {
       id: "sn",
       header: "S/N",
@@ -172,17 +208,18 @@ function CategoryDialog({
   onSave,
 }: {
   open: boolean;
-  category: SalaryAdvanceCategory | null;
+  category: SalaryAdvanceCategoryRecord | null;
   onClose: () => void;
-  onSave: (values: SalaryAdvanceCategoryInput, id?: string) => void;
+  onSave: (values: CategoryFormValues, id?: string) => void;
 }) {
-  const defaults: SalaryAdvanceCategoryInput = category
+  const defaults: CategoryFormValues = category
     ? {
         name: category.name,
         interestRate: category.interestRate,
         fromAmount: category.fromAmount,
         toAmount: category.toAmount,
         chargeFee: category.chargeFee,
+        recoveryPeriods: category.recoveryPeriods,
       }
     : EMPTY;
 
@@ -191,8 +228,8 @@ function CategoryDialog({
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<SalaryAdvanceCategoryInput>({
-    resolver: zodResolver(SalaryAdvanceCategoryInputSchema),
+  } = useForm<CategoryFormValues>({
+    resolver: zodResolver(SalaryAdvanceCategoryInputSchema.and(RecoveryPeriodsSchema)),
     defaultValues: defaults,
   });
 
@@ -269,6 +306,24 @@ function CategoryDialog({
           />
         </Field>
       </FieldGrid>
+
+      <Field
+        label="Recovery Periods"
+        htmlFor="ac-periods"
+        required
+        error={errors.recoveryPeriods?.message}
+        help="How many payslips this advance is recovered over. The instalment is the total repayable divided across them."
+      >
+        <TextInput
+          id="ac-periods"
+          type="number"
+          step="1"
+          min="1"
+          inputMode="numeric"
+          invalid={!!errors.recoveryPeriods}
+          {...register("recoveryPeriods", { valueAsNumber: true })}
+        />
+      </Field>
     </SettingsDialog>
   );
 }
@@ -277,8 +332,8 @@ function DeleteCategoryAction({
   category,
   onConfirm,
 }: {
-  category: SalaryAdvanceCategory;
-  onConfirm: (category: SalaryAdvanceCategory) => void;
+  category: SalaryAdvanceCategoryRecord;
+  onConfirm: (category: SalaryAdvanceCategoryRecord) => void;
 }) {
   const [open, setOpen] = React.useState(false);
   return (

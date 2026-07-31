@@ -7,7 +7,7 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { PageHeader } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { salaryAdvanceNavFor } from "@/features/ledger/nav-items";
-import { MOCK_SALARY_ADVANCES } from "@/lib/mock-data/salary-advance";
+import { getSalaryAdvances } from "@/lib/api/salary-advance";
 import { AdvanceListPanel } from "@/features/salary-advance/advance-list-panel";
 
 export default async function SalaryAdvanceRepaymentPage() {
@@ -16,7 +16,17 @@ export default async function SalaryAdvanceRepaymentPage() {
   if (!hasAnyPermission(user, [PERMISSIONS.HR_VIEW, PERMISSIONS.PAYROLL_FINALIZE])) return <AccessDeniedState />;
 
   // Anything with money against it — still running, or settled.
-  const repaying = MOCK_SALARY_ADVANCES.filter((a) => a.status === "active" || a.status === "repaid");
+  /*
+   * Both stages, because this screen is about recovery: an advance still being
+   * recovered and one that has finished are the same story at two points, and
+   * showing only the first would hide every advance that completed.
+   */
+  const [active, repaid] = await Promise.all([
+    getSalaryAdvances({ status: "active", perPage: 100 }),
+    getSalaryAdvances({ status: "repaid", perPage: 100 }),
+  ]);
+
+  const repaying = [...active.advances, ...repaid.advances];
 
   return (
     <>

@@ -4,6 +4,9 @@ import * as React from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { approveAdvance, raiseAdvanceRequest, rejectAdvance } from "@/features/salary-advance/actions";
+import type { ActionResult } from "@/lib/domain/action-result";
+import type { SalaryAdvanceCategoryRecord } from "@/lib/api/salary-advance";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Check, HandCoins, RotateCcw, Send, Trash2 } from "lucide-react";
 import { Money, SettingsCard } from "@/components/settings";
@@ -15,10 +18,8 @@ import {
   SalaryAdvanceRequestInputSchema,
   sumAdvances,
   type SalaryAdvance,
-  type SalaryAdvanceCategory,
   type SalaryAdvanceRequestInput,
 } from "@/types/salary-advance";
-import { ADVANCE_BRANCHES, ADVANCE_CUSTOMERS } from "@/lib/mock-data/salary-advance";
 import {
   ADVANCE_SEARCH_FIELDS,
   branchColumn,
@@ -50,11 +51,37 @@ const EMPTY: SalaryAdvanceRequestInput = {
 export function RequestPanel({
   advances,
   categories,
+  staff,
 }: {
   advances: SalaryAdvance[];
-  categories: SalaryAdvanceCategory[];
+  categories: SalaryAdvanceCategoryRecord[];
+  /** Real employees, from the staff register — an advance is staff, not customer. */
+  staff: { id: string; name: string; branch: string }[];
 }) {
-  const [rows, setRows] = React.useState(advances);
+  /*
+   * The branch picker offers the branches staff are actually posted to, taken
+   * from the register itself rather than a fixed list — a fixed one goes stale
+   * the first time a branch opens.
+   */
+  const branches = React.useMemo(
+    () => [...new Set(staff.map((member) => member.branch).filter(Boolean))].sort(),
+    [staff],
+  );
+
+  const rows = advances;
+  const [, startTransition] = React.useTransition();
+
+  function run(action: () => Promise<ActionResult>, onSuccess?: () => void) {
+    startTransition(async () => {
+      const result = await action();
+      if (result.ok) {
+        toast.success(result.message);
+        onSuccess?.();
+      } else {
+        toast.error(result.message ?? "Something went wrong.");
+      }
+    });
+  }
 
   const {
     register,
@@ -75,7 +102,7 @@ export function RequestPanel({
 
   // The customer list narrows to the chosen branch — an advance is raised where
   // the customer is served, and offering all of them invites a mismatched pair.
-  const customers = ADVANCE_CUSTOMERS.filter((c) => branch === "" || c.branch === branch);
+  const customers = staff.filter((c) => branch === "" || c.branch === branch);
   const category = categories.find((c) => c.id === categoryId);
 
   /*
@@ -92,40 +119,39 @@ export function RequestPanel({
         }
       : null;
 
+  /*
+   * The category is NOT sent. The server prices the advance by the band the
+   * amount falls into — letting the requester choose would let them choose
+   * their own interest rate, and two people borrowing the same amount would be
+   * on different terms. The picker below is a preview of what that band will
+   * be, which is why it is shown but not submitted.
+   */
   function onSubmit(values: SalaryAdvanceRequestInput) {
-    const picked = categories.find((c) => c.id === values.categoryId);
-    const customer = ADVANCE_CUSTOMERS.find((c) => c.name === values.customerName);
-    setRows((prev) => [
-      {
-        id: `adv-new-${prev.length + 1}`,
-        reference: `SA-2026-${String(32 + prev.length).padStart(4, "0")}`,
-        customerName: values.customerName,
-        phone: customer?.phone ?? "—",
-        branch: values.branch,
-        categoryId: values.categoryId,
-        categoryName: picked?.name ?? "—",
-        loanAmount: values.loanAmount,
-        interest: picked ? Math.round((values.loanAmount * picked.interestRate) / 100) : 0,
-        paidAmount: 0,
-        chargeFee: picked?.chargeFee ?? 0,
-        status: "requested",
-        date: rows[0]?.date ?? "2026-07-28",
-        overdueDays: 0,
-      },
-      ...prev,
-    ]);
-    toast.success(`${formatMoney(values.loanAmount)} requested for ${values.customerName}.`);
-    reset(EMPTY);
+    const member = staff.find((c) => c.name === values.customerName);
+
+    if (member === undefined) {
+      toast.error("Choose a staff member.");
+
+      return;
+    }
+
+    run(
+      () => raiseAdvanceRequest({ staffProfileId: member.id, amount: values.loanAmount }),
+      () => reset(EMPTY),
+    );
   }
 
   function approve(advance: SalaryAdvance) {
-    setRows((prev) => prev.map((a) => (a.id === advance.id ? { ...a, status: "approved" } : a)));
-    toast.success(`${advance.reference} approved.`);
+    run(() => approveAdvance(advance.id, advance.reference));
   }
 
-  function remove(advance: SalaryAdvance) {
-    setRows((prev) => prev.filter((a) => a.id !== advance.id));
-    toast.success(`${advance.reference} deleted.`);
+  /*
+   * Reject, not delete. A request that has been raised is a decision someone
+   * has to make, and there is no endpoint that removes one — rejecting closes
+   * it and leaves the record, which is what an audit trail is for.
+   */
+  function reject(advance: SalaryAdvance) {
+    run(() => rejectAdvance(advance.id, advance.reference));
   }
 
   const columns: ColumnDef<SalaryAdvance>[] = [
@@ -144,7 +170,7 @@ export function RequestPanel({
       cell: ({ row }) => (
         <div className="st-row-action flex justify-end gap-1.5">
           <ApproveAction advance={row.original} onConfirm={approve} />
-          <DeleteAction advance={row.original} onConfirm={remove} />
+          <DeleteAction advance={row.original} onConfirm={reject} />
         </div>
       ),
     },
@@ -174,7 +200,7 @@ export function RequestPanel({
             <Field label="Branch" htmlFor="sr-branch" required error={errors.branch?.message}>
               <Select id="sr-branch" invalid={!!errors.branch} {...register("branch")}>
                 <option value="">Select branch</option>
-                {ADVANCE_BRANCHES.map((b) => (
+                {branches.map((b) => (
                   <option key={b} value={b}>
                     {b}
                   </option>

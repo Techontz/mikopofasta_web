@@ -7,13 +7,15 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { PageHeader } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { salaryAdvanceNavFor } from "@/features/ledger/nav-items";
-import { MOCK_ADVANCE_CATEGORIES } from "@/lib/mock-data/salary-advance";
+import { getSalaryAdvanceCategories } from "@/lib/api/salary-advance";
 import { CategoriesPanel } from "@/features/salary-advance/categories-panel";
 
 export default async function SalaryAdvanceCategoryPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (!hasAnyPermission(user, [PERMISSIONS.HR_VIEW, PERMISSIONS.PAYROLL_FINALIZE])) return <AccessDeniedState />;
+
+  const categories = await getSalaryAdvanceCategories();
 
   return (
     <>
@@ -24,7 +26,7 @@ export default async function SalaryAdvanceCategoryPage() {
         breadcrumb={[{ label: "Salary Advance", href: "/salary-advance/categories" }, { label: "Salary Advance Category" }]}
       />
       <SectionNav items={salaryAdvanceNavFor(user)} />
-      <CategoriesPanel categories={MOCK_ADVANCE_CATEGORIES} />
+      <CategoriesPanel categories={categories} />
     </>
   );
 }

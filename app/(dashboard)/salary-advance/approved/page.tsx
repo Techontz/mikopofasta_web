@@ -7,13 +7,15 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { PageHeader } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { salaryAdvanceNavFor } from "@/features/ledger/nav-items";
-import { MOCK_SALARY_ADVANCES } from "@/lib/mock-data/salary-advance";
+import { getSalaryAdvances } from "@/lib/api/salary-advance";
 import { AdvanceListPanel } from "@/features/salary-advance/advance-list-panel";
 
 export default async function SalaryAdvanceApprovedPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (!hasAnyPermission(user, [PERMISSIONS.HR_VIEW, PERMISSIONS.PAYROLL_FINALIZE])) return <AccessDeniedState />;
+
+  const { advances } = await getSalaryAdvances({ status: "approved", perPage: 100 });
 
   return (
     <>
@@ -25,7 +27,7 @@ export default async function SalaryAdvanceApprovedPage() {
       />
       <SectionNav items={salaryAdvanceNavFor(user)} />
       <AdvanceListPanel
-        advances={MOCK_SALARY_ADVANCES.filter((a) => a.status === "approved")}
+        advances={advances}
         variant="approved"
         title="Salary Advance Approved"
         description="Approved and awaiting disbursement. The totals row follows whatever the search leaves."

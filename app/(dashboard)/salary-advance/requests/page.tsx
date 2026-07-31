@@ -7,13 +7,20 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { PageHeader } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { salaryAdvanceNavFor } from "@/features/ledger/nav-items";
-import { MOCK_ADVANCE_CATEGORIES, MOCK_SALARY_ADVANCES } from "@/lib/mock-data/salary-advance";
+import { getSalaryAdvanceCategories, getSalaryAdvances } from "@/lib/api/salary-advance";
+import { getStaff } from "@/lib/api/hr";
 import { RequestPanel } from "@/features/salary-advance/request-panel";
 
 export default async function SalaryAdvanceRequestPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (!hasAnyPermission(user, [PERMISSIONS.HR_VIEW, PERMISSIONS.PAYROLL_FINALIZE])) return <AccessDeniedState />;
+
+  const [{ advances }, categories, staff] = await Promise.all([
+    getSalaryAdvances({ status: "requested", perPage: 100 }),
+    getSalaryAdvanceCategories(),
+    getStaff({ employmentStatus: ["active"] }),
+  ]);
 
   return (
     <>
@@ -25,8 +32,13 @@ export default async function SalaryAdvanceRequestPage() {
       />
       <SectionNav items={salaryAdvanceNavFor(user)} />
       <RequestPanel
-        advances={MOCK_SALARY_ADVANCES.filter((a) => a.status === "requested")}
-        categories={MOCK_ADVANCE_CATEGORIES}
+        advances={advances}
+        categories={categories}
+        staff={staff.staff.map((member) => ({
+          id: member.id,
+          name: member.name ?? member.employeeNumber,
+          branch: member.branchName ?? "",
+        }))}
       />
     </>
   );

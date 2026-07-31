@@ -1,16 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { toast } from "sonner";
+import { approveAdvance, disburseAdvance, rejectAdvance } from "@/features/salary-advance/actions";
+import type { ActionResult } from "@/lib/domain/action-result";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Eye, HandCoins, Pencil, Trash2 } from "lucide-react";
+import { Banknote, Check, Eye, HandCoins, X } from "lucide-react";
 import { Money, SettingsCard, StatusBadge } from "@/components/settings";
 import { SettingsTable } from "@/components/settings/table";
 import { ConfirmDialog, SettingsDialog } from "@/components/settings/dialog";
-import { Button, Field, IconButton, TextInput } from "@/components/settings/form";
+import { Button, IconButton } from "@/components/settings/form";
 import { formatMoney } from "@/lib/domain/money";
 import { advanceTotals, sumAdvances, type SalaryAdvance } from "@/types/salary-advance";
 import {
@@ -61,42 +60,73 @@ export function AdvanceListPanel({
   emptyTitle: string;
   emptyDescription: string;
 }) {
-  const [rows, setRows] = React.useState(advances);
+  const rows = advances;
   const [viewing, setViewing] = React.useState<SalaryAdvance | null>(null);
-  const [editing, setEditing] = React.useState<SalaryAdvance | null>(null);
+  const [, startTransition] = React.useTransition();
 
-  function remove(advance: SalaryAdvance) {
-    setRows((prev) => prev.filter((a) => a.id !== advance.id));
-    toast.success(`${advance.reference} deleted.`);
+  function run(action: () => Promise<ActionResult>) {
+    startTransition(async () => {
+      const result = await action();
+      if (result.ok) toast.success(result.message);
+      else toast.error(result.message ?? "Something went wrong.");
+    });
   }
 
-  function savePaid(advance: SalaryAdvance, paidAmount: number) {
-    setRows((prev) => prev.map((a) => (a.id === advance.id ? { ...a, paidAmount } : a)));
-    toast.success(`${advance.reference} updated.`);
-  }
-
+  /*
+   * View, and whatever decision this stage actually offers.
+   *
+   * The fixture version offered Delete on every row and an Edit that let
+   * someone type in a paid amount. Neither survives contact with real data: an
+   * advance is recovered by a payroll deduction that posts to the ledger, so
+   * typing over the paid figure would put the advance at odds with 7020 Staff
+   * Advance Receivable and with the payslip that took the money — and a
+   * disbursed advance cannot be deleted at all, because there is a journal
+   * entry behind it. There is no endpoint for either, deliberately.
+   *
+   * What replaces them is the decision each stage genuinely has: approve or
+   * reject a request, disburse an approved one. §11 gives those to different
+   * grants — HR approves, Finance disburses — and the server enforces it.
+   */
   const actions: ColumnDef<SalaryAdvance> = {
     id: "actions",
     header: () => <span className="block text-right">Actions</span>,
-    cell: ({ row }) => (
-      <div className="st-row-action flex justify-end gap-1.5">
-        <IconButton
-          icon={Eye}
-          label={`View ${row.original.reference}`}
-          tone="secondary"
-          onClick={() => setViewing(row.original)}
-        />
-        {variant === "active" && (
+    cell: ({ row }) => {
+      const advance = row.original;
+
+      return (
+        <div className="st-row-action flex justify-end gap-1.5">
           <IconButton
-            icon={Pencil}
-            label={`Edit ${row.original.reference}`}
+            icon={Eye}
+            label={`View ${advance.reference}`}
             tone="secondary"
-            onClick={() => setEditing(row.original)}
+            onClick={() => setViewing(advance)}
           />
-        )}
-        <DeleteAction advance={row.original} onConfirm={remove} />
-      </div>
-    ),
+
+          {advance.status === "requested" && (
+            <>
+              <DecisionAction
+                advance={advance}
+                decision="approve"
+                onConfirm={() => run(() => approveAdvance(advance.id, advance.reference))}
+              />
+              <DecisionAction
+                advance={advance}
+                decision="reject"
+                onConfirm={() => run(() => rejectAdvance(advance.id, advance.reference))}
+              />
+            </>
+          )}
+
+          {advance.status === "approved" && (
+            <DecisionAction
+              advance={advance}
+              decision="disburse"
+              onConfirm={() => run(() => disburseAdvance(advance.id, advance.reference))}
+            />
+          )}
+        </div>
+      );
+    },
   };
 
   /*
@@ -215,36 +245,71 @@ export function AdvanceListPanel({
         />
       </SettingsCard>
 
-      <ViewAdvanceDialog advance={viewing} onClose={() => setViewing(null)} />
-      <EditPaidDialog advance={editing} onClose={() => setEditing(null)} onSave={savePaid} />
+      {viewing && <ViewAdvanceDialog advance={viewing} onClose={() => setViewing(null)} />}
     </>
   );
 }
 
-function DeleteAction({
+/**
+ * One confirm dialog for all three decisions.
+ *
+ * The consequence text is the point: approving commits the company to paying
+ * out, disbursing actually moves money out of the staff fund, and rejecting
+ * closes the request. Each says which.
+ */
+function DecisionAction({
   advance,
+  decision,
   onConfirm,
 }: {
   advance: SalaryAdvance;
-  onConfirm: (advance: SalaryAdvance) => void;
+  decision: "approve" | "reject" | "disburse";
+  onConfirm: () => void;
 }) {
   const [open, setOpen] = React.useState(false);
-  const { remaining } = advanceTotals(advance);
+
+  const copy = {
+    approve: {
+      icon: Check,
+      label: `Approve ${advance.reference}`,
+      title: `Approve ${advance.reference}?`,
+      consequence: `${formatMoney(advance.loanAmount)} will be cleared for ${advance.customerName}. Finance disburses it separately — approving does not move money.`,
+      confirm: "Approve",
+      pending: "Approving…",
+      tone: "primary" as const,
+    },
+    reject: {
+      icon: X,
+      label: `Reject ${advance.reference}`,
+      title: `Reject ${advance.reference}?`,
+      consequence: `The request is closed and nothing is paid. ${advance.customerName} can raise another.`,
+      confirm: "Reject",
+      pending: "Rejecting…",
+      tone: "danger" as const,
+    },
+    disburse: {
+      icon: Banknote,
+      label: `Disburse ${advance.reference}`,
+      title: `Disburse ${advance.reference}?`,
+      consequence: `${formatMoney(advance.loanAmount)} leaves the staff fund and is recovered from ${advance.customerName}'s payslips and recovered from their payslips.`,
+      confirm: "Disburse",
+      pending: "Disbursing…",
+      tone: "primary" as const,
+    },
+  }[decision];
+
   return (
     <ConfirmDialog
       open={open}
       onOpenChange={setOpen}
-      trigger={<IconButton icon={Trash2} label={`Delete ${advance.reference}`} tone="secondary" />}
-      title={`Delete ${advance.reference}?`}
-      consequence={
-        remaining > 0
-          ? `${advance.customerName} still owes ${formatMoney(remaining)} on this advance. Deleting removes the record of the debt, not the debt itself.`
-          : `This advance is settled. The record of it will be removed from the list.`
-      }
-      confirmLabel="Delete"
-      pendingLabel="Deleting…"
+      trigger={<IconButton icon={copy.icon} label={copy.label} tone="secondary" />}
+      title={copy.title}
+      consequence={copy.consequence}
+      confirmLabel={copy.confirm}
+      pendingLabel={copy.pending}
+      tone={copy.tone}
       onConfirm={() => {
-        onConfirm(advance);
+        onConfirm();
         setOpen(false);
       }}
     />
@@ -320,74 +385,11 @@ function ViewAdvanceDialog({
  * advance was priced and are not re-priced here, and the remaining balance
  * stays derived, so a correction cannot put a row out of step with itself.
  */
-function EditPaidDialog({
-  advance,
-  onClose,
-  onSave,
-}: {
-  advance: SalaryAdvance | null;
-  onClose: () => void;
-  onSave: (advance: SalaryAdvance, paidAmount: number) => void;
-}) {
-  const ceiling = advance ? advance.loanAmount + advance.interest : 0;
-  const schema = React.useMemo(
-    () =>
-      z.object({
-        paidAmount: z
-          .number()
-          .nonnegative("A paid amount cannot be negative.")
-          .max(ceiling, `Cannot exceed the ${formatMoney(ceiling)} repayable.`),
-      }),
-    [ceiling]
-  );
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<{ paidAmount: number }>({
-    resolver: zodResolver(schema),
-    defaultValues: { paidAmount: advance?.paidAmount ?? 0 },
-  });
-
-  React.useEffect(() => {
-    if (advance) reset({ paidAmount: advance.paidAmount });
-  }, [advance, reset]);
-
-  if (!advance) return null;
-
-  return (
-    <SettingsDialog
-      open
-      onOpenChange={(next) => !next && onClose()}
-      title={`Edit ${advance.reference}`}
-      description={`${advance.customerName} · repayable ${formatMoney(ceiling)}`}
-      formId="advance-edit-form"
-      onSubmit={handleSubmit((values) => {
-        onSave(advance, values.paidAmount);
-        onClose();
-      })}
-      submitLabel="Save changes"
-      pending={isSubmitting}
-    >
-      <Field
-        label="Paid Amount"
-        htmlFor="ae-paid"
-        required
-        error={errors.paidAmount?.message}
-        help="The remaining balance is recalculated from this; it is never stored separately."
-      >
-        <TextInput
-          id="ae-paid"
-          type="number"
-          step="any"
-          inputMode="decimal"
-          prefix="TSh"
-          invalid={!!errors.paidAmount}
-          {...register("paidAmount", { valueAsNumber: true })}
-        />
-      </Field>
-    </SettingsDialog>
-  );
-}
+/*
+ * EditPaidDialog is gone. It let someone type a paid amount over an advance's
+ * balance, which only made sense against a fixture: recovery is a payroll
+ * deduction that posts to 7020 Staff Advance Receivable, so a hand-typed
+ * figure would put this screen at odds with both the payslip that took the
+ * money and the ledger that recorded it. The Salary Advance Repayment screen
+ * shows what was actually recovered, instalment by instalment.
+ */

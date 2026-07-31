@@ -8,7 +8,6 @@ import { SettingsTable } from "@/components/settings/table";
 import { Select } from "@/components/settings/form";
 import { formatMoney } from "@/lib/domain/money";
 import type { SalaryAdvancePayment } from "@/types/salary-advance";
-import { ADVANCE_BRANCHES } from "@/lib/mock-data/salary-advance";
 import { formatAdvanceDate } from "@/features/salary-advance/shared";
 
 const ALL = "__all__";
@@ -22,6 +21,13 @@ const ALL = "__all__";
  */
 export function PaidListPanel({ payments }: { payments: SalaryAdvancePayment[] }) {
   const [branch, setBranch] = React.useState(ALL);
+
+  // The branches these payments actually came from, so the filter never offers
+  // one with nothing behind it.
+  const branches = React.useMemo(
+    () => [...new Set(payments.map((p) => p.branch).filter(Boolean))].sort(),
+    [payments],
+  );
 
   const filtered = React.useMemo(
     () => payments.filter((p) => branch === ALL || p.branch === branch),
@@ -66,7 +72,7 @@ export function PaidListPanel({ payments }: { payments: SalaryAdvancePayment[] }
           <Filter label="Branch" htmlFor="pl-branch">
             <Select id="pl-branch" value={branch} onChange={(e) => setBranch(e.target.value)}>
               <option value={ALL}>All branches</option>
-              {ADVANCE_BRANCHES.map((b) => (
+              {branches.map((b) => (
                 <option key={b} value={b}>
                   {b}
                 </option>
