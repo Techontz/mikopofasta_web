@@ -15,7 +15,14 @@ import { Button } from "@/components/settings/form";
  * Everything happens client-side: there is no server round trip, which is what
  * lets it work during a design phase with no backend attached.
  */
-export function ExportButton<T extends Record<string, unknown>>({
+/*
+ * Constrained to `object`, not `Record<string, unknown>`. An interface has no
+ * implicit index signature, so the stricter bound rejected every typed row
+ * shape in the app while accepting the inline object literals it was first
+ * written against. Nothing here indexes by an arbitrary string — `key` is
+ * `keyof T` — so the looser bound loses no safety.
+ */
+export function ExportButton<T extends object>({
   rows,
   columns,
   filename,

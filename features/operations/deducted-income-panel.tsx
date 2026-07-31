@@ -3,12 +3,12 @@
 import * as React from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Coins } from "lucide-react";
-import { Filter, FilterBar, Money, SettingsCard } from "@/components/settings";
+import { Filter, FilterBar, Money, SettingsCard, StatCard } from "@/components/settings";
 import { SettingsTable } from "@/components/settings/table";
 import { Select } from "@/components/settings/form";
 import { formatMoney } from "@/lib/domain/money";
-import type { DeductedIncome } from "@/types/operations";
-import { OPS_BRANCHES } from "@/lib/mock-data/operations";
+import { ExportButton } from "@/components/settings/export-button";
+import type { DeductedIncomeRecord } from "@/lib/api/charges";
 import { formatOpsDate } from "@/features/operations/shared";
 
 const ALL = "__all__";
@@ -16,19 +16,39 @@ const ALL = "__all__";
 /**
  * Loan Fee → Deducted Income.
  *
- * The fee taken from a loan at approval, which is income to the company. A
- * read-only ledger: the figure was decided when the loan was priced, so there
- * is nothing here to edit.
+ * The fee withheld from a loan at disbursement, which is income to the company.
+ *
+ * Read-only, and necessarily so: the figure was fixed by the fee terms
+ * snapshotted onto the loan when it was applied for, and posting it credited
+ * 2100 Fee Income. Editing it here would put this screen at odds with the
+ * ledger, and the ledger would be the one that is right.
+ *
+ * `loanApproved` is what the borrower owes; `incomeAmount` is what was kept
+ * back. The borrower received the difference — which is what "deducted" means.
  */
-export function DeductedIncomePanel({ rows }: { rows: DeductedIncome[] }) {
+export function DeductedIncomePanel({
+  rows,
+  totals,
+  branches,
+}: {
+  rows: DeductedIncomeRecord[];
+  /** Over the whole set on the server, not just this page. */
+  totals: { income: number; approved: number };
+  branches?: string[];
+}) {
   const [branch, setBranch] = React.useState(ALL);
+
+  const branchOptions = React.useMemo(
+    () => branches ?? [...new Set(rows.map((r) => r.branch).filter(Boolean))].sort(),
+    [branches, rows]
+  );
 
   const filtered = React.useMemo(
     () => rows.filter((r) => branch === ALL || r.branch === branch),
     [rows, branch]
   );
 
-  const columns: ColumnDef<DeductedIncome>[] = [
+  const columns: ColumnDef<DeductedIncomeRecord>[] = [
     {
       id: "sn",
       header: "S/NO.",
@@ -66,9 +86,36 @@ export function DeductedIncomePanel({ rows }: { rows: DeductedIncome[] }) {
   ];
 
   return (
-    <SettingsCard
+    <>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <StatCard
+          label="Fee Income"
+          value={formatMoney(totals.income)}
+          icon={Coins}
+          tone="accent"
+          hint="What 2100 Fee Income holds"
+        />
+        <StatCard label="Loans Approved" value={formatMoney(totals.approved)} icon={Coins} />
+      </div>
+
+      <SettingsCard
       title={`Loan Fee (${filtered.length})`}
-      description="Fees deducted at loan approval, recorded as income."
+      description="Fees withheld at disbursement, recorded as income."
+      actions={
+        <ExportButton
+          rows={filtered}
+          columns={[
+            { header: "Customer", key: "customerName" },
+            { header: "Loan", key: "loanNumber" },
+            { header: "Branch", key: "branch" },
+            { header: "Loan Approved", key: "loanApproved" },
+            { header: "Income", key: "incomeAmount" },
+            { header: "Net Disbursed", key: "netDisbursed" },
+            { header: "Date", key: "date" },
+          ]}
+          filename="deducted-income"
+        />
+      }
       bodyClassName="pt-0 sm:pt-0"
     >
       <div className="space-y-4">
@@ -76,7 +123,7 @@ export function DeductedIncomePanel({ rows }: { rows: DeductedIncome[] }) {
           <Filter label="Branch" htmlFor="di-branch">
             <Select id="di-branch" value={branch} onChange={(e) => setBranch(e.target.value)}>
               <option value={ALL}>All branches</option>
-              {OPS_BRANCHES.map((b) => (
+              {branchOptions.map((b) => (
                 <option key={b} value={b}>
                   {b}
                 </option>
@@ -114,6 +161,7 @@ export function DeductedIncomePanel({ rows }: { rows: DeductedIncome[] }) {
           )}
         />
       </div>
-    </SettingsCard>
+      </SettingsCard>
+    </>
   );
 }
