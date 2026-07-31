@@ -11,6 +11,7 @@ import type {
 import type { PayrollRun, PayrollLine, Allowance, Deduction } from "@/types/payroll";
 import type { CommissionPool, CommissionDistribution, ZoneCommissionDistribution } from "@/types/commission";
 import type { Role } from "@/types/auth";
+import type { AllowanceType, DeductionType } from "@/types/enums";
 
 /**
  * HR, Payroll & Commission — backend §2.9, §11, §15.5.
@@ -264,9 +265,21 @@ interface StaffLoanWire {
   staffProfileId: string;
   amount: string;
   status: StaffLoan["status"];
-  disbursedAt: string;
-  journalEntryId: string;
+  // Both null until Finance disburses.
+  disbursedAt: string | null;
+  journalEntryId: string | null;
   staffName?: string | null;
+  reference: string;
+  statusLabel: string;
+  amountRecovered: string;
+  recoveryPeriods: number;
+  outstanding: string;
+  nextRecovery: string;
+  requestedAt: string | null;
+  approvedAt: string | null;
+  closedAt: string | null;
+  rejectionReason: string | null;
+  approvedByName?: string | null;
 }
 
 interface StaffAdvanceWire {
@@ -291,16 +304,39 @@ interface PerformanceWire {
   rating: StaffPerformanceRecord["rating"];
   recordedBy: string;
   staffName?: string | null;
+  recordedByName?: string | null;
 }
 
+/**
+ * `StaffLoan` plus its terms and its progress.
+ *
+ * The schema was written when a staff loan had an amount and nothing else, so
+ * a screen could not say what was left to repay — and nothing in the system
+ * could, either: the loan never closed and payroll kept deducting a flat figure
+ * past full repayment. See the API's docs/modules/hr-payroll.md.
+ */
 export interface StaffLoanWithName extends StaffLoan {
   staffName: string | null;
+  reference: string;
+  statusLabel: string;
+  amountRecovered: number;
+  recoveryPeriods: number;
+  /** What is still owed, and what the next payslip will take. */
+  outstanding: number;
+  nextRecovery: number;
+  requestedAt: string | null;
+  approvedAt: string | null;
+  closedAt: string | null;
+  rejectionReason: string | null;
+  approvedByName: string | null;
 }
 export interface StaffAdvanceWithName extends StaffAdvance {
   staffName: string | null;
 }
 export interface PerformanceRecordWithName extends StaffPerformanceRecord {
   staffName: string | null;
+  /** The manager who recorded it, resolved server-side. */
+  recordedByName: string | null;
 }
 
 function toStaffLoan(wire: StaffLoanWire): StaffLoanWithName {
@@ -309,9 +345,21 @@ function toStaffLoan(wire: StaffLoanWire): StaffLoanWithName {
     staffProfileId: wire.staffProfileId,
     amount: num(wire.amount),
     status: wire.status,
+    // Null until Finance disburses — a requested loan has moved no money.
     disbursedAt: wire.disbursedAt,
     journalEntryId: wire.journalEntryId,
     staffName: wire.staffName ?? null,
+    reference: wire.reference,
+    statusLabel: wire.statusLabel,
+    amountRecovered: num(wire.amountRecovered),
+    recoveryPeriods: wire.recoveryPeriods,
+    outstanding: num(wire.outstanding),
+    nextRecovery: num(wire.nextRecovery),
+    requestedAt: wire.requestedAt,
+    approvedAt: wire.approvedAt,
+    closedAt: wire.closedAt,
+    rejectionReason: wire.rejectionReason,
+    approvedByName: wire.approvedByName ?? null,
   };
 }
 
@@ -340,6 +388,7 @@ function toPerformance(wire: PerformanceWire): PerformanceRecordWithName {
     rating: wire.rating,
     recordedBy: wire.recordedBy,
     staffName: wire.staffName ?? null,
+    recordedByName: wire.recordedByName ?? null,
   };
 }
 
@@ -351,9 +400,49 @@ export async function getStaffAdvances(status?: string): Promise<StaffAdvanceWit
   return wire.map(toAdvance);
 }
 
-export async function getStaffLoans(): Promise<StaffLoanWithName[]> {
-  const wire = await apiData<StaffLoanWire[]>("/api/v1/staff/loans", { token: await token() });
+export async function getStaffLoans(filters?: {
+  status?: string;
+  staffProfileId?: string;
+}): Promise<StaffLoanWithName[]> {
+  const wire = await apiData<StaffLoanWire[]>("/api/v1/staff/loans", {
+    token: await token(),
+    query: { status: filters?.status, staff_profile_id: filters?.staffProfileId },
+  });
   return wire.map(toStaffLoan);
+}
+
+/**
+ * §14's lifecycle: request → HR approval → Finance disbursement.
+ *
+ * §16.8 gives disbursement to Finance and never to HR, enforced by the API on
+ * a different permission — not re-checked here.
+ */
+export async function requestStaffLoanRequest(input: {
+  staffProfileId: string;
+  amount: number;
+  recoveryPeriods: number;
+}): Promise<StaffLoanWithName> {
+  return toStaffLoan(
+    await apiData<StaffLoanWire>("/api/v1/staff/loan/request", {
+      method: "POST",
+      token: await token(),
+      body: input,
+    })
+  );
+}
+
+export async function decideStaffLoanRequest(
+  action: "approve" | "reject" | "disburse",
+  loanId: string,
+  reason?: string
+): Promise<StaffLoanWithName> {
+  return toStaffLoan(
+    await apiData<StaffLoanWire>(`/api/v1/staff/loan/${action}`, {
+      method: "POST",
+      token: await token(),
+      body: { loanId, reason },
+    })
+  );
 }
 
 export async function getPerformanceRecords(period?: string): Promise<PerformanceRecordWithName[]> {
@@ -433,6 +522,13 @@ interface PayrollRunWire {
   status: PayrollRun["status"];
   generatedBy: string;
   finalizedAt: string | null;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  paidAt: string | null;
+  generatedByName?: string | null;
+  approvedByName?: string | null;
+  finalizedByName?: string | null;
+  paidByName?: string | null;
   lines?: PayrollLineWire[];
   lineCount?: number;
   netTotal?: string;
@@ -449,6 +545,27 @@ export interface PayrollRunWithLines extends PayrollRun {
   /** Computed by the API so a total can never disagree with the lines it came from. */
   lineCount: number;
   netTotal: number;
+
+  /**
+   * HR's sign-off — §16.1's moment, after which the figures stop being
+   * editable. Added in Module 7: before it a draft could be regenerated right
+   * up until Finance posted it, so nothing marked the figures as agreed.
+   */
+  approvedBy: string | null;
+  approvedAt: string | null;
+  paidAt: string | null;
+
+  /**
+   * The four actors by name.
+   *
+   * Resolved server-side because /users needs `users.manage`, which the roles
+   * that read payroll do not hold — so without these a screen could only print
+   * an id, which tells a reader nothing.
+   */
+  generatedByName: string | null;
+  approvedByName: string | null;
+  finalizedByName: string | null;
+  paidByName: string | null;
 }
 
 function toPayrollLine(wire: PayrollLineWire): PayrollLineWithDetail {
@@ -487,6 +604,13 @@ function toPayrollRun(wire: PayrollRunWire): PayrollRunWithLines {
     status: wire.status,
     generatedBy: wire.generatedBy,
     finalizedAt: wire.finalizedAt,
+    approvedBy: wire.approvedBy ?? null,
+    approvedAt: wire.approvedAt ?? null,
+    paidAt: wire.paidAt ?? null,
+    generatedByName: wire.generatedByName ?? null,
+    approvedByName: wire.approvedByName ?? null,
+    finalizedByName: wire.finalizedByName ?? null,
+    paidByName: wire.paidByName ?? null,
     lines,
     lineCount: wire.lineCount ?? lines.length,
     netTotal: num(wire.netTotal),
@@ -540,6 +664,21 @@ export async function generatePayrollRequest(period: string): Promise<PayrollRun
     method: "POST",
     token: await token(),
     body: { period },
+  });
+  return toPayrollRun(wire);
+}
+
+/**
+ * HR signs the figures off — §16.7.
+ *
+ * Posts nothing; Finance still does that at finalization. What it does is close
+ * the figures, so §16.1's "salary cannot change after approval" has a moment to
+ * refer to.
+ */
+export async function approvePayrollRequest(runId: string): Promise<PayrollRunWithLines> {
+  const wire = await apiData<PayrollRunWire>(`/api/v1/payroll/${runId}/approve`, {
+    method: "POST",
+    token: await token(),
   });
   return toPayrollRun(wire);
 }
@@ -697,4 +836,280 @@ export async function generateCommissionRequest(period: string): Promise<Commiss
     blockedByLoss: meta?.blockedByLoss ?? 0,
     zoneOverrides: [],
   };
+}
+
+// ---------------------------------------------------------------------------
+// Payslips, allowances, deductions and the Staff Fund — Module 7
+// ---------------------------------------------------------------------------
+
+/**
+ * A payroll line seen from the employee's side — Bank → Payroll, and §17's
+ * "Staff Payslip".
+ *
+ * The same row `PayrollLineWithDetail` describes, with the person attached.
+ * Both exist because the two screens ask different questions: a payroll run
+ * lists people who are already identified, while a payslip is about one of
+ * them, their branch and their bank account.
+ */
+export interface PayslipRecord {
+  id: string;
+  payrollRunId: string;
+  period: string;
+  staffProfileId: string;
+  employee: string;
+  staffNo: string;
+  /** The role. The legacy column says Department; this system has no such entity. */
+  department: string | null;
+  branch: string | null;
+  phone: string | null;
+  bankName: string | null;
+  accountNumber: string | null;
+  paymentMethod: string;
+  salary: number;
+  commissionAmount: number;
+  allowancesTotal: number;
+  deductionsTotal: number;
+  grossPay: number;
+  netSalary: number;
+  /** The run's status — a payroll is paid as one act, not per employee. */
+  status: PayrollRun["status"];
+  paidOn: string | null;
+  journalEntryId: string | null;
+  allowances: { id: string; label: string; amount: number }[];
+  deductions: { id: string; label: string; amount: number; referenceId: string | null }[];
+}
+
+interface PayslipWire extends Omit<
+  PayslipRecord,
+  "salary" | "commissionAmount" | "allowancesTotal" | "deductionsTotal" | "grossPay" | "netSalary" | "allowances" | "deductions"
+> {
+  salary: string;
+  commissionAmount: string;
+  allowancesTotal: string;
+  deductionsTotal: string;
+  grossPay: string;
+  netSalary: string;
+  allowances: { id: string; label: string; amount: string }[];
+  deductions: { id: string; label: string; amount: string; referenceId: string | null }[];
+}
+
+function toPayslip(wire: PayslipWire): PayslipRecord {
+  return {
+    ...wire,
+    salary: num(wire.salary),
+    commissionAmount: num(wire.commissionAmount),
+    allowancesTotal: num(wire.allowancesTotal),
+    deductionsTotal: num(wire.deductionsTotal),
+    grossPay: num(wire.grossPay),
+    netSalary: num(wire.netSalary),
+    allowances: wire.allowances.map((a) => ({ ...a, amount: num(a.amount) })),
+    deductions: wire.deductions.map((d) => ({ ...d, amount: num(d.amount) })),
+  };
+}
+
+export interface PayslipList {
+  payslips: PayslipRecord[];
+  /** The period being shown, and every period that has a run. */
+  period: string | null;
+  periods: string[];
+  totalNet: number;
+  totalGross: number;
+  totalDeductions: number;
+}
+
+/**
+ * Defaults to the latest period. A screen whose opening view was every payslip
+ * ever issued would be unreadable and would grow without bound.
+ */
+export async function getPayslips(filters?: {
+  period?: string;
+  staffProfileId?: string;
+  branchId?: string;
+}): Promise<PayslipList> {
+  const { data, meta } = await apiRequest<PayslipWire[]>("/api/v1/payslips", {
+    token: await token(),
+    query: {
+      period: filters?.period,
+      staff_profile_id: filters?.staffProfileId,
+      branch_id: filters?.branchId,
+    },
+  });
+
+  return {
+    payslips: data.map(toPayslip),
+    period: (meta?.period as string | null) ?? null,
+    periods: (meta?.periods as string[]) ?? [],
+    totalNet: num(meta?.totalNet as string | undefined),
+    totalGross: num(meta?.totalGross as string | undefined),
+    totalDeductions: num(meta?.totalDeductions as string | undefined),
+  };
+}
+
+/** One employee's payment history, newest first. */
+export async function getStaffPayslips(
+  staffProfileId: string
+): Promise<{ payslips: PayslipRecord[]; totalPaid: number }> {
+  const { data, meta } = await apiRequest<PayslipWire[]>(
+    `/api/v1/staff/${staffProfileId}/payslips`,
+    { token: await token() }
+  );
+
+  return { payslips: data.map(toPayslip), totalPaid: num(meta?.totalPaid as string | undefined) };
+}
+
+/** What an employee is entitled to draw — §10. */
+export interface StaffAllowanceRecord {
+  id: string;
+  staffProfileId: string;
+  type: AllowanceType;
+  amount: number;
+  /** Null means recurring; a period means that month alone. */
+  period: string | null;
+  recurring: boolean;
+  reason: string | null;
+  active: boolean;
+  createdAt: string | null;
+  createdByName: string | null;
+}
+
+export async function getStaffAllowances(staffProfileId: string): Promise<StaffAllowanceRecord[]> {
+  const wire = await apiData<(Omit<StaffAllowanceRecord, "amount"> & { amount: string })[]>(
+    `/api/v1/staff/${staffProfileId}/allowances`,
+    { token: await token() }
+  );
+
+  return wire.map((a) => ({ ...a, amount: num(a.amount) }));
+}
+
+export interface StaffAllowanceInput {
+  type: AllowanceType;
+  amount: number;
+  period?: string | null;
+  reason?: string | null;
+}
+
+export async function grantStaffAllowanceRequest(
+  staffProfileId: string,
+  input: StaffAllowanceInput
+): Promise<void> {
+  await apiData(`/api/v1/staff/${staffProfileId}/allowances`, {
+    method: "POST",
+    token: await token(),
+    body: input,
+  });
+}
+
+export async function updateStaffAllowanceRequest(
+  allowanceId: string,
+  input: StaffAllowanceInput
+): Promise<void> {
+  await apiData(`/api/v1/staff-allowances/${allowanceId}`, {
+    method: "PUT",
+    token: await token(),
+    body: input,
+  });
+}
+
+export async function revokeStaffAllowanceRequest(allowanceId: string): Promise<void> {
+  await apiData(`/api/v1/staff-allowances/${allowanceId}`, {
+    method: "DELETE",
+    token: await token(),
+  });
+}
+
+/**
+ * A penalty withheld from somebody's pay — §11.
+ *
+ * The only deduction type a person records. Staff fund, loan and advance
+ * recoveries are computed by payroll from a rate or a balance, and a
+ * hand-entered one would be deducted twice.
+ */
+export interface StaffDeductionRecord {
+  id: string;
+  staffProfileId: string;
+  type: DeductionType;
+  amount: number;
+  period: string;
+  reason: string;
+  createdAt: string | null;
+  createdByName: string | null;
+}
+
+export async function getStaffDeductions(staffProfileId: string): Promise<StaffDeductionRecord[]> {
+  const wire = await apiData<(Omit<StaffDeductionRecord, "amount"> & { amount: string })[]>(
+    `/api/v1/staff/${staffProfileId}/deductions`,
+    { token: await token() }
+  );
+
+  return wire.map((d) => ({ ...d, amount: num(d.amount) }));
+}
+
+export async function recordStaffDeductionRequest(
+  staffProfileId: string,
+  input: { amount: number; period: string; reason: string }
+): Promise<void> {
+  await apiData(`/api/v1/staff/${staffProfileId}/deductions`, {
+    method: "POST",
+    token: await token(),
+    body: { ...input, type: "penalty" },
+  });
+}
+
+export async function cancelStaffDeductionRequest(deductionId: string): Promise<void> {
+  await apiData(`/api/v1/staff-deductions/${deductionId}`, {
+    method: "DELETE",
+    token: await token(),
+  });
+}
+
+/** §12's internal revolving fund. */
+export interface StaffFundPosition {
+  balance: number;
+  contributions: number;
+  advancesOutstanding: number;
+  loansOutstanding: number;
+  lentOut: number;
+  memberCount: number;
+}
+
+export async function getStaffFund(): Promise<StaffFundPosition> {
+  const wire = await apiData<Record<string, string | number>>("/api/v1/staff-fund", {
+    token: await token(),
+  });
+
+  return {
+    balance: num(wire.balance),
+    contributions: num(wire.contributions),
+    advancesOutstanding: num(wire.advancesOutstanding),
+    loansOutstanding: num(wire.loansOutstanding),
+    lentOut: num(wire.lentOut),
+    memberCount: Number(wire.memberCount ?? 0),
+  };
+}
+
+/**
+ * §2B's four accounts for one employee — Staff Control, Staff Loan, Staff
+ * Advance, Staff Deductions.
+ *
+ * Views over the `staff_profile_id` dimension on journal lines rather than four
+ * real chart rows per person, which is how §11 resolves the document's promise
+ * that "hakuna pesa ya staff inayoenda nje ya mfumo".
+ */
+export interface StaffLedgerView {
+  code: string;
+  name: string;
+  balance: number;
+}
+
+export async function getStaffLedger(
+  staffProfileId: string
+): Promise<Record<string, StaffLedgerView>> {
+  const wire = await apiData<Record<string, { code: string; name: string; balance: string }>>(
+    `/api/v1/staff/${staffProfileId}/ledger`,
+    { token: await token() }
+  );
+
+  return Object.fromEntries(
+    Object.entries(wire).map(([key, view]) => [key, { ...view, balance: num(view.balance) }])
+  );
 }

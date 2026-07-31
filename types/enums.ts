@@ -149,7 +149,15 @@ export type StaffPaymentMethod = (typeof STAFF_PAYMENT_METHODS)[number];
 export const EMPLOYMENT_STATUSES = toEnum(["active", "suspended", "terminated"]);
 export type EmploymentStatus = (typeof EMPLOYMENT_STATUSES)[number];
 
-export const PAYROLL_RUN_STATUSES = toEnum(["draft", "finalized", "paid"]);
+/**
+ * `approved` sits between the draft and the posting.
+ *
+ * §16.1 of the HR document — "Salary haiwezi kubadilishwa baada ya approval" —
+ * needs a moment for "after approval" to refer to, and the run had none: HR
+ * generated a draft that could be regenerated at will and Finance posted it.
+ * §16.7 gives the approval to HR; §16.8 gives the disbursement to Finance.
+ */
+export const PAYROLL_RUN_STATUSES = toEnum(["draft", "approved", "finalized", "paid"]);
 export type PayrollRunStatus = (typeof PAYROLL_RUN_STATUSES)[number];
 
 export const ALLOWANCE_TYPES = toEnum(["transport", "airtime", "bonus"]);
@@ -158,7 +166,19 @@ export type AllowanceType = (typeof ALLOWANCE_TYPES)[number];
 export const DEDUCTION_TYPES = toEnum(["staff_fund", "loan", "advance", "penalty"]);
 export type DeductionType = (typeof DEDUCTION_TYPES)[number];
 
-export const STAFF_LOAN_STATUSES = toEnum(["active", "closed"]);
+/**
+ * `active` and `closed` were the only two, and nothing in the system ever set
+ * `closed` — so a staff loan never finished and payroll deducted against it
+ * indefinitely. The lifecycle states are §16.7–16.8's, the same three an
+ * advance already walked.
+ */
+export const STAFF_LOAN_STATUSES = toEnum([
+  "requested",
+  "approved",
+  "active",
+  "closed",
+  "rejected",
+]);
 export type StaffLoanStatus = (typeof STAFF_LOAN_STATUSES)[number];
 
 export const STAFF_ADVANCE_STATUSES = toEnum(["requested", "approved", "disbursed", "recovered", "rejected"]);

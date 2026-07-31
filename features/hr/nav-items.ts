@@ -16,9 +16,14 @@ const HR: { href: string; label: string; permissions: Permission[] }[] = [
   { href: "/hr/payroll", label: "Payroll", permissions: [PERMISSIONS.HR_VIEW, PERMISSIONS.PAYROLL_FINALIZE] },
   { href: "/hr/commission", label: "Commission", permissions: [PERMISSIONS.HR_VIEW] },
   { href: "/hr/staff-advances", label: "Loans & Advances", permissions: [PERMISSIONS.HR_VIEW, PERMISSIONS.PAYROLL_FINALIZE] },
-  /* `GET /staff/loans` is gated on hr.view alone — it is a read, and Finance
-     has no disbursement step on a staff loan the way it does on an advance. */
-  { href: "/hr/staff-loans", label: "Staff Loan", permissions: [PERMISSIONS.HR_VIEW] },
+  /*
+   * Reading loans needs `hr.view`; §16.8 gives their disbursement to Finance,
+   * exactly as it does an advance's, so this is on both grants now that the
+   * lifecycle exists.
+   */
+  { href: "/hr/staff-loans", label: "Staff Loan", permissions: [PERMISSIONS.HR_VIEW, PERMISSIONS.PAYROLL_FINALIZE] },
+  /* §12's revolving fund, and §17's "Staff Fund Balance". */
+  { href: "/hr/staff-fund", label: "Staff Fund", permissions: [PERMISSIONS.HR_VIEW] },
   { href: "/hr/performance", label: "Performance", permissions: [PERMISSIONS.HR_VIEW] },
 ];
 

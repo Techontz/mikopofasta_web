@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import {
   approveAdvanceRequest,
+  approvePayrollRequest,
+  decideStaffLoanRequest,
   disburseAdvanceRequest,
   finalizePayrollRequest,
   generateCommissionRequest,
@@ -12,6 +14,7 @@ import {
   registerStaffRequest,
   rejectAdvanceRequest,
   requestAdvanceRequest,
+  requestStaffLoanRequest,
   updateStaffRequest,
   type RegisterStaffInput,
   type UpdateStaffInput,
@@ -42,6 +45,9 @@ function revalidateHr() {
   revalidatePath("/hr/commission");
   revalidatePath("/hr/staff-advances");
   revalidatePath("/hr/performance");
+  revalidatePath("/hr/staff-loans");
+  // Bank → Payroll reads the same runs from the payslip side.
+  revalidatePath("/treasury/payroll");
 }
 
 // ---------------------------------------------------------------------------
@@ -109,6 +115,32 @@ export async function generatePayroll(period: string): Promise<ActionResult & { 
   };
 }
 
+/**
+ * HR signs the figures off — §16.7.
+ *
+ * §16.1: "Salary haiwezi kubadilishwa baada ya approval." From here the period
+ * is closed to regeneration and to any allowance or penalty change, which is
+ * what makes that sentence enforceable rather than a statement of intent.
+ *
+ * It posts nothing. Finance still finalizes, and finalizing is what reaches the
+ * ledger — §14's separation, unchanged.
+ */
+export async function approvePayroll(runId: string): Promise<ActionResult> {
+  let run;
+
+  try {
+    run = await approvePayrollRequest(runId);
+  } catch (error) {
+    return { ok: false, message: describeError(error) };
+  }
+
+  revalidateHr();
+  return {
+    ok: true,
+    message: `Payroll ${run.period} approved — ${run.lineCount} staff. Finance can now post it.`,
+  };
+}
+
 export async function finalizePayroll(runId: string): Promise<ActionResult> {
   let run;
 
@@ -133,6 +165,65 @@ export async function payPayroll(runId: string): Promise<ActionResult> {
 
   revalidateHr();
   return { ok: true, message: `Payroll ${run.period} paid out to ${run.lineCount} staff.` };
+}
+
+// ---------------------------------------------------------------------------
+// Staff loans — §14, and §16.7–16.8's approval/disbursement split
+// ---------------------------------------------------------------------------
+
+/**
+ * Raising a loan against the Staff Fund.
+ *
+ * `recoveryPeriods` is the whole reason this is not a two-field form: the
+ * instalment is the principal spread over the agreed term, and the flat figure
+ * it replaced was never capped — a loan went on being deducted after it was
+ * fully repaid, because nothing ever closed one.
+ */
+export async function requestStaffLoan(input: {
+  staffProfileId: string;
+  amount: number;
+  recoveryPeriods: number;
+}): Promise<ActionResult> {
+  if (!input.staffProfileId) return { ok: false, message: "Choose a staff member." };
+  if (!(input.amount > 0)) return { ok: false, message: "Enter an amount greater than zero." };
+  if (!(input.recoveryPeriods >= 1)) {
+    return { ok: false, message: "A loan is recovered over at least one payslip." };
+  }
+
+  let loan;
+
+  try {
+    loan = await requestStaffLoanRequest(input);
+  } catch (error) {
+    return { ok: false, message: describeError(error) };
+  }
+
+  revalidateHr();
+  return { ok: true, message: `Staff loan ${loan.reference} requested.` };
+}
+
+export async function decideStaffLoan(
+  action: "approve" | "reject" | "disburse",
+  loanId: string,
+  reason?: string
+): Promise<ActionResult> {
+  let loan;
+
+  try {
+    /*
+     * Disbursement is Finance's alone — §16.8. An HR user calling it gets a 403
+     * from the API, which is surfaced rather than pre-empted: the control
+     * belongs where it cannot be bypassed.
+     */
+    loan = await decideStaffLoanRequest(action, loanId, reason);
+  } catch (error) {
+    return { ok: false, message: describeError(error) };
+  }
+
+  revalidateHr();
+
+  const verb = { approve: "approved", reject: "rejected", disburse: "disbursed" }[action];
+  return { ok: true, message: `Staff loan ${loan.reference} ${verb}.` };
 }
 
 // ---------------------------------------------------------------------------

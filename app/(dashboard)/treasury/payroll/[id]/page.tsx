@@ -12,8 +12,7 @@ import { Money, PageHeader, SettingsCard, StatCard, StatusBadge } from "@/compon
 import { SectionNav } from "@/features/ledger/section-nav";
 import { treasuryNavFor } from "@/features/ledger/nav-items";
 import { formatMoneyExact } from "@/lib/domain/money";
-import { payrollTotals } from "@/types/bank";
-import { MOCK_PAYROLL_ROWS } from "@/lib/mock-data/bank";
+import { getPayslips, getStaffPayslips } from "@/lib/api/hr";
 import { FactGrid, PAYROLL_TONE, formatDate, formatPeriod, type Fact } from "@/features/bank/shared";
 import { PayslipActions } from "@/features/bank/payslip-actions";
 
@@ -23,18 +22,40 @@ export default async function PayrollDetailsPage({ params }: { params: Promise<{
   if (!user) redirect("/login");
   if (!hasPermission(user, PERMISSIONS.TREASURY_VIEW)) return <AccessDeniedState />;
 
-  const row = MOCK_PAYROLL_ROWS.find((r) => r.id === id);
+  /*
+   * A payslip is a payroll LINE, and the id is that line's. The latest period
+   * is checked first because that is where nearly every link comes from; the
+   * others only if it is not there, so a link from an older month still opens.
+   */
+  const latest = await getPayslips();
+  let row = latest.payslips.find((p) => p.id === id);
+
+  if (!row) {
+    for (const period of latest.periods) {
+      const found = (await getPayslips({ period })).payslips.find((p) => p.id === id);
+      if (found) {
+        row = found;
+        break;
+      }
+    }
+  }
+
   if (!row) notFound();
 
-  const { allowancesTotal, deductionsTotal, gross, net } = payrollTotals(row);
+  // This employee's own history, which is what the panel at the bottom shows.
+  const { payslips: paymentHistory } = await getStaffPayslips(row.staffProfileId);
+
+  const { allowancesTotal, deductionsTotal, netSalary: net } = row;
+  const gross = row.grossPay;
+  const paid = row.status === "paid";
 
   const employee: Fact[] = [
     { label: "Staff no", value: row.staffNo, mono: true },
-    { label: "Department", value: row.department },
-    { label: "Branch", value: row.branch },
-    { label: "Phone", value: row.phone, mono: true },
-    { label: "Bank", value: row.bankName },
-    { label: "Account no", value: row.accountNumber, mono: true },
+    { label: "Department", value: row.department ?? "—" },
+    { label: "Branch", value: row.branch ?? "—" },
+    { label: "Phone", value: row.phone ?? "—", mono: true },
+    { label: "Bank", value: row.bankName ?? "—" },
+    { label: "Account no", value: row.accountNumber ?? "—", mono: true },
     { label: "Period", value: formatPeriod(row.period) },
     { label: "Paid on", value: formatDate(row.paidOn), mono: true },
   ];
@@ -46,7 +67,7 @@ export default async function PayrollDetailsPage({ params }: { params: Promise<{
       <PageHeader
         icon={ReceiptText}
         title={row.employee}
-        description={`${row.department} · ${row.branch} · ${formatPeriod(row.period)}`}
+        description={`${row.department ?? "—"} · ${row.branch ?? "—"} · ${formatPeriod(row.period)}`}
         breadcrumb={[
           { label: "Bank", href: "/treasury" },
           { label: "Payroll", href: "/treasury/payroll" },
@@ -54,8 +75,12 @@ export default async function PayrollDetailsPage({ params }: { params: Promise<{
         ]}
         actions={
           <>
-            <StatusBadge tone={PAYROLL_TONE[row.status]} className="capitalize">
-              {row.status}
+            {/*
+              A payslip has no status of its own — §11 pays a run as one act —
+              so this reads off the run: paid, or pending until it is.
+            */}
+            <StatusBadge tone={PAYROLL_TONE[paid ? "paid" : "pending"]} className="capitalize">
+              {paid ? "paid" : "pending"}
             </StatusBadge>
             <PayslipActions label={`${row.employee} payslip`} />
             <Link href="/treasury/payroll" className="st-btn st-btn-secondary st-print-hide">
@@ -108,9 +133,23 @@ export default async function PayrollDetailsPage({ params }: { params: Promise<{
                 </td>
               </tr>
 
+              {row.commissionAmount > 0 && (
+                <tr>
+                  <td className="text-[var(--st-ink)]">Commission</td>
+                  <td>
+                    <StatusBadge tone="info" dot={false}>
+                      Earning
+                    </StatusBadge>
+                  </td>
+                  <td>
+                    <Money>+{formatMoneyExact(row.commissionAmount)}</Money>
+                  </td>
+                </tr>
+              )}
+
               {row.allowances.map((a) => (
                 <tr key={`allow-${a.label}`}>
-                  <td className="text-[var(--st-ink)]">{a.label}</td>
+                  <td className="text-[var(--st-ink)] capitalize">{a.label.replace(/_/g, " ")}</td>
                   <td>
                     <StatusBadge tone="info" dot={false}>
                       Allowance
@@ -143,7 +182,7 @@ export default async function PayrollDetailsPage({ params }: { params: Promise<{
               ) : (
                 row.deductions.map((d) => (
                   <tr key={`ded-${d.label}`}>
-                    <td className="text-[var(--st-ink)]">{d.label}</td>
+                    <td className="text-[var(--st-ink)] capitalize">{d.label.replace(/_/g, " ")}</td>
                     <td>
                       <StatusBadge tone="warning" dot={false}>
                         Deduction
@@ -170,11 +209,11 @@ export default async function PayrollDetailsPage({ params }: { params: Promise<{
       </SettingsCard>
 
       <SettingsCard
-        title={`Payment History (${row.payments.length})`}
+        title={`Payment History (${paymentHistory.length})`}
         description="What has actually been paid to this employee, newest first."
-        bodyClassName={row.payments.length === 0 ? undefined : "p-0 sm:p-0"}
+        bodyClassName={paymentHistory.length === 0 ? undefined : "p-0 sm:p-0"}
       >
-        {row.payments.length === 0 ? (
+        {paymentHistory.length === 0 ? (
           <EmptyState
             icon={Wallet}
             title="No payments yet"
@@ -196,10 +235,18 @@ export default async function PayrollDetailsPage({ params }: { params: Promise<{
                 </tr>
               </thead>
               <tbody>
-                {row.payments.map((p) => (
+                {paymentHistory.map((p) => (
                   <tr key={p.id}>
                     <td className="font-medium text-[var(--st-ink)]">{formatPeriod(p.period)}</td>
-                    <td className="font-tabular text-[var(--st-ink-soft)]">{p.reference}</td>
+                    {/*
+                      The journal entry the run posted, which is the reference
+                      that can actually be traced. A payslip carries no separate
+                      document number, and inventing one would print a reference
+                      nothing in the ledger answers to.
+                    */}
+                    <td className="font-tabular text-[var(--st-ink-soft)]">
+                      {p.journalEntryId ? `JE-${p.journalEntryId}` : "—"}
+                    </td>
                     <td className="font-tabular whitespace-nowrap text-[var(--st-ink-soft)]">
                       {formatDate(p.paidOn)}
                     </td>
@@ -207,8 +254,11 @@ export default async function PayrollDetailsPage({ params }: { params: Promise<{
                       <Money strong>{formatMoneyExact(p.netSalary)}</Money>
                     </td>
                     <td>
-                      <StatusBadge tone={PAYROLL_TONE[p.status]} className="capitalize">
-                        {p.status}
+                      <StatusBadge
+                        tone={PAYROLL_TONE[p.status === "paid" ? "paid" : "pending"]}
+                        className="capitalize"
+                      >
+                        {p.status === "paid" ? "paid" : "pending"}
                       </StatusBadge>
                     </td>
                   </tr>
@@ -219,7 +269,11 @@ export default async function PayrollDetailsPage({ params }: { params: Promise<{
                   </td>
                   <td>
                     <Money strong>
-                      {formatMoneyExact(row.payments.reduce((s, p) => s + p.netSalary, 0))}
+                      {formatMoneyExact(
+                        paymentHistory
+                          .filter((p) => p.status === "paid")
+                          .reduce((s, p) => s + p.netSalary, 0)
+                      )}
                     </Money>
                   </td>
                   <td />

@@ -7,7 +7,6 @@ import { hasAnyPermission, hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
 import { formatMoneyExact, round2 } from "@/lib/domain/money";
 import { getAllPayrollRuns } from "@/lib/api/hr";
-import { MOCK_USERS } from "@/lib/mock-data/users";
 import { Money, PageHeader, SettingsCard, StatCard, StatusBadge, type StatusTone } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { hrNavFor } from "@/features/hr/nav-items";
@@ -20,6 +19,8 @@ import { GeneratePayrollForm } from "@/features/hr/payroll-actions";
  */
 const STATUS_TONE: Record<string, StatusTone> = {
   draft: "warning",
+  // Approved but not yet posted: agreed, and still not in the books.
+  approved: "info",
   finalized: "info",
   paid: "active",
 };
@@ -29,7 +30,6 @@ export default async function PayrollPage() {
   if (!user || !hasAnyPermission(user, [PERMISSIONS.HR_VIEW, PERMISSIONS.PAYROLL_FINALIZE])) return <AccessDeniedState />;
 
   const canGenerate = hasPermission(user, PERMISSIONS.PAYROLL_GENERATE);
-  const userNames = Object.fromEntries(MOCK_USERS.map((u) => [u.id, u.name]));
   // Ordered newest-period-first by the API, with each run's line count and net
   // total computed there so a summary can never disagree with its lines.
   const runs = await getAllPayrollRuns();
@@ -110,7 +110,8 @@ export default async function PayrollPage() {
                           defect; the name needs users.manage, which an
                           HR-viewing role does not hold. */}
                       <td className="text-[var(--st-ink-soft)]">
-                        {userNames[run.generatedBy] ?? <span className="text-[var(--st-ink-faint)]">—</span>}
+                        {/* Resolved by the API — /users needs a grant these roles do not hold. */}
+                        {run.generatedByName ?? <span className="text-[var(--st-ink-faint)]">—</span>}
                       </td>
                       <td>
                         <Money>{run.lineCount}</Money>

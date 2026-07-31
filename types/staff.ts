@@ -30,8 +30,9 @@ export const StaffLoanSchema = z.object({
   staffProfileId: z.string(),
   amount: z.number().positive(),
   status: z.enum(STAFF_LOAN_STATUSES),
-  disbursedAt: z.string(),
-  journalEntryId: z.string(),
+  // Both null until Finance disburses — a requested loan has moved no money.
+  disbursedAt: z.string().nullable(),
+  journalEntryId: z.string().nullable(),
 });
 export type StaffLoan = z.infer<typeof StaffLoanSchema>;
 

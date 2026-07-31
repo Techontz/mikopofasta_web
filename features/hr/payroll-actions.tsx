@@ -3,9 +3,9 @@
 import * as React from "react";
 import { useTransition } from "react";
 import { toast } from "sonner";
-import { CheckCircle2, Play, Send } from "lucide-react";
+import { CheckCircle2, Play, Send, Stamp } from "lucide-react";
 import { Button, Field, TextInput } from "@/components/settings/form";
-import { finalizePayroll, generatePayroll, payPayroll } from "@/features/hr/actions";
+import { approvePayroll, finalizePayroll, generatePayroll, payPayroll } from "@/features/hr/actions";
 import type { ActionResult } from "@/lib/domain/action-result";
 
 /**
@@ -56,6 +56,14 @@ export function GeneratePayrollForm() {
   );
 }
 
+/**
+ * Four states, three buttons, and each button belongs to a different grant.
+ *
+ * HR approves (§16.7), Finance finalizes and pays (§16.8). The person who
+ * decides what everyone is owed is not the person who releases the money —
+ * §14's sharpest separation, and the reason approval sits behind
+ * `payroll.generate` rather than `payroll.finalize`.
+ */
 export function PayrollRunActions({
   runId,
   status,
@@ -70,10 +78,37 @@ export function PayrollRunActions({
   const { pending, run } = useRunner();
 
   if (status === "draft") {
+    if (!canGenerate) {
+      return (
+        <p className="text-[13px] text-[var(--st-ink-soft)]">
+          Draft — awaiting HR to approve the figures. Nothing has posted yet.
+        </p>
+      );
+    }
+    return (
+      <div className="space-y-2">
+        <Button
+          tone="primary"
+          icon={Stamp}
+          loading={pending}
+          disabled={pending}
+          onClick={() => run(() => approvePayroll(runId))}
+        >
+          Approve Figures
+        </Button>
+        <p className="text-[12.5px] text-[var(--st-ink-soft)]">
+          Approving closes the period: the figures can no longer change, and no allowance or
+          penalty can be recorded against it. Nothing posts to the ledger — Finance does that.
+        </p>
+      </div>
+    );
+  }
+
+  if (status === "approved") {
     if (!canFinalize) {
       return (
         <p className="text-[13px] text-[var(--st-ink-soft)]">
-          Draft — awaiting Finance to finalize. {canGenerate && "HR can generate but never finalize."}
+          Approved — awaiting Finance to post it to the ledger.
         </p>
       );
     }

@@ -2,14 +2,14 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Eye, Users } from "lucide-react";
+import { Eye } from "lucide-react";
 import { Filter, FilterBar, Money, SettingsCard, StatusBadge } from "@/components/settings";
 import { SettingsTable } from "@/components/settings/table";
 import { Select } from "@/components/settings/form";
 import { formatMoneyExact } from "@/lib/domain/money";
-import { payrollTotals, type PayrollRow } from "@/types/bank";
-import { BRANCHES, DEPARTMENTS, PAYROLL_PERIODS } from "@/lib/mock-data/bank";
+import type { PayslipRecord } from "@/lib/api/hr";
 import { PAYROLL_TONE, formatPeriod } from "@/features/bank/shared";
 
 const ALL = "__all__";
@@ -17,29 +17,54 @@ const ALL = "__all__";
 /**
  * Bank → Payroll.
  *
- * One row per member of staff for the chosen period. Gross, deductions and net
- * are derived from the row through payrollTotals rather than read from a stored
- * figure, so the column always foots against the tiles above it.
+ * One row per member of staff for the chosen period, from `GET /payslips`.
+ *
+ * The period filter navigates rather than filtering in the browser: the API
+ * returns one period at a time — a screen whose opening view was every payslip
+ * ever issued would be unreadable and would grow without bound — so changing it
+ * is a fetch. Branch and department are client-side, because they narrow rows
+ * already in hand.
+ *
+ * A payslip has no status of its own: §11 pays a run as one act, so the pill
+ * reads "paid" when the run is paid and "pending" until then. Inventing a
+ * per-employee payment state would imply the company can pay half a payroll.
  */
-export function PayrollPanel({ rows }: { rows: PayrollRow[] }) {
-  const [period, setPeriod] = React.useState<string>(PAYROLL_PERIODS[0]);
+export function PayrollPanel({
+  payslips,
+  period,
+  periods,
+}: {
+  payslips: PayslipRecord[];
+  period: string | null;
+  periods: string[];
+}) {
+  const router = useRouter();
   const [branch, setBranch] = React.useState(ALL);
   const [department, setDepartment] = React.useState(ALL);
 
-  const filtered = React.useMemo(
+  const branches = React.useMemo(
+    () => [...new Set(payslips.map((p) => p.branch).filter((b): b is string => b !== null))].sort(),
+    [payslips]
+  );
+  const departments = React.useMemo(
     () =>
-      rows.filter(
-        (r) =>
-          (period === ALL || r.period === period) &&
-          (branch === ALL || r.branch === branch) &&
-          (department === ALL || r.department === department)
-      ),
-    [rows, period, branch, department]
+      [...new Set(payslips.map((p) => p.department).filter((d): d is string => d !== null))].sort(),
+    [payslips]
   );
 
-  const active = period !== PAYROLL_PERIODS[0] || branch !== ALL || department !== ALL;
+  const filtered = React.useMemo(
+    () =>
+      payslips.filter(
+        (p) =>
+          (branch === ALL || p.branch === branch) &&
+          (department === ALL || p.department === department)
+      ),
+    [payslips, branch, department]
+  );
 
-  const columns: ColumnDef<PayrollRow>[] = [
+  const active = branch !== ALL || department !== ALL;
+
+  const columns: ColumnDef<PayslipRecord>[] = [
     {
       accessorKey: "employee",
       header: "Employee",
@@ -52,52 +77,62 @@ export function PayrollPanel({ rows }: { rows: PayrollRow[] }) {
             {row.original.employee}
           </Link>
           <p className="font-tabular mt-0.5 text-[12px] text-[var(--st-ink-faint)]">
-            {row.original.staffNo} · {row.original.branch}
+            {row.original.staffNo} · {row.original.branch ?? "—"}
           </p>
         </div>
       ),
     },
-    { accessorKey: "department", header: "Department" },
+    {
+      accessorKey: "department",
+      header: "Department",
+      cell: ({ row }) => row.original.department ?? "—",
+    },
     {
       accessorKey: "bankName",
       header: "Bank",
-      cell: ({ row }) => <span className="whitespace-nowrap">{row.original.bankName}</span>,
+      cell: ({ row }) => <span className="whitespace-nowrap">{row.original.bankName ?? "—"}</span>,
     },
     {
       accessorKey: "accountNumber",
       header: "Account",
-      cell: ({ row }) => <span className="font-tabular whitespace-nowrap">{row.original.accountNumber}</span>,
+      cell: ({ row }) => (
+        <span className="font-tabular whitespace-nowrap">{row.original.accountNumber ?? "—"}</span>
+      ),
     },
     {
-      accessorKey: "salary",
+      accessorKey: "grossPay",
       header: () => <span className="block text-right">Salary</span>,
-      cell: ({ row }) => <Money>{formatMoneyExact(payrollTotals(row.original).gross)}</Money>,
+      // Gross — base plus commission plus allowances — computed by the API, so
+      // the column cannot disagree with the payslip it summarises.
+      cell: ({ row }) => <Money>{formatMoneyExact(row.original.grossPay)}</Money>,
     },
     {
       id: "deductions",
       header: () => <span className="block text-right">Deductions</span>,
-      cell: ({ row }) => {
-        const { deductionsTotal } = payrollTotals(row.original);
-        return (
-          <Money muted={deductionsTotal === 0}>
-            {deductionsTotal === 0 ? "—" : `−${formatMoneyExact(deductionsTotal)}`}
-          </Money>
-        );
-      },
+      cell: ({ row }) => (
+        <Money muted={row.original.deductionsTotal === 0}>
+          {row.original.deductionsTotal === 0
+            ? "—"
+            : `−${formatMoneyExact(row.original.deductionsTotal)}`}
+        </Money>
+      ),
     },
     {
       id: "net",
       header: () => <span className="block text-right">Net Salary</span>,
-      cell: ({ row }) => <Money strong>{formatMoneyExact(payrollTotals(row.original).net)}</Money>,
+      cell: ({ row }) => <Money strong>{formatMoneyExact(row.original.netSalary)}</Money>,
     },
     {
       accessorKey: "status",
       header: "Status",
-      cell: ({ row }) => (
-        <StatusBadge tone={PAYROLL_TONE[row.original.status]} className="capitalize">
-          {row.original.status}
-        </StatusBadge>
-      ),
+      cell: ({ row }) => {
+        const paid = row.original.status === "paid";
+        return (
+          <StatusBadge tone={PAYROLL_TONE[paid ? "paid" : "pending"]} className="capitalize">
+            {paid ? "paid" : "pending"}
+          </StatusBadge>
+        );
+      },
     },
     {
       id: "actions",
@@ -117,7 +152,7 @@ export function PayrollPanel({ rows }: { rows: PayrollRow[] }) {
     },
   ];
 
-  const net = filtered.reduce((s, r) => s + payrollTotals(r).net, 0);
+  const net = filtered.reduce((s, r) => s + r.netSalary, 0);
 
   return (
     <SettingsCard
@@ -129,35 +164,44 @@ export function PayrollPanel({ rows }: { rows: PayrollRow[] }) {
         <FilterBar
           active={active}
           onReset={() => {
-            setPeriod(PAYROLL_PERIODS[0]);
             setBranch(ALL);
             setDepartment(ALL);
           }}
         >
           <Filter label="Month" htmlFor="pr-period">
-            <Select id="pr-period" value={period} onChange={(e) => setPeriod(e.target.value)}>
-              <option value={ALL}>All periods</option>
-              {PAYROLL_PERIODS.map((p) => (
+            <Select
+              id="pr-period"
+              value={period ?? ""}
+              onChange={(e) => router.push(`/treasury/payroll?period=${e.target.value}`)}
+            >
+              {periods.length === 0 && <option value="">No payroll yet</option>}
+              {periods.map((p) => (
                 <option key={p} value={p}>
                   {formatPeriod(p)}
                 </option>
               ))}
             </Select>
           </Filter>
+
           <Filter label="Branch" htmlFor="pr-branch">
             <Select id="pr-branch" value={branch} onChange={(e) => setBranch(e.target.value)}>
               <option value={ALL}>All branches</option>
-              {BRANCHES.map((b) => (
+              {branches.map((b) => (
                 <option key={b} value={b}>
                   {b}
                 </option>
               ))}
             </Select>
           </Filter>
+
           <Filter label="Department" htmlFor="pr-department">
-            <Select id="pr-department" value={department} onChange={(e) => setDepartment(e.target.value)}>
+            <Select
+              id="pr-department"
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+            >
               <option value={ALL}>All departments</option>
-              {DEPARTMENTS.map((d) => (
+              {departments.map((d) => (
                 <option key={d} value={d}>
                   {d}
                 </option>
@@ -169,14 +213,12 @@ export function PayrollPanel({ rows }: { rows: PayrollRow[] }) {
         <SettingsTable
           columns={columns}
           data={filtered}
-          searchFields={["employee", "staffNo", "department", "bankName", "accountNumber"]}
-          searchPlaceholder="Search employee or staff no…"
+          searchFields={["employee", "staffNo"]}
+          searchPlaceholder="Search by employee or staff number…"
           emptyState={{
-            icon: Users,
-            title: active ? "No staff match these filters" : "No payroll for this period",
-            description: active
-              ? "Widen or clear the filters above to see more."
-              : "A payslip appears here once payroll is generated for the period.",
+            icon: Eye,
+            title: "No payslips for this period",
+            description: "Payroll has not been generated, or no staff match these filters.",
           }}
         />
       </div>

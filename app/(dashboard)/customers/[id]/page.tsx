@@ -18,7 +18,6 @@ import { ApiError } from "@/lib/api/errors";
 import { MOCK_ACCOUNT_FREEZES } from "@/lib/mock-data/account-freezes";
 import { getAuditLogs } from "@/lib/api/system-configuration";
 import { MOCK_GROUPS, MOCK_GROUP_MEMBERS } from "@/lib/mock-data/groups";
-import { MOCK_USERS } from "@/lib/mock-data/users";
 import { buildCustomerTimeline } from "@/lib/domain/customer-timeline";
 import { getCurrentUser } from "@/lib/auth/session";
 import { hasPermission } from "@/config/permissions";
@@ -101,7 +100,6 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
   const membership = MOCK_GROUP_MEMBERS.find((m) => m.customerId === customer.id);
   const group = membership ? MOCK_GROUPS.find((g) => g.id === membership.groupId) : undefined;
 
-  const userNames = Object.fromEntries(MOCK_USERS.map((u) => [u.id, u.name]));
   const timeline = buildCustomerTimeline(customer, documents, notes, freezes, auditLogs);
 
   return (

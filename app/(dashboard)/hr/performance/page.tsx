@@ -7,7 +7,6 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
 import { getPerformanceRecords } from "@/lib/api/hr";
-import { MOCK_USERS } from "@/lib/mock-data/users";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { hrNavFor } from "@/features/hr/nav-items";
 
@@ -37,7 +36,6 @@ export default async function PerformancePage() {
   // employee's name. `recordedBy` is a user id with no name on the resource —
   // /users needs `users.manage`, which HR-viewing roles do not hold — so the
   // reviewer falls back to the seeded user list until Users is integrated.
-  const userNames = Object.fromEntries(MOCK_USERS.map((u) => [u.id, u.name]));
   const records = await getPerformanceRecords();
 
   return (
@@ -95,7 +93,8 @@ export default async function PerformancePage() {
                     <td className="font-tabular text-right">
                       {r.achieved.new_customers} / {r.targets.new_customers}
                     </td>
-                    <td>{userNames[r.recordedBy] ?? r.recordedBy}</td>
+                    {/* Resolved by the API rather than looked up here. */}
+                    <td>{r.recordedByName ?? "—"}</td>
                     <td>
                       <StatusBadge tone={r.rating ? (RATING_TONE[r.rating] ?? "neutral") : "neutral"}>
                         {r.rating ?? "—"}
