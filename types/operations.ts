@@ -123,8 +123,17 @@ export const HqTransactionSchema = z.object({
   reason: z.string(),
   status: z.enum(APPROVAL_STATUSES),
   date: z.string(),
-  /** "in" adds to the headquarters balance, "out" draws it down. */
-  direction: z.enum(["in", "out"]),
+  /**
+   * "in" adds to the headquarters balance, "out" draws it down, and "internal"
+   * moves money between two of the seven head-office accounts without changing
+   * how much there is in total.
+   *
+   * "internal" is the legacy module's original purpose — its transfer screens
+   * are titled "From Headquater Transaction - CEO ACC" — and was missing here
+   * while this screen ran on fixtures that contained no such row. It is why
+   * hqBalance counts only "in" and "out" below.
+   */
+  direction: z.enum(["in", "out", "internal"]),
 });
 export type HqTransaction = z.infer<typeof HqTransactionSchema>;
 

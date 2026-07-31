@@ -16,7 +16,8 @@ import {
   type ApprovalStatus,
   type HqTransaction,
 } from "@/types/operations";
-import { OPS_BRANCHES } from "@/lib/mock-data/operations";
+import { decideHqMovement } from "@/features/operations/hq-actions";
+import type { ActionResult } from "@/lib/domain/action-result";
 import { APPROVAL_LABEL, APPROVAL_TONE, formatMonthShort, formatOpsDate } from "@/features/operations/shared";
 
 const ALL = "__all__";
@@ -24,12 +25,38 @@ const ALL = "__all__";
 type HqAccountRow = { name: string; balance: number };
 
 /**
+ * Runs a Server Action and reports it.
+ *
+ * The rows are not edited here. Each action revalidates all three headquarters
+ * screens, so the server sends fresh data down and this component re-renders
+ * from it — which is what moves an approved row onto the approved list and
+ * changes the balance card at the same time. Editing local state as well would
+ * give the screen two sources of truth that disagree for one paint, and here
+ * one of them is an account balance.
+ */
+function useHqAction() {
+  const [pending, start] = React.useTransition();
+
+  function run(action: () => Promise<ActionResult>) {
+    start(async () => {
+      const result = await action();
+      if (result.ok) toast.success(result.message);
+      else toast.error(result.message ?? "Something went wrong.");
+    });
+  }
+
+  return { pending, run };
+}
+
+/**
  * The Headquarters Account Balance table, exactly as the legacy system prints
  * it: account name, amount, and a TOTAL row.
  *
  * Two columns, seven rows, no filters and no actions — that is the whole legacy
  * screen, and adding to it would be inventing a feature rather than rebuilding
- * one. The seven accounts and their balances come from LEGACY_HQ_ACCOUNTS.
+ * one. The seven accounts and their balances come from the API now; they used
+ * to be a hardcoded constant, which was right while no endpoint existed and
+ * became wrong as soon as an approved movement could change a balance.
  *
  * The total is summed from the rows rather than taken from
  * LEGACY_HQ_ACCOUNTS_TOTAL. That is deliberate: the printed total is evidence
@@ -58,9 +85,9 @@ export function HqAccountBalanceTable({ accounts }: { accounts: readonly HqAccou
       <SettingsTable
         columns={columns}
         data={accounts as HqAccountRow[]}
-        // The seven accounts are fixed and always present, so this is
-        // unreachable in practice; it exists for the case where the list is
-        // ever fed from the API and comes back empty.
+        // Reachable now that the list is fetched: an unseeded database has
+        // no accounts, and a screen reading TOTAL: 0 with no rows explains
+        // that better than an empty table body does.
         emptyState={{ icon: Scale, title: "No headquarters accounts" }}
         renderFooter={(rows) => (
           <>
@@ -281,6 +308,7 @@ export function HqTransactionsPanel({
   description,
   emptyTitle,
   emptyDescription,
+  branches,
 }: {
   transactions: HqTransaction[];
   decidable: boolean;
@@ -288,11 +316,14 @@ export function HqTransactionsPanel({
   description: string;
   emptyTitle: string;
   emptyDescription: string;
+  /** The branch filter's options, from the branch register. */
+  branches?: string[];
 }) {
-  const [rows, setRows] = React.useState(transactions);
+  const rows = transactions;
   const [status, setStatus] = React.useState(ALL);
   const [branch, setBranch] = React.useState(ALL);
   const [viewing, setViewing] = React.useState<HqTransaction | null>(null);
+  const { run } = useHqAction();
 
   const filtered = React.useMemo(
     () =>
@@ -303,11 +334,16 @@ export function HqTransactionsPanel({
   );
   const active = status !== ALL || branch !== ALL;
 
+  // Fall back to the branches present in the rows, so the filter is never an
+  // empty select.
+  const branchOptions = React.useMemo(
+    () => branches ?? [...new Set(rows.map((t) => t.branch).filter(Boolean))].sort(),
+    [branches, rows]
+  );
+
   function decide(txn: HqTransaction, next: ApprovalStatus) {
-    setRows((prev) =>
-      prev.map((t) => (t.id === txn.id ? { ...t, status: next, approvedBy: next === "approved" ? "You" : null } : t))
-    );
-    toast.success(`${txn.reference} ${next}.`);
+    if (next === "pending") return;
+    run(() => decideHqMovement(txn.id, next, txn.reference));
   }
 
   const columns: ColumnDef<HqTransaction>[] = [
@@ -433,7 +469,7 @@ export function HqTransactionsPanel({
             <Filter label="Branch" htmlFor="hq-branch">
               <Select id="hq-branch" value={branch} onChange={(e) => setBranch(e.target.value)}>
                 <option value={ALL}>All branches</option>
-                {OPS_BRANCHES.map((b) => (
+                {branchOptions.map((b) => (
                   <option key={b} value={b}>
                     {b}
                   </option>
@@ -546,7 +582,9 @@ function DecisionAction({
       title={`${approving ? "Approve" : "Reject"} ${txn.reference}?`}
       consequence={
         approving
-          ? `${formatMoney(txn.amount)} will move ${txn.direction === "in" ? "into" : "out of"} the headquarters account and the balance will change.`
+          ? txn.direction === "internal"
+            ? `${formatMoney(txn.amount)} will move between two headquarters accounts. The total held does not change.`
+            : `${formatMoney(txn.amount)} will move ${txn.direction === "in" ? "into" : "out of"} the headquarters account and the balance will change.`
           : `The request for ${formatMoney(txn.amount)} will be closed and the balance is unaffected. ${txn.requestedBy} can raise it again.`
       }
       confirmLabel={approving ? "Approve" : "Reject"}

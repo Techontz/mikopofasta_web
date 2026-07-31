@@ -7,14 +7,17 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { PageHeader } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { hqTransactionsNavFor } from "@/features/ledger/nav-items";
-import { MOCK_HQ_TRANSACTIONS } from "@/lib/mock-data/operations";
-import { LEGACY_HQ_ACCOUNTS } from "@/lib/legacy/source";
+import { getHqAccounts, getHqTransactions } from "@/lib/api/headquarters";
 import { HqAccountBalanceTable, HqBalancePanel } from "@/features/operations/hq-panels";
 
 export default async function Page() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (!hasAnyPermission(user, [PERMISSIONS.TREASURY_VIEW])) return <AccessDeniedState />;
+
+  // Independent of one another, so they are fetched together rather than in
+  // sequence.
+  const [accounts, { transactions }] = await Promise.all([getHqAccounts(), getHqTransactions()]);
 
   return (
     <>
@@ -27,17 +30,16 @@ export default async function Page() {
       <SectionNav items={hqTransactionsNavFor(user)} />
 
       {/*
-        The legacy screen, first and unmodified: the seven headquarters accounts
-        and their balances. This is the part of the page that has to match the
-        old system exactly, so it leads.
+        The legacy screen first: the seven headquarters accounts and their
+        balances. These come from the API now rather than a transcribed
+        constant — an approved movement changes one, and a screen that could
+        not show that would be a picture of the past.
 
-        The panel below it — position, movement, recent entries — is ours. It is
-        built on placeholder transactions, because both legacy Headquater
-        Transaction screens were captured with no rows in them and so the real
-        movement history is unknown.
+        The panel below it — position, movement, recent entries — is ours,
+        built on the same transaction book the API summarises.
       */}
-      <HqAccountBalanceTable accounts={LEGACY_HQ_ACCOUNTS} />
-      <HqBalancePanel transactions={MOCK_HQ_TRANSACTIONS} />
+      <HqAccountBalanceTable accounts={accounts} />
+      <HqBalancePanel transactions={transactions} />
     </>
   );
 }

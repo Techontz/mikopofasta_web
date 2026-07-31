@@ -1,9 +1,4 @@
-import type {
-  DeductedIncome,
-  HqTransaction,
-  PaidPenalty,
-  Penalty,
-} from "@/types/operations";
+import type { DeductedIncome, PaidPenalty, Penalty } from "@/types/operations";
 import { LEGACY_BRANCHES } from "@/lib/legacy/source";
 
 /**
@@ -76,50 +71,8 @@ export const MOCK_DEDUCTED_INCOME: DeductedIncome[] = [
  */
 
 // ------------------------------------------------ Headquarters transactions
-export const MOCK_HQ_TRANSACTIONS: HqTransaction[] = [
-  {
-    id: "hq-1", reference: "HQ-2026-0018", branch: "Kakonko", requestedBy: "Amina Juma",
-    approvedBy: null, amount: 1500000, reason: "Branch float top-up",
-    status: "pending", date: "2026-07-28", direction: "out",
-  },
-  {
-    id: "hq-2", reference: "HQ-2026-0017", branch: "NEW KALENGE", requestedBy: "Frank Urio",
-    approvedBy: null, amount: 800000, reason: "Operational expenses",
-    status: "pending", date: "2026-07-27", direction: "out",
-  },
-  {
-    id: "hq-3", reference: "HQ-2026-0016", branch: "Head Office", requestedBy: "Catherine Massawe",
-    approvedBy: "Daniel Kessy", amount: 12500000, reason: "Capital injection",
-    status: "approved", date: "2026-07-25", direction: "in",
-  },
-  {
-    id: "hq-4", reference: "HQ-2026-0015", branch: "Kakonko", requestedBy: "Esther Mollel",
-    approvedBy: "Daniel Kessy", amount: 2400000, reason: "Loan disbursement funding",
-    status: "approved", date: "2026-07-20", direction: "out",
-  },
-  {
-    id: "hq-5", reference: "HQ-2026-0014", branch: "Head Office", requestedBy: "Baraka Mushi",
-    approvedBy: "Daniel Kessy", amount: 4850000, reason: "Collections banked",
-    status: "approved", date: "2026-06-28", direction: "in",
-  },
-  {
-    id: "hq-6", reference: "HQ-2026-0013", branch: "Missenyi", requestedBy: "Grace Nyamburi",
-    approvedBy: "Daniel Kessy", amount: 900000, reason: "Branch float top-up",
-    status: "approved", date: "2026-06-15", direction: "out",
-  },
-  {
-    id: "hq-7", reference: "HQ-2026-0012", branch: "Head Office", requestedBy: "Amina Juma",
-    approvedBy: "Daniel Kessy", amount: 3200000, reason: "Collections banked",
-    status: "approved", date: "2026-05-30", direction: "in",
-  },
-  {
-    id: "hq-8", reference: "HQ-2026-0011", branch: "Test", requestedBy: "Hamisi Salum",
-    approvedBy: "Daniel Kessy", amount: 260000, reason: "Operational expenses",
-    status: "rejected", date: "2026-05-21", direction: "out",
-  },
-  {
-    id: "hq-9", reference: "HQ-2026-0010", branch: "NEW KALENGE", requestedBy: "Frank Urio",
-    approvedBy: "Daniel Kessy", amount: 1750000, reason: "Loan disbursement funding",
-    status: "approved", date: "2026-05-12", direction: "out",
-  },
-];
+/*
+ * The headquarters transaction fixtures lived here. They are served by the API
+ * now — lib/api/headquarters.ts, over `hq_accounts` and `hq_account_transfers`
+ * — so the fixtures are gone rather than left to drift.
+ */

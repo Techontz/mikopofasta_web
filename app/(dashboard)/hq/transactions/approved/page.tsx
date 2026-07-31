@@ -7,13 +7,19 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { PageHeader } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { hqTransactionsNavFor } from "@/features/ledger/nav-items";
-import { MOCK_HQ_TRANSACTIONS } from "@/lib/mock-data/operations";
+import { getHqTransactions } from "@/lib/api/headquarters";
+import { getBranches } from "@/lib/api/organization";
 import { HqTransactionsPanel } from "@/features/operations/hq-panels";
 
 export default async function Page() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (!hasAnyPermission(user, [PERMISSIONS.TREASURY_VIEW])) return <AccessDeniedState />;
+
+  const [{ transactions }, branches] = await Promise.all([
+    getHqTransactions({ status: "approved" }),
+    getBranches(),
+  ]);
 
   return (
     <>
@@ -25,12 +31,13 @@ export default async function Page() {
       />
       <SectionNav items={hqTransactionsNavFor(user)} />
       <HqTransactionsPanel
-        transactions={MOCK_HQ_TRANSACTIONS.filter((t) => t.status === "approved")}
+        transactions={transactions}
         decidable={false}
         title="Approved Transactions"
         description="Decided and released, newest first."
         emptyTitle="Nothing approved yet"
         emptyDescription="An approved request moves here from Requested Transactions."
+        branches={branches.map((b) => b.name)}
       />
     </>
   );
