@@ -64,7 +64,7 @@ export function LoanApplicantPicker({ customers }: { customers: CustomerListItem
     {
       id: "actions",
       header: () => <span className="block text-right">Action</span>,
-      cell: ({ row }) => (
+      cell: () => (
         <div className="st-row-action flex justify-end">
           <Link href="/loans/new/apply" className="st-btn st-btn-primary st-btn-sm">
             Start Application
