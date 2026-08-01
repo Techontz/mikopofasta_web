@@ -5,7 +5,8 @@ import { hasAnyPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
 import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { PageHeader } from "@/components/settings";
-import { TellerPanel } from "@/features/legacy-modules/teller-panel";
+import { getAllCustomers } from "@/lib/api/customers";
+import { TellerCustomerPicker } from "@/features/teller/teller-customer-picker";
 
 /**
  * Teller → Teller Dashboard.
@@ -16,7 +17,11 @@ import { TellerPanel } from "@/features/legacy-modules/teller-panel";
 export default async function Page() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (!hasAnyPermission(user, [PERMISSIONS.TREASURY_VIEW])) return <AccessDeniedState />;
+  if (!hasAnyPermission(user, [PERMISSIONS.TREASURY_VIEW, PERMISSIONS.REPAYMENTS_CASH_ENTRY]))
+    return <AccessDeniedState />;
+
+  // §13 is the API's — the book arrives already narrowed to this teller's branch.
+  const customers = await getAllCustomers();
 
   return (
     <>
@@ -26,7 +31,7 @@ export default async function Page() {
         description="Find a customer to open a teller session against their account."
         breadcrumb={[{ label: "Teller" }, { label: "Teller Dashboard" }]}
       />
-      <TellerPanel />
+      <TellerCustomerPicker customers={customers} />
     </>
   );
 }
