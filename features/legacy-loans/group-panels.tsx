@@ -1,59 +1,100 @@
 "use client";
 
-import * as React from "react";
+import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Eye, Pencil, Plus, Trash2, Users, UsersRound } from "lucide-react";
-import { SettingsCard, StatCard, StatusBadge } from "@/components/settings";
+import { Eye, Users, UsersRound } from "lucide-react";
+import { Money, SettingsCard, StatCard, StatusBadge, type StatusTone } from "@/components/settings";
 import { SettingsTable } from "@/components/settings/table";
-import { Button, IconButton } from "@/components/settings/form";
-import { LEGACY_GROUPS } from "@/lib/legacy/source";
+import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
+import { formatMoney } from "@/lib/domain/money";
+import type { GroupRecord } from "@/lib/api/groups";
 
 /**
- * The Group module.
+ * The Group module — sidebar → Group.
  *
- * DESIGN ONLY — no API calls, and every action is inert.
+ * Both screens ran on `LEGACY_GROUPS`, a list of names read off the legacy
+ * screen, and drew three columns because that is all the legacy list had. They
+ * now read `GET /groups`.
  *
- * Three columns on the list, because that is what the legacy screen has: S/NO.,
- * Group Name, Action. No branch, no leader, no member count, no loan balance.
- * An earlier written brief asked for all of those plus thirty seeded groups;
- * the captured screen shows three columns and "Showing 1 to 1 of 1 entries",
- * and the screenshot wins.
- *
- * Our own schema does carry a branch, a committee and a derived balance for a
- * group. None of it is shown, because a column the legacy screen does not have
- * would make this a redesign rather than a rebuild — and the values behind
- * those columns are unknown for WAZURI anyway.
+ * The columns grew as a consequence, and the reason is worth stating. The old
+ * note said a branch or a member count "would make this a redesign rather than
+ * a rebuild — and the values behind those columns are unknown for WAZURI
+ * anyway". The second half has stopped being true: this system's group record
+ * carries a branch, a committee and a derived balance, and the API returns all
+ * three. Printing a dash for a member count we now know would be the invention.
  */
 
-interface GroupRow {
-  row: number;
-  name: string;
+const STATUS_TONE: Record<string, StatusTone> = {
+  active: "active",
+  inactive: "inactive",
+  dissolved: "danger",
+};
+
+function statusCell(status: string) {
+  return (
+    <StatusBadge tone={STATUS_TONE[status] ?? "neutral"} className="capitalize">
+      {status.replace(/_/g, " ")}
+    </StatusBadge>
+  );
 }
 
-const ROWS: GroupRow[] = LEGACY_GROUPS.map((name, i) => ({ row: i + 1, name }));
-
-export function GroupListPanel() {
-  const columns: ColumnDef<GroupRow>[] = [
-    {
-      accessorKey: "row",
-      header: "S/No.",
-      cell: ({ row }) => <span className="font-tabular text-[var(--st-ink-soft)]">{row.original.row}</span>,
-    },
+/** Group → All Groups. */
+export function GroupListPanel({ groups }: { groups: GroupRecord[] }) {
+  const columns: ColumnDef<GroupRecord>[] = [
     {
       accessorKey: "name",
-      header: "Group Name",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Group Name" />,
       cell: ({ row }) => (
         <span className="whitespace-nowrap font-medium text-[var(--st-ink)]">{row.original.name}</span>
       ),
     },
     {
+      accessorKey: "branchName",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Branch" />,
+      cell: ({ row }) => row.original.branchName ?? "—",
+    },
+    {
+      id: "leader",
+      header: "Leader",
+      /* Derived from the membership rows rather than stored on the group, so it
+         cannot disagree with who actually holds office. */
+      cell: ({ row }) =>
+        row.original.leader ?? <span className="text-[var(--st-ink-faint)]">Vacant</span>,
+    },
+    {
+      accessorKey: "memberCount",
+      header: () => <span className="block text-right">Members</span>,
+      cell: ({ row }) => (
+        <span className="font-tabular block text-right">{row.original.memberCount ?? 0}</span>
+      ),
+    },
+    {
+      accessorKey: "outstandingBalance",
+      header: () => <span className="block text-right">Outstanding</span>,
+      cell: ({ row }) => {
+        const value = Number(row.original.outstandingBalance ?? 0);
+        return <Money muted={value === 0}>{value === 0 ? "—" : formatMoney(value)}</Money>;
+      },
+    },
+    {
+      accessorKey: "status",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+      cell: ({ row }) => statusCell(row.original.status),
+      filterFn: "arrIncludesSome",
+    },
+    {
       id: "actions",
       header: () => <span className="block text-right">Action</span>,
-      cell: () => (
-        <div className="flex justify-end gap-1">
-          <IconButton icon={Pencil} label="Edit group" disabled />
-          <IconButton icon={Eye} label="View group" disabled />
-          <IconButton icon={Trash2} label="Delete group" tone="danger" disabled />
+      cell: ({ row }) => (
+        <div className="st-row-action flex justify-end">
+          <Link
+            href={`/customers?group=${encodeURIComponent(row.original.name)}`}
+            aria-label={`View members of ${row.original.name}`}
+            title={`View members of ${row.original.name}`}
+            className="st-btn st-btn-secondary st-btn-icon"
+          >
+            <Eye className="size-4" strokeWidth={1.9} aria-hidden />
+          </Link>
         </div>
       ),
     },
@@ -61,20 +102,25 @@ export function GroupListPanel() {
 
   return (
     <SettingsCard
-      title="Group List"
-      description="Village banking groups. The legacy list carries a name and nothing else."
-      actions={
-        <Button tone="primary" icon={Plus} disabled>
-          New Group
-        </Button>
-      }
+      title={`Group List (${groups.length})`}
+      description="Village banking groups, their committee and what their members still owe."
       bodyClassName="pt-0 sm:pt-0"
     >
       <SettingsTable
         columns={columns}
-        data={ROWS}
-        searchFields={["name"]}
-        searchPlaceholder="Search group…"
+        data={groups}
+        searchFields={["name", "branchName", "leader"]}
+        searchPlaceholder="Search by group, branch or leader…"
+        facetedFilters={[
+          {
+            columnId: "status",
+            title: "Status",
+            options: [...new Set(groups.map((g) => g.status))].map((s) => ({
+              label: s.replace(/_/g, " "),
+              value: s,
+            })),
+          },
+        ]}
         emptyState={{
           icon: Users,
           title: "No records to show",
@@ -88,59 +134,66 @@ export function GroupListPanel() {
 /**
  * Group → Overview.
  *
- * Members reads as a dash rather than as zero. The legacy group record has no
- * member count on it at all, and a zero would be a claim — that the group is
- * empty — where a dash is the truth, which is that nobody knows.
+ * The Members tile used to read a dash, because the legacy record carried no
+ * member count and a zero would have been a claim about an empty group. It is
+ * a real figure now.
  */
-export function GroupOverviewPanel() {
-  const columns: ColumnDef<GroupRow>[] = [
+export function GroupOverviewPanel({ groups }: { groups: GroupRecord[] }) {
+  const active = groups.filter((g) => g.status === "active");
+  const members = groups.reduce((sum, g) => sum + (g.memberCount ?? 0), 0);
+  const outstanding = groups.reduce((sum, g) => sum + Number(g.outstandingBalance ?? 0), 0);
+
+  const columns: ColumnDef<GroupRecord>[] = [
     {
       accessorKey: "name",
-      header: "Group",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Group" />,
       cell: ({ row }) => (
         <span className="whitespace-nowrap font-medium text-[var(--st-ink)]">{row.original.name}</span>
       ),
     },
     {
-      id: "status",
-      header: "Status",
-      cell: () => <StatusBadge tone="active">Active</StatusBadge>,
+      accessorKey: "branchName",
+      header: "Branch",
+      cell: ({ row }) => row.original.branchName ?? "—",
     },
     {
-      id: "members",
+      id: "status",
+      header: "Status",
+      cell: ({ row }) => statusCell(row.original.status),
+    },
+    {
+      accessorKey: "memberCount",
       header: () => <span className="block text-right">Members</span>,
-      cell: () => (
-        <span
-          className="block text-right text-[var(--st-ink-faint)]"
-          title="The legacy group record carries no member count"
-        >
-          —
-        </span>
+      cell: ({ row }) => (
+        <span className="font-tabular block text-right">{row.original.memberCount ?? 0}</span>
       ),
     },
   ];
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Total Groups" value={ROWS.length} icon={UsersRound} tone="accent" />
-        <StatCard label="Active Groups" value={ROWS.length} icon={Users} />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Total Groups" value={groups.length} icon={UsersRound} tone="accent" />
+        <StatCard label="Active Groups" value={active.length} icon={Users} />
+        <StatCard label="Members" value={members} icon={Users} hint="Across every group" />
         <StatCard
-          label="Members"
-          value="—"
-          icon={Users}
-          hint="Not recorded on the legacy group"
+          label="Outstanding"
+          value={formatMoney(outstanding)}
+          icon={UsersRound}
+          hint="What group members still owe"
         />
       </div>
 
       <SettingsCard
-        title="Groups"
-        description="Every group on the book, newest first."
+        title={`Groups (${groups.length})`}
+        description="Every group on the book."
         bodyClassName="pt-0 sm:pt-0"
       >
         <SettingsTable
           columns={columns}
-          data={ROWS}
+          data={groups}
+          searchFields={["name", "branchName"]}
+          searchPlaceholder="Search group…"
           emptyState={{
             icon: Users,
             title: "No records to show",
