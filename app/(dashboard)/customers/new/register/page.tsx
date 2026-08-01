@@ -6,13 +6,10 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { hasAnyPermission, hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
 import { AccessDeniedState } from "@/components/feedback/access-denied-state";
-import { DesignDataBanner } from "@/components/feedback/design-data-banner";
 import { PageHeader } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { customerNavFor } from "@/features/ledger/nav-items";
 import { RegistrationWizard } from "@/features/customers/registration-wizard/registration-wizard";
-import { withDesignFallback } from "@/lib/legacy/design-mode";
-import { DESIGN_REGISTRATION_LOOKUPS } from "@/lib/legacy/design-fixtures";
 
 /**
  * Customer → Register Customer.
@@ -35,33 +32,28 @@ export default async function NewCustomerPage() {
 
   // The address cascade filters client-side as the officer picks, so every
   // level is loaded up front.
-  const { data, isDesignData, reason } = await withDesignFallback(
-    async () =>
-      Promise.all([
-        getBranches(),
-        getCustomerCategories(),
-        getRegions(),
-        getDistricts(),
-        getWards(),
-        getStreets(),
-      ]),
-    DESIGN_REGISTRATION_LOOKUPS
-  );
-
-  const [branches, categories, regions, districts, wards, streets] = data;
+  /*
+   * No fallback. These lookups used to fall back to fixture branches and
+   * categories when the API was unreachable — which meant the form could be
+   * filled in against branches that do not exist. A registration screen is the
+   * last place to guess, so a failure reaches the error boundary.
+   */
+  const [branches, categories, regions, districts, wards, streets] = await Promise.all([
+    getBranches(),
+    getCustomerCategories(),
+    getRegions(),
+    getDistricts(),
+    getWards(),
+    getStreets(),
+  ]);
 
   const activeBranches = branches.filter((b) => b.status === "active" && !b.isHeadOffice);
 
-  /*
-   * Branch scoping is skipped in design mode. The fixture branches carry
-   * fixture ids, which never match the signed-in user's real branch id, so
-   * filtering to it would empty the Branch dropdown — the exact fault this
-   * whole pass is fixing.
-   */
-  const selectableBranches =
-    canPickAnyBranch || isDesignData
-      ? activeBranches
-      : activeBranches.filter((b) => b.id === user.branchId);
+  // §13: without cross-branch visibility an officer registers into their own
+  // branch and nowhere else.
+  const selectableBranches = canPickAnyBranch
+    ? activeBranches
+    : activeBranches.filter((b) => b.id === user.branchId);
 
   const activeCategories = categories.filter((c) => c.deletedAt === null);
 
@@ -78,11 +70,9 @@ export default async function NewCustomerPage() {
       />
       <SectionNav items={customerNavFor(user)} />
 
-      {isDesignData && <DesignDataBanner reason={reason} />}
-
       <RegistrationWizard
         branches={selectableBranches}
-        branchLocked={!canPickAnyBranch && !isDesignData}
+        branchLocked={!canPickAnyBranch}
         homeBranchId={user.branchId ?? selectableBranches[0]?.id ?? null}
         categories={activeCategories}
         regions={regions}

@@ -6,8 +6,6 @@ import { Eye, Pencil, Trash2, UserCheck, UserPlus, UserX, Users } from "lucide-r
 import { Filter, FilterBar, SettingsCard, StatCard, StatusBadge } from "@/components/settings";
 import { SettingsTable } from "@/components/settings/table";
 import { IconButton, Select } from "@/components/settings/form";
-import { LEGACY_BRANCHES } from "@/lib/legacy/source";
-import { InferredLookups } from "@/lib/legacy/inferred";
 
 /**
  * Customer → All Customer.
@@ -34,6 +32,25 @@ export interface CustomerListRow {
 }
 
 const ALL = "__all__";
+
+/**
+ * The filter vocabularies, taken from the rows themselves.
+ *
+ * Branch used to come from `LEGACY_BRANCHES` — six names transcribed off the
+ * old system — and gender from `InferredLookups`. Both were lists this screen
+ * kept beside the data rather than from it, so a branch the business opened
+ * after the capture could hold customers the filter could not reach.
+ *
+ * Derived from what is actually on screen, they cannot offer an option that
+ * matches nothing or miss one that would.
+ */
+function optionsFrom(rows: CustomerListRow[], read: (row: CustomerListRow) => string | null): string[] {
+  const values = rows
+    .map(read)
+    .filter((value): value is string => typeof value === "string" && value !== "");
+
+  return [...new Set(values)].sort();
+}
 
 const STATUS_TONE: Record<string, "active" | "warning" | "danger"> = {
   active: "active",
@@ -175,7 +192,7 @@ export function AllCustomersPanel({
             <Filter label="Branch" htmlFor="customers-branch">
               <Select id="customers-branch" value={branch} onChange={(e) => setBranch(e.target.value)}>
                 <option value={ALL}>All branches</option>
-                {LEGACY_BRANCHES.map((b) => (
+                {optionsFrom(rows, (row) => row.branch).map((b) => (
                   <option key={b} value={b}>
                     {b}
                   </option>
@@ -185,7 +202,7 @@ export function AllCustomersPanel({
             <Filter label="Gender" htmlFor="customers-gender">
               <Select id="customers-gender" value={gender} onChange={(e) => setGender(e.target.value)}>
                 <option value={ALL}>All</option>
-                {InferredLookups.genders.map((g) => (
+                {optionsFrom(rows, (row) => row.gender).map((g) => (
                   <option key={g} value={g}>
                     {g}
                   </option>

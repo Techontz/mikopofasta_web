@@ -5,14 +5,12 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { hasAnyPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
 import { AccessDeniedState } from "@/components/feedback/access-denied-state";
-import { DesignDataBanner } from "@/components/feedback/design-data-banner";
 import { PageHeader } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { customerNavFor } from "@/features/ledger/nav-items";
 import { CustomerOverviewPanel } from "@/features/customers/customer-overview-panel";
 import { toCustomerListRow } from "@/features/customers/view-models";
-import { currentMonth, withDesignFallback } from "@/lib/legacy/design-mode";
-import { DESIGN_ALL_CUSTOMER_ROWS } from "@/lib/legacy/design-fixtures";
+import { currentMonth } from "@/lib/domain/current-month";
 
 /**
  * Customer → Overview.
@@ -25,14 +23,14 @@ export default async function Page() {
   if (!user) redirect("/login");
   if (!hasAnyPermission(user, [PERMISSIONS.CUSTOMERS_VIEW])) return <AccessDeniedState />;
 
-  const {
-    data: rows,
-    isDesignData,
-    reason,
-  } = await withDesignFallback(
-    async () => (await getAllCustomers()).map(toCustomerListRow),
-    DESIGN_ALL_CUSTOMER_ROWS
-  );
+  /*
+   * No fallback. This used to substitute eighteen invented customers when the
+   * API could not be reached, behind a banner. The backend is the source of
+   * truth now, and a customer book that renders people who do not exist is
+   * worse than a page that says it is broken — so a failure here reaches the
+   * error boundary.
+   */
+  const rows = (await getAllCustomers()).map(toCustomerListRow);
 
   return (
     <>
@@ -43,7 +41,6 @@ export default async function Page() {
         breadcrumb={[{ label: "Customer", href: "/customers" }, { label: "Overview" }]}
       />
       <SectionNav items={customerNavFor(user)} />
-      {isDesignData && <DesignDataBanner reason={reason} />}
       <CustomerOverviewPanel rows={rows} currentMonth={currentMonth()} />
     </>
   );

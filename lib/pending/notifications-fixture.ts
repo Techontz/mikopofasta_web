@@ -1,6 +1,6 @@
 import type { AppNotification } from "@/types/notification";
 
-export const MOCK_NOTIFICATIONS: AppNotification[] = [
+export const PENDING_NOTIFICATIONS: AppNotification[] = [
   {
     id: "n-1",
     title: "Loan pending approval",
