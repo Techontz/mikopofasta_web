@@ -157,6 +157,13 @@ export interface PaymentFilters {
   status?: string[];
   channel?: string[];
   loanId?: string;
+  /**
+   * Every payment against every loan this customer holds, in one request.
+   * Resolved through the loan on the API side — a payment has no customer of
+   * its own — which is what lets the teller session ask once instead of once
+   * per loan.
+   */
+  customerId?: string;
   branchId?: string;
   page?: number;
   perPage?: number;
@@ -180,6 +187,7 @@ export async function getPayments(
     query: {
       search: filters.search,
       loan_id: toId(filters.loanId) ?? undefined,
+      customer_id: toId(filters.customerId) ?? undefined,
       branch_id: toId(filters.branchId) ?? undefined,
       page: filters.page,
       per_page: filters.perPage,

@@ -135,9 +135,10 @@ interface LoanProductWire {
 
 /**
  * A loan plus the names the API resolved for it. `outstanding` is the server's
- * own `outstandingTotal`, present only when schedules were loaded — a loan
- * whose schedule has not been generated yet owes nothing, and reporting a
- * balance before disbursement would overstate the portfolio.
+ * own `outstandingTotal` — summed in SQL on the index, off the loaded schedules
+ * on `show`, the same figure either way. A loan whose schedule has not been
+ * generated yet reports zero, because nothing is owed before disbursement and a
+ * balance there would overstate the portfolio.
  */
 export interface LoanListItem extends Loan {
   statusLabel: string;
@@ -280,50 +281,40 @@ export async function getAllLoans(filters: LoanFilters = {}): Promise<LoanListIt
 /**
  * Portfolio outstanding across a set of loans.
  *
- * `GET /loans` eager-loads customer, branch and product but *not* schedules, and
- * `outstandingTotal` is only emitted when schedules are loaded — so a list row
- * carries no balance and summing the page would report an empty book. There is
- * no bulk endpoint for it, so the figure is assembled from one schedule call per
- * open-book loan.
+ * One line, because the index resource now carries the balance. It used to be
+ * a request per loan: `GET /loans` did not emit `outstandingTotal` — the figure
+ * came off loaded schedules and listing loans cannot load schedules — so the
+ * only way to total a book was to ask each loan for its own schedule. That
+ * capped out at 60 loans, degraded to a partial total past it, and a burst of
+ * page loads was enough to trip the API's rate limiter.
  *
- * Deliberately narrow: only loans that actually owe anything are asked about
- * (nothing is owed before disbursement), and the count is capped so a large
- * book degrades to a partial total that says so rather than firing unbounded
- * requests. If the API ever puts `outstandingTotal` on the index resource, this
- * whole function collapses into a sum.
+ * `Loan::scopeWithScheduleTotals()` replaced the fan-out with two SQL sums over
+ * the same six columns, so the balance arrives with the row. The query cost of
+ * a page of loans is now flat in the number of loans on it, and a list row and
+ * a detail page are computing the same figure from the same source rather than
+ * agreeing by coincidence.
+ *
+ * The shape is kept — callers still get a map, a total and a completeness flag
+ * — because nothing about the call sites needed to change and the flag still
+ * carries meaning: the API omits the field when it was not asked for, which
+ * `num()` reads as 0, and `complete` is what tells the tile apart from a
+ * genuine zero.
  */
-const OUTSTANDING_FETCH_LIMIT = 60;
-
 export interface OutstandingLookup {
-  /** loan id → outstanding. Absent means "not fetched", which is not the same as zero. */
+  /** loan id → outstanding, as the API reported it. */
   byLoan: Map<string, number>;
   total: number;
+  /** False if any row came back without a balance at all. */
   complete: boolean;
 }
 
-export async function getOutstandingByLoan(loans: LoanListItem[]): Promise<OutstandingLookup> {
+export function getOutstandingByLoan(loans: LoanListItem[]): OutstandingLookup {
   const owing = loans.filter((l) => l.disbursementDate !== null);
-  const sampled = owing.slice(0, OUTSTANDING_FETCH_LIMIT);
-
-  const entries = await Promise.all(
-    sampled.map((loan) =>
-      getLoanSchedule(loan.id)
-        .then((s): [string, number] => [loan.id, s.outstandingTotal])
-        // One unreadable loan must not take the whole tile down with it.
-        .catch((): [string, number] => [loan.id, 0])
-    )
-  );
-
-  if (owing.length > sampled.length) {
-    console.warn(
-      `getOutstandingByLoan resolved ${sampled.length} of ${owing.length} disbursed loans (cap ${OUTSTANDING_FETCH_LIMIT}).`
-    );
-  }
 
   return {
-    byLoan: new Map(entries),
-    total: entries.reduce((sum, [, value]) => sum + value, 0),
-    complete: owing.length === sampled.length,
+    byLoan: new Map(owing.map((loan) => [loan.id, loan.outstanding])),
+    total: owing.reduce((sum, loan) => sum + loan.outstanding, 0),
+    complete: owing.every((loan) => Number.isFinite(loan.outstanding)),
   };
 }
 

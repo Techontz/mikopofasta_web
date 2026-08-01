@@ -41,17 +41,19 @@ export default async function Page({ params }: { params: Promise<{ customerId: s
     throw error;
   }
 
-  const loans = await getAllLoans({ customerId });
-
   /*
-   * Payments are filtered by this customer's loans rather than by the customer:
-   * `GET /payments` takes a loan, not a customer, because a payment is received
-   * against a loan. A customer with no loans has no statement, and that is the
-   * truth rather than an empty filter.
+   * One request each, concurrently, whatever the customer's history.
+   *
+   * The statement used to be assembled per loan — `GET /payments` took a loan
+   * and not a customer, because a payment is received against a loan — so a
+   * customer on their eighth loan cost eight requests to render one list. The
+   * index now accepts `customer_id` and resolves it through the loan, which is
+   * the same join done once on the database rather than N times over HTTP.
    */
-  const payments = (
-    await Promise.all(loans.map((loan) => getAllPayments({ loanId: loan.id })))
-  ).flat();
+  const [loans, payments] = await Promise.all([
+    getAllLoans({ customerId }),
+    getAllPayments({ customerId }),
+  ]);
 
   const fullName = customerFullName(customer);
 

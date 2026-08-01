@@ -19,7 +19,7 @@ export default async function LoansPage() {
 
   // The list resource carries no balance, so the open book's outstanding is
   // resolved separately and feeds both the tile and the table's column.
-  const outstanding = await getOutstandingByLoan(openBook);
+  const outstanding = getOutstandingByLoan(openBook);
   const rows = loans.map((loan) => toLoanRow(loan, outstanding.byLoan));
   const inArrears = loans.filter((l) => l.status === "arrears" || l.status === "defaulted");
   const needsAttention = loans.filter((l) => l.status === "disbursement_failed" || l.status === "escalated");

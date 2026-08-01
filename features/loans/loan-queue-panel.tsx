@@ -46,11 +46,11 @@ export interface LoanQueueTile {
 /**
  * Loads one queue and renders it.
  *
- * `outstanding` is resolved separately because the list resource carries no
- * balance — the index does not load schedules, so a per-loan figure has to be
- * asked for. It is skipped entirely for queues that cannot have one: a rejected
- * or withdrawn application never had a schedule, and asking would be a request
- * per loan for a column of zeros.
+ * `outstanding` comes down with the rows — the index resource carries the
+ * balance as of the schedule-totals aggregate, so there is no second request to
+ * make. It is still skipped for queues that cannot have one: a rejected or
+ * withdrawn application never had a schedule, and a tile reading zero would
+ * imply a portfolio rather than the absence of one.
  */
 export async function LoanQueuePanel({
   filters,
@@ -68,7 +68,7 @@ export async function LoanQueuePanel({
   const loans = await getAllLoans(filters);
 
   const outstanding = withBalances
-    ? await getOutstandingByLoan(loans)
+    ? getOutstandingByLoan(loans)
     : { byLoan: new Map<string, number>(), total: 0, complete: true };
 
   const rows = loans.map((loan) => toLoanRow(loan, outstanding.byLoan));

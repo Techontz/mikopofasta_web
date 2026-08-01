@@ -7,8 +7,8 @@ import type { LoanRow } from "@/features/loans/loans-table";
  *
  * Everything here is resolved by the API: `customerName`, `branchName` and
  * `productName` come eager-loaded, and `outstanding` is the server's own
- * `outstandingTotal` — which is zero until a schedule exists, so a loan still
- * in origination correctly shows no balance.
+ * `outstandingTotal`, summed in SQL over the loan's installments — zero until a
+ * schedule exists, so a loan still in origination correctly shows no balance.
  *
  * Branch scoping has left this file entirely: §13 is applied by the API, so a
  * list is already narrowed to what the signed-in officer may see and there is
@@ -22,9 +22,11 @@ export function toLoanRow(loan: LoanListItem, outstanding?: Map<string, number>)
     branchName: loan.branchName ?? "—",
     productName: loan.productName ?? "—",
     principalAmount: loan.principalAmount,
-    // `loan.outstanding` is only populated where the API loaded schedules — on
-    // `show`, not on the index — so the list passes in the balances it resolved
-    // separately. See getOutstandingByLoan.
+    // The index resource carries the balance now, so `loan.outstanding` is the
+    // figure. The map is still accepted because a caller that has already
+    // narrowed a set — the Loan Book excludes closed loans from its tile —
+    // passes the same values through it, and reading one source keeps the row
+    // and the tile from disagreeing.
     outstanding: outstanding?.get(loan.id) ?? loan.outstanding,
     status: loan.status,
     disbursementDate: loan.disbursementDate,
