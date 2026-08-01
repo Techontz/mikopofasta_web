@@ -14,6 +14,7 @@ import { getBranches } from "@/lib/api/organization";
 import { getReport } from "@/lib/api/reports";
 import { ApiError } from "@/lib/api/errors";
 import { ReportFiltersBar } from "@/features/reports/report-filters";
+import { ReportControls } from "@/features/reports/report-controls";
 import { ReportTable } from "@/features/reports/report-table";
 import type { ReportFilters } from "@/lib/domain/reports/types";
 
@@ -52,15 +53,30 @@ export default async function ReportPage({
     to: single("to"),
   };
 
+  /*
+   * Presentation, kept apart from the filters above. These decide which of the
+   * computed rows are shown and in what order; the filters decide what the
+   * figures are. The API keeps the same separation — only the filters appear in
+   * `filters_applied`, so nothing tells a reader that sorting moved a total.
+   */
+  const presentation = {
+    search: single("search"),
+    sort: single("sort"),
+    direction: single("direction") === "desc" ? ("desc" as const) : undefined,
+    page: single("page") ? Number(single("page")) : undefined,
+    perPage: single("per_page") ? Number(single("per_page")) : undefined,
+  };
+
   let payload;
   try {
-    payload = await getReport(slug, requested);
+    payload = await getReport(slug, requested, presentation);
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) notFound();
     throw error;
   }
 
-  const { report, result, generatedAt, filtersApplied } = payload;
+  const { report, result, generatedAt, filtersApplied, pagination, matchedRows, totalRows, sortIgnored } =
+    payload;
 
   const seesAllBranches = hasPermission(user, PERMISSIONS.BRANCHES_VIEW_ALL);
   const branches = (await getBranches().catch(() => []))
@@ -104,7 +120,27 @@ export default async function ReportPage({
       )}
 
       <SettingsCard title={`${report.title} (${result.rows.length})`} bodyClassName="pt-0 sm:pt-0">
-        <ReportTable result={result} />
+        <div className="space-y-3">
+          <Suspense fallback={<p className="text-[13px] text-[var(--st-ink-soft)]">Loading controls…</p>}>
+            <ReportControls
+              slug={report.slug}
+              pagination={pagination}
+              matchedRows={matchedRows}
+              totalRows={totalRows}
+              rowCount={result.rows.length}
+            />
+          </Suspense>
+
+          {sortIgnored && (
+            /* Surfaced rather than swallowed: the reader believes the order
+               means something, and an unsorted list reads as wrong data. */
+            <p className="text-[12.5px] text-[var(--st-warning-ink,var(--st-ink-soft))]">
+              This report has no “{sortIgnored}” column, so the rows are in their natural order.
+            </p>
+          )}
+
+          <ReportTable result={result} sortable={report.sortable} />
+        </div>
       </SettingsCard>
 
       {result.reconciliation && (

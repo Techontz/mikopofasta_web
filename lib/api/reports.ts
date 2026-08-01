@@ -76,21 +76,65 @@ export async function getReportsByGroup(): Promise<{ group: ReportGroup; reports
 interface ReportMetaWire {
   generated_at: string;
   filters_applied: Record<string, string>;
-  report: { slug: string; title: string; description: string; group: ReportGroup; filters: ReportFilterName[] };
+  report: {
+    slug: string;
+    title: string;
+    description: string;
+    group: ReportGroup;
+    filters: ReportFilterName[];
+    /** The column keys the API will sort by, so a client need not guess. */
+    sortable?: string[];
+  };
   columns: ReportColumn[];
   totals?: Record<string, string | number | null>;
   summary?: { label: string; value: string }[];
   emptyMessage?: string;
   reconciliation?: string;
   rowCount?: number;
+  /** Presentation, echoed back — see ReportQuery on the API side. */
+  query?: { search?: string; sort?: string; direction?: string; page?: number; perPage?: number };
+  pagination?: { page: number; perPage: number; total: number; lastPage: number };
+  matchedRows?: number;
+  totalRows?: number;
+  sortIgnored?: string;
+}
+
+/**
+ * How the rows are presented — searched, sorted, paged.
+ *
+ * Deliberately separate from `ReportFilters`. Those decide what the figures
+ * ARE and are echoed in `filters_applied`; these decide only which rows are
+ * shown and in what order. Mixing them would tell a reader that sorting had
+ * changed the totals.
+ */
+export interface ReportQuery {
+  search?: string;
+  sort?: string;
+  direction?: "asc" | "desc";
+  page?: number;
+  perPage?: number;
+}
+
+export interface ReportPagination {
+  page: number;
+  perPage: number;
+  total: number;
+  lastPage: number;
 }
 
 export interface ReportPayload {
-  report: ReportCatalogueEntry;
+  report: ReportCatalogueEntry & { sortable: string[] };
   result: ReportResult;
   generatedAt: string;
   /** Echoed by the API in its own wire names, including any branch it forced. */
   filtersApplied: Record<string, string>;
+  /** Present only when the caller asked for a page. */
+  pagination?: ReportPagination;
+  /** Present only when a search narrowed the set. */
+  matchedRows?: number;
+  totalRows?: number;
+  /** Set when the requested sort column was not one — surfaced, not swallowed. */
+  sortIgnored?: string;
 }
 
 /**
@@ -135,7 +179,11 @@ function formatSummary(summary: { label: string; value: string }[]): ReportSumma
   }));
 }
 
-export async function getReport(slug: string, filters: ReportFilters = {}): Promise<ReportPayload> {
+export async function getReport(
+  slug: string,
+  filters: ReportFilters = {},
+  query: ReportQuery = {}
+): Promise<ReportPayload> {
   const response = await apiRequest<Record<string, unknown>[]>(`/api/v1/reports/${slug}`, {
     token: await token(),
     query: {
@@ -143,6 +191,11 @@ export async function getReport(slug: string, filters: ReportFilters = {}): Prom
       period: filters.period,
       from: filters.from,
       to: filters.to,
+      search: query.search,
+      sort: query.sort,
+      direction: query.direction,
+      page: query.page,
+      per_page: query.perPage,
     },
   });
 
@@ -151,9 +204,13 @@ export async function getReport(slug: string, filters: ReportFilters = {}): Prom
   const numericKeys = new Set(columns.filter((c) => c.money || c.percent).map((c) => c.key));
 
   return {
-    report: meta.report,
+    report: { ...meta.report, sortable: meta.report.sortable ?? [] },
     generatedAt: meta.generated_at,
     filtersApplied: meta.filters_applied ?? {},
+    pagination: meta.pagination,
+    matchedRows: meta.matchedRows,
+    totalRows: meta.totalRows,
+    sortIgnored: meta.sortIgnored,
     result: {
       columns,
       rows: response.data.map((row) => coerceRow(row, numericKeys)),
@@ -163,4 +220,41 @@ export async function getReport(slug: string, filters: ReportFilters = {}): Prom
       reconciliation: meta.reconciliation,
     },
   };
+}
+
+// ---------------------------------------------------------------------------
+// Export
+// ---------------------------------------------------------------------------
+
+export type ReportExportFormat = "csv" | "xlsx" | "pdf";
+
+/**
+ * The download URL for a report, in the caller's current view.
+ *
+ * A URL rather than a fetch: the file is served with a Content-Disposition and
+ * the browser is much better at saving one than JavaScript is. It goes through
+ * the app's own route so the session cookie authenticates it — the API token
+ * lives server-side and cannot be put in an href.
+ *
+ * Filters, search and sort are carried through, because an export that did not
+ * match the screen it was taken from is the one thing an export must never be.
+ * `page` and `per_page` are not: a page of a spreadsheet is not an export.
+ */
+export function reportExportPath(
+  slug: string,
+  format: ReportExportFormat,
+  filters: ReportFilters = {},
+  query: ReportQuery = {}
+): string {
+  const params = new URLSearchParams({ format });
+
+  if (filters.branchId) params.set("branch_id", filters.branchId);
+  if (filters.period) params.set("period", filters.period);
+  if (filters.from) params.set("from", filters.from);
+  if (filters.to) params.set("to", filters.to);
+  if (query.search) params.set("search", query.search);
+  if (query.sort) params.set("sort", query.sort);
+  if (query.direction) params.set("direction", query.direction);
+
+  return `/reports/${slug}/download?${params.toString()}`;
 }

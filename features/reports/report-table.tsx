@@ -1,6 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { formatMoney } from "@/lib/domain/money";
+import { SortableHeader } from "@/features/reports/report-controls";
 import type { ReportColumn, ReportResult, ReportRow } from "@/lib/domain/reports/types";
 
 function renderCell(column: ReportColumn, row: ReportRow) {
@@ -11,7 +12,18 @@ function renderCell(column: ReportColumn, row: ReportRow) {
   return String(value);
 }
 
-export function ReportTable({ result }: { result: ReportResult }) {
+/**
+ * `sortable` is the API's list of column keys it will order by. A header is
+ * only made clickable when its key is in it — one that looked clickable and did
+ * nothing would be worse than a plain one.
+ */
+export function ReportTable({
+  result,
+  sortable = [],
+}: {
+  result: ReportResult;
+  sortable?: string[];
+}) {
   if (result.rows.length === 0) {
     return <EmptyState title="Nothing to report" description={result.emptyMessage ?? "No data matches these filters."} />;
   }
@@ -23,7 +35,12 @@ export function ReportTable({ result }: { result: ReportResult }) {
           <TableRow>
             {result.columns.map((c) => (
               <TableHead key={c.key} className={c.align === "right" ? "text-right" : undefined}>
-                {c.label}
+                <SortableHeader
+                  columnKey={c.key}
+                  label={c.label}
+                  align={c.align}
+                  sortable={sortable.includes(c.key)}
+                />
               </TableHead>
             ))}
           </TableRow>
