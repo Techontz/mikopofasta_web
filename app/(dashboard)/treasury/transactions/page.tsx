@@ -34,8 +34,8 @@ export default async function Page() {
       <TransactionsPanel
         transactions={transactions}
         decidable={true}
-        emptyTitle="EMPTY_Bank Transaction"
-        emptyDescription="EMPTY_Money requested into or out of a bank account. Each request carries who raised it, so the person deciding is never the person asking."
+        emptyTitle="No bank transactions"
+        emptyDescription="Nothing has been requested into or out of a bank account yet. Raised requests appear here for a second person to decide on."
         bankNames={[...new Set(accounts.map((a) => a.bankName))].sort()}
         branches={branches.map((b) => b.name)}
       />

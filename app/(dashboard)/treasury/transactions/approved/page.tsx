@@ -34,8 +34,8 @@ export default async function Page() {
       <TransactionsPanel
         transactions={transactions}
         decidable={false}
-        emptyTitle="EMPTY_Approved Transaction"
-        emptyDescription="EMPTY_Transactions that have been approved and posted. This list is the record of money that actually moved."
+        emptyTitle="Nothing approved yet"
+        emptyDescription="No bank transaction has been approved and posted. Once one is decided, the movement is recorded here."
         bankNames={[...new Set(accounts.map((a) => a.bankName))].sort()}
         branches={branches.map((b) => b.name)}
       />
