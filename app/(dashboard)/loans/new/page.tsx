@@ -7,7 +7,8 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { PageHeader } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { loanNavFor } from "@/features/ledger/nav-items";
-import { LoanApplicationPanel } from "@/features/legacy-loans/loan-application-panel";
+import { getAllCustomers } from "@/lib/api/customers";
+import { LoanApplicantPicker } from "@/features/loans/loan-applicant-picker";
 
 /**
  * Loan → Loan Application.
@@ -21,6 +22,16 @@ export default async function Page() {
   if (!user) redirect("/login");
   if (!hasPermission(user, PERMISSIONS.LOANS_CREATE)) return <AccessDeniedState />;
 
+  /*
+   * Only customers who can actually borrow. §9 makes KYC the gate, so listing
+   * somebody who would be refused at the next step wastes the officer's walk.
+   * Branch scoping is the API's — the list arrives already narrowed.
+   */
+  const customers = await getAllCustomers({
+    kycStatus: ["completed"],
+    approvalStatus: ["approved"],
+  });
+
   return (
     <>
       <PageHeader
@@ -30,7 +41,7 @@ export default async function Page() {
         breadcrumb={[{ label: "Loan", href: "/loans" }, { label: "Loan Application" }]}
       />
       <SectionNav items={loanNavFor(user)} />
-      <LoanApplicationPanel />
+      <LoanApplicantPicker customers={customers} />
     </>
   );
 }

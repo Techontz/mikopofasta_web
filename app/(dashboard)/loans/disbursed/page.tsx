@@ -7,7 +7,8 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { PageHeader } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { loanNavFor } from "@/features/ledger/nav-items";
-import { LoanDisbursedPanel } from "@/features/legacy-loans/loan-panels";
+import { hasPermission } from "@/config/permissions";
+import { LoanQueuePanel } from "@/features/loans/loan-queue-panel";
 
 export default async function Page() {
   const user = await getCurrentUser();
@@ -19,11 +20,16 @@ export default async function Page() {
       <PageHeader
         icon={Banknote}
         title="Loan Disbursed"
-        description="Money that has gone out, what it will come back as, and on what cadence."
+        description="Loans with money out, and what each still owes."
         breadcrumb={[{ label: "Loan", href: "/loans" }, { label: "Loan Disbursed" }]}
       />
       <SectionNav items={loanNavFor(user)} />
-      <LoanDisbursedPanel />
+      <LoanQueuePanel
+        filters={{ stage: "open_book" }}
+        canCreate={hasPermission(user, PERMISSIONS.LOANS_CREATE)}
+        emptyKind="openBook"
+        withBalances={true}
+      />
     </>
   );
 }

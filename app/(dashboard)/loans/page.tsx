@@ -8,7 +8,7 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { PageHeader } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { loanNavFor } from "@/features/ledger/nav-items";
-import { LoanOverviewPanel } from "@/features/legacy-loans/loan-overview-panel";
+import { LoanOverviewPanel } from "@/features/loans/loan-overview-panel";
 
 /**
  * Loan → Overview.

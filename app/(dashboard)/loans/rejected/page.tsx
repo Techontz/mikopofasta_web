@@ -7,7 +7,8 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { PageHeader } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { loanNavFor } from "@/features/ledger/nav-items";
-import { LoanRejectedPanel } from "@/features/legacy-loans/loan-panels";
+import { hasPermission } from "@/config/permissions";
+import { LoanQueuePanel } from "@/features/loans/loan-queue-panel";
 
 export default async function Page() {
   const user = await getCurrentUser();
@@ -23,7 +24,12 @@ export default async function Page() {
         breadcrumb={[{ label: "Loan", href: "/loans" }, { label: "Loan Rejected" }]}
       />
       <SectionNav items={loanNavFor(user)} />
-      <LoanRejectedPanel />
+      <LoanQueuePanel
+        filters={{ status: ["rejected"] }}
+        canCreate={hasPermission(user, PERMISSIONS.LOANS_CREATE)}
+        emptyKind="closed"
+        withBalances={false}
+      />
     </>
   );
 }

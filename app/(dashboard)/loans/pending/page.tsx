@@ -7,7 +7,8 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { PageHeader } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { loanNavFor } from "@/features/ledger/nav-items";
-import { LoanPendingPanel } from "@/features/legacy-loans/loan-panels";
+import { hasPermission } from "@/config/permissions";
+import { LoanQueuePanel } from "@/features/loans/loan-queue-panel";
 
 export default async function Page() {
   const user = await getCurrentUser();
@@ -19,11 +20,16 @@ export default async function Page() {
       <PageHeader
         icon={Clock}
         title="Loan Pending Approve"
-        description="Applications waiting on a decision, with the branch and the customer behind each."
+        description="Applications waiting on a decision — manager approval, credit review, mandate or disbursement."
         breadcrumb={[{ label: "Loan", href: "/loans" }, { label: "Loan Pending" }]}
       />
       <SectionNav items={loanNavFor(user)} />
-      <LoanPendingPanel />
+      <LoanQueuePanel
+        filters={{ stage: "origination" }}
+        canCreate={hasPermission(user, PERMISSIONS.LOANS_CREATE)}
+        emptyKind="origination"
+        withBalances={false}
+      />
     </>
   );
 }
