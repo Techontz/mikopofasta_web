@@ -7,7 +7,7 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { PageHeader } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { reportNavFor } from "@/features/ledger/nav-items";
-import { WriteOffPanel } from "@/features/legacy-reports/empty-report-panels";
+import { LoanQueuePanel } from "@/features/loans/loan-queue-panel";
 
 export default async function Page() {
   const user = await getCurrentUser();
@@ -19,11 +19,16 @@ export default async function Page() {
       <PageHeader
         icon={CircleX}
         title="Write-off Loan"
-        description="Loans the business has given up on, and what came back anyway."
+        description="Loans the business has written off, and what each was carrying when it did."
         breadcrumb={[{ label: "Report", href: "/reports" }, { label: "Write-off" }]}
       />
       <SectionNav items={reportNavFor(user)} />
-      <WriteOffPanel />
+      <LoanQueuePanel
+        filters={{ status: ["written_off"] }}
+        canCreate={false}
+        emptyKind="closed"
+        withBalances={true}
+      />
     </>
   );
 }

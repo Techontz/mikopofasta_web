@@ -7,7 +7,7 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { PageHeader } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { reportNavFor } from "@/features/ledger/nav-items";
-import { LoanPendingReportPanel } from "@/features/legacy-reports/empty-report-panels";
+import { LoanQueuePanel } from "@/features/loans/loan-queue-panel";
 
 export default async function Page() {
   const user = await getCurrentUser();
@@ -19,11 +19,16 @@ export default async function Page() {
       <PageHeader
         icon={Clock}
         title="Loan Pending"
-        description="Applications still waiting on a decision, by period."
+        description="Applications still waiting on a decision."
         breadcrumb={[{ label: "Report", href: "/reports" }, { label: "Loan Pending" }]}
       />
       <SectionNav items={reportNavFor(user)} />
-      <LoanPendingReportPanel />
+      <LoanQueuePanel
+        filters={{ stage: "origination" }}
+        canCreate={false}
+        emptyKind="origination"
+        withBalances={false}
+      />
     </>
   );
 }

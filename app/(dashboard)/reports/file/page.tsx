@@ -7,12 +7,22 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { PageHeader } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { reportNavFor } from "@/features/ledger/nav-items";
-import { FileReportPanel } from "@/features/legacy-reports/empty-report-panels";
+import { LiveReportPanel } from "@/features/reports/live-report-panel";
 
-export default async function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (!hasPermission(user, PERMISSIONS.REPORTS_VIEW)) return <AccessDeniedState />;
+
+  const query = await searchParams;
+  const single = (key: string) => {
+    const value = query[key];
+    return typeof value === "string" && value.length > 0 ? value : undefined;
+  };
 
   return (
     <>
@@ -23,7 +33,21 @@ export default async function Page() {
         breadcrumb={[{ label: "Report", href: "/reports" }, { label: "File" }]}
       />
       <SectionNav items={reportNavFor(user)} />
-      <FileReportPanel />
+      <LiveReportPanel
+        slug="portfolio"
+        searchParams={{
+          branch_id: single("branch_id"),
+          period: single("period"),
+          from: single("from"),
+          to: single("to"),
+          search: single("search"),
+          sort: single("sort"),
+          direction: single("direction"),
+          page: single("page"),
+          per_page: single("per_page"),
+        }}
+        note="The legacy File report laid a column out per month — January, March, May and June, not consecutive, with no key to what the months meant. Nothing in this system reproduces that, so this shows the loan book it was drawn from."
+      />
     </>
   );
 }
