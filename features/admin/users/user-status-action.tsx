@@ -4,9 +4,9 @@ import { useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/settings/form";
 import { setUserStatus } from "@/features/admin/users/users-actions";
-import type { MockCredential } from "@/lib/mock-data/users";
+import type { User } from "@/types/user";
 
-export function UserStatusAction({ user }: { user: MockCredential }) {
+export function UserStatusAction({ user }: { user: User }) {
   const [pending, startTransition] = useTransition();
   const active = user.status === "active";
 

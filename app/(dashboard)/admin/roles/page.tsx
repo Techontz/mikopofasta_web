@@ -2,19 +2,38 @@ import { redirect } from "next/navigation";
 import { Info, ShieldCheck } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getRolePermissions, hasPermission } from "@/config/permissions";
-import { PERMISSIONS, ROLES, type Role } from "@/types/auth";
-import { MOCK_USERS } from "@/lib/mock-data/users";
+import { hasPermission } from "@/config/permissions";
+import { PERMISSIONS, type Role } from "@/types/auth";
+import { AccessDeniedState } from "@/components/feedback/access-denied-state";
+import { getRoles } from "@/lib/api/users";
 import { RolesList } from "@/features/admin/roles/roles-list";
 import { PermissionMatrix } from "@/features/admin/roles/permission-matrix";
 import { PageHeader } from "@/components/settings";
 
+/**
+ * Settings → Roles & Permissions.
+ *
+ * `roles.view` reads the matrix, `roles.manage` edits it — RolePolicy's split,
+ * and the API enforces the same two grants.
+ *
+ * Both the role cards and the matrix now come from `GET /roles`, which reads
+ * the grants the API actually authorises against. The frontend's own
+ * `ROLE_PERMISSIONS` map is still used for gating THIS session's UI, but it is
+ * no longer the source of what the matrix displays: showing a copy would hide
+ * the moment the two disagree, which is exactly when somebody needs to know.
+ */
 export default async function RolesPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (!hasPermission(user, PERMISSIONS.ROLES_VIEW)) return <AccessDeniedState />;
+
   const canEditMatrix = hasPermission(user, PERMISSIONS.ROLES_MANAGE);
 
-  const rolePermissions = Object.fromEntries(ROLES.map((role) => [role, getRolePermissions(role)])) as Record<Role, string[]>;
+  const roles = await getRoles();
+
+  const rolePermissions = Object.fromEntries(
+    roles.map((role) => [role.name, role.permissions])
+  ) as Record<Role, string[]>;
 
   return (
     <div className="space-y-6">
@@ -31,7 +50,7 @@ export default async function RolesPage() {
           <TabsTrigger value="matrix" className="st-rail-item h-auto">Permission Matrix</TabsTrigger>
         </TabsList>
         <TabsContent value="roles">
-          <RolesList users={MOCK_USERS} />
+          <RolesList roles={roles} />
         </TabsContent>
         <TabsContent value="matrix" className="space-y-4">
           {/* Stated before the grid, so a read-only visitor knows it up front. */}

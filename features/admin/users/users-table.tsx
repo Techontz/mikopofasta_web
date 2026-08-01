@@ -11,20 +11,36 @@ import { UserFormDialog } from "@/features/admin/users/user-form-dialog";
 import { UserStatusAction } from "@/features/admin/users/user-status-action";
 import { ROLE_LABELS } from "@/config/permissions";
 import { ROLES } from "@/types/auth";
-import type { MockCredential } from "@/lib/mock-data/users";
+import type { User } from "@/types/user";
 import type { Branch, Zone, Region } from "@/types/branch";
 
-export function UsersTable({ users, branches, zones, regions }: { users: MockCredential[]; branches: Branch[]; zones: Zone[]; regions: Region[] }) {
+/**
+ * Settings → User Management.
+ *
+ * `initials` is derived rather than stored. The fixture this table used to read
+ * carried an `avatarInitials` field; the API does not, and it should not — two
+ * letters of somebody's name is a rendering decision, not a fact about them.
+ */
+function initials(name: string): string {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+export function UsersTable({ users, branches, zones, regions }: { users: User[]; branches: Branch[]; zones: Zone[]; regions: Region[] }) {
   const branchName = (id: string | null) => branches.find((b) => b.id === id)?.name ?? "—";
 
-  const columns: ColumnDef<MockCredential>[] = [
+  const columns: ColumnDef<User>[] = [
     {
       accessorKey: "name",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
       cell: ({ row }) => (
         <Link href={`/admin/users/${row.original.id}`} className="flex items-center gap-2 hover:underline">
           <Avatar className="size-7">
-            <AvatarFallback className="text-xs">{row.original.avatarInitials}</AvatarFallback>
+            <AvatarFallback className="text-xs">{initials(row.original.name)}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
             <span className="font-medium">{row.original.name}</span>

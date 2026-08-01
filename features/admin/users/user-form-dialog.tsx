@@ -12,7 +12,7 @@ import { Button, Field, FieldGrid, IconButton, Select, TextInput } from "@/compo
 import { ROLES, type Role } from "@/types/auth";
 import { ROLE_LABELS } from "@/config/permissions";
 import { createUser, updateUser } from "@/features/admin/users/users-actions";
-import type { MockCredential } from "@/lib/mock-data/users";
+import type { User } from "@/types/user";
 import type { Branch, Zone, Region } from "@/types/branch";
 
 const FormSchema = z.object({
@@ -29,7 +29,7 @@ type FormValues = z.infer<typeof FormSchema>;
 const NONE = "__none__";
 
 interface UserFormDialogProps {
-  user?: MockCredential;
+  user?: User;
   branches: Branch[];
   zones: Zone[];
   regions: Region[];
