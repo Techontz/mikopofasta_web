@@ -15,7 +15,7 @@ import {
   getTopupEligibility,
 } from "@/lib/api/loans";
 import { ApiError } from "@/lib/api/errors";
-import { MOCK_USERS } from "@/lib/mock-data/users";
+import { getAllUsers } from "@/lib/api/users";
 import { getAuditLogs } from "@/lib/api/system-configuration";
 import { buildLoanTimeline } from "@/lib/domain/loan-timeline";
 import { LOAN_STATUS_LABELS } from "@/lib/domain/loan-status-machine";
@@ -80,10 +80,19 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
     .then((result) => result.logs)
     .catch(() => []);
 
-  // The API resolves no names for officer/approver/actor ids, and /users needs
-  // `users.manage`, which the roles that work loans do not hold — so these read
-  // "—" for API-created loans until the Users module is integrated.
-  const userNames = Object.fromEntries(MOCK_USERS.map((u) => [u.id, u.name]));
+  /*
+   * The loan resource carries officer and approver as ids, not names, so they
+   * are resolved from the users endpoint.
+   *
+   * That endpoint needs `users.manage`, which the roles that actually work
+   * loans do not hold — so this fails soft and those fields read "—" for them.
+   * Degrading is the right behaviour: a Loan Officer seeing a dash where an
+   * administrator sees a name is a missing convenience, whereas a page that
+   * refused to load because it could not name somebody would be a broken one.
+   */
+  const userNames = Object.fromEntries(
+    (await getAllUsers().catch(() => [])).map((u) => [u.id, u.name])
+  );
 
   // Mandates, telco runs and disbursement batches have no list endpoint, so all
   // three tabs are projections of loan_status_history — which is the API's own

@@ -15,9 +15,8 @@ import {
 } from "@/lib/api/customers";
 import { getBranches, getDistricts, getRegions, getStreets, getWards } from "@/lib/api/organization";
 import { ApiError } from "@/lib/api/errors";
-import { MOCK_ACCOUNT_FREEZES } from "@/lib/mock-data/account-freezes";
 import { getAuditLogs } from "@/lib/api/system-configuration";
-import { MOCK_GROUPS, MOCK_GROUP_MEMBERS } from "@/lib/mock-data/groups";
+import { getAllGroups } from "@/lib/api/groups";
 import { buildCustomerTimeline } from "@/lib/domain/customer-timeline";
 import { getCurrentUser } from "@/lib/auth/session";
 import { hasPermission } from "@/config/permissions";
@@ -79,9 +78,17 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
   const ward = wards.find((w) => w.id === customer.wardId);
   const street = streets.find((s) => s.id === customer.streetId);
 
-  // Freezes, the audit trail and groups have no endpoint in this phase, so they
-  // stay on seeded data and read empty for API-registered customers.
-  const freezes = MOCK_ACCOUNT_FREEZES.filter((f) => f.freezableType === "customer" && f.freezableId === customer.id);
+  /*
+   * There is no endpoint that lists account freezes — freeze and unfreeze are
+   * POSTs and nothing reads the history back. So the timeline is built without
+   * them, rather than from a fixture that would show one customer's seeded
+   * freeze against every other customer's real record.
+   *
+   * The freeze STATE is not lost: `customer.status` carries it, and the header
+   * shows it. What is missing is when it happened and who did it, and an empty
+   * array says that honestly where invented rows would not.
+   */
+  const freezes: never[] = [];
   /*
    * This record's own history, from the audit trail.
    *
@@ -97,8 +104,19 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
   })
     .then((result) => result.logs)
     .catch(() => []);
-  const membership = MOCK_GROUP_MEMBERS.find((m) => m.customerId === customer.id);
-  const group = membership ? MOCK_GROUPS.find((g) => g.id === membership.groupId) : undefined;
+  /*
+   * Which group this customer belongs to, if any.
+   *
+   * The groups index eager-loads each group's active members, so one request
+   * answers it for anybody. It fails soft: a profile should not fall over
+   * because the group list is unavailable, and the panel already renders
+   * "not part of any group" when there is nothing to show.
+   */
+  const groups = await getAllGroups().catch(() => []);
+  const groupWithMember = groups.find((g) =>
+    (g.members ?? []).some((m) => m.customerId === customer.id)
+  );
+  const membership = groupWithMember?.members?.find((m) => m.customerId === customer.id);
 
   const timeline = buildCustomerTimeline(customer, documents, notes, freezes, auditLogs);
 
@@ -187,7 +205,7 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
         <TabsContent value="group">
           <Card>
             <CardContent className="pt-6">
-              <GroupPanel customerId={customer.id} group={group} membership={membership} />
+              <GroupPanel group={groupWithMember} membership={membership} />
             </CardContent>
           </Card>
         </TabsContent>

@@ -109,7 +109,12 @@ const LOAN: SectionNavItem[] = [
  */
 const CUSTOMER: SectionNavItem[] = [
   { href: "/customers/overview", label: "Overview" },
-  { href: "/customers/new", label: "Register Customer" },
+  /*
+   * The wizard, not the retired design pass at /customers/new — that screen was
+   * a rendering of the legacy three-step form and saved nothing, while this one
+   * actually registers a customer through the API.
+   */
+  { href: "/customers/new/register", label: "Register Customer" },
   { href: "/customers", label: "All Customer" },
   { href: "/customers/profile", label: "Customer Profile" },
 ];
