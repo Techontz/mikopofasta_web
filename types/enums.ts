@@ -44,8 +44,26 @@ export type BranchType = (typeof BRANCH_TYPES)[number];
 export const ACTIVE_INACTIVE = toEnum(["active", "inactive"]);
 export type ActiveInactive = (typeof ACTIVE_INACTIVE)[number];
 
-export const USER_STATUSES = toEnum(["active", "suspended"]);
+/**
+ * `system` is the automation's account: it cannot authenticate, by
+ * construction rather than by a flag somebody has to remember to check.
+ */
+export const USER_STATUSES = toEnum(["active", "suspended", "system"]);
 export type UserStatus = (typeof USER_STATUSES)[number];
+
+/**
+ * The statuses an administrator may set on a person.
+ *
+ * `system` is excluded and the API refuses it: promoting a human into the
+ * automation's identity would hide their account from user management and mark
+ * their postings as the system's. The status appears in USER_STATUSES only so
+ * a response carrying it still parses.
+ */
+export const ASSIGNABLE_USER_STATUSES = USER_STATUSES.filter((s) => s !== "system");
+
+/** Where somebody sits: SUPER ADMIN → HEAD OFFICE → ZONES → BRANCHES. */
+export const ORGANIZATION_TIERS = toEnum(["super_admin", "head_office", "zone", "branch", "system"]);
+export type OrganizationTier = (typeof ORGANIZATION_TIERS)[number];
 
 export const GROUP_STATUSES = toEnum(["active", "inactive"]);
 export type GroupStatus = (typeof GROUP_STATUSES)[number];
@@ -53,7 +71,16 @@ export type GroupStatus = (typeof GROUP_STATUSES)[number];
 export const GROUP_MEMBER_STATUSES = toEnum(["active", "left"]);
 export type GroupMemberStatus = (typeof GROUP_MEMBER_STATUSES)[number];
 
-export const INTEREST_FORMULA_CODES = toEnum(["SIMPLE", "FLAT", "REDUCING"]);
+/**
+ * The formulas the engine implements today.
+ *
+ * Presentation only — NOT a closed set. `interest_formulas.code` stopped being
+ * a database enum when the engine moved to a strategy registry, so the server
+ * is the authority on what can be priced and a fifth formula is a class plus a
+ * row rather than a schema change. Anything parsing a formula code from the API
+ * must accept a plain string; this list is for labelling what we know about.
+ */
+export const INTEREST_FORMULA_CODES = toEnum(["SIMPLE", "FLAT", "REDUCING", "REDUCING_EMI"]);
 export type InterestFormulaCode = (typeof INTEREST_FORMULA_CODES)[number];
 
 export const PENALTY_TYPES = toEnum(["percentage_of_overdue", "flat_fee", "percentage_per_day"]);
@@ -63,6 +90,12 @@ export type PenaltyType = (typeof PENALTY_TYPES)[number];
 export const LOAN_STATUSES = toEnum([
   "draft",
   "pending_manager_approval",
+  // The approval chain the client confirmed: Loan Officer → Branch Manager →
+  // Zone Manager → Head Office Credit → Disbursement, with a return path and a
+  // hold available at every stage.
+  "pending_zone_approval",
+  "returned_for_modification",
+  "on_hold",
   "rejected",
   "mandate_pending_otp",
   "mandate_failed",
@@ -83,7 +116,14 @@ export const LOAN_STATUSES = toEnum([
 ]);
 export type LoanStatus = (typeof LOAN_STATUSES)[number];
 
-export const LOAN_SCHEDULE_STATUSES = toEnum(["pending", "partial", "paid", "overdue"]);
+export const LOAN_SCHEDULE_STATUSES = toEnum([
+  "pending",
+  "partial",
+  "paid",
+  "overdue",
+  // Cut short by an early settlement — never billed, so never paid.
+  "cancelled",
+]);
 export type LoanScheduleStatus = (typeof LOAN_SCHEDULE_STATUSES)[number];
 
 export const E_MANDATE_STATUSES = toEnum(["pending_otp", "active", "failed"]);
@@ -129,8 +169,22 @@ export const JOURNAL_SOURCE_TYPES = toEnum([
   "loan_disbursement",
   "repayment",
   "suspense_resolution",
+  /*
+   * A held Customer Advance spent on an installment that has fallen due. No
+   * cash moves — the money was received and recognised as a liability when the
+   * borrower paid early — so it is not a `repayment`, or the day's receipts
+   * would read higher than the day's cash.
+   */
+  "advance_consumption",
   "expense",
   "month_end_profit",
+  // Added by the accounting phase; this list had drifted behind the API and a
+  // ledger row carrying one of them was typed as something it is not.
+  "reserve_appropriation",
+  "reserve_utilisation",
+  "write_off",
+  "recovery",
+  "transfer",
   "dividend",
   "payroll",
   "commission",

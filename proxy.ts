@@ -71,7 +71,12 @@ export const config = {
     /*
      * Run on everything except static assets, image optimization, and
      * favicon — matches the Next.js docs' recommended negative pattern.
+     *
+     * `mediapipe` is excluded too: it is the self-hosted WASM runtime and face
+     * model the KYC scanner fetches. Sending them through the session check
+     * redirected them to /login, so the scanner silently failed to start.
+     * They are public static assets — the customer's face never goes near them.
      */
-    "/((?!_next/static|_next/image|favicon.ico).*)",
+    "/((?!_next/static|_next/image|favicon.ico|mediapipe).*)",
   ],
 };

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Eye, List, Wallet } from "lucide-react";
+import { Eye, Wallet } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/session";
 import { hasPermission } from "@/config/permissions";
 import { getDashboardData } from "@/lib/api/dashboard";
@@ -12,13 +12,25 @@ import {
   LegacyTh,
   legacyNumber,
 } from "@/components/legacy/legacy-primitives";
+import { AccountBalanceTile, BranchListButton, LinkTile } from "@/features/dashboard/dashboard-dialogs";
 
 /** The four summary tiles, in the old screen's order and colours. */
+/**
+ * The four summary tiles, in the old screen's order and colours.
+ *
+ * `href` is where the tile's figure comes from. Account Balance has none
+ * because it opens the company account breakdown instead.
+ */
 const TILES = [
-  { key: "accountBalance", label: "Account Balance", color: "#4caf50" },
-  { key: "loanWithdrawal", label: "Loan Withdrawal", color: "#f0b429" },
-  { key: "expectationReceivable", label: "Expectation Receivable", color: "#2196f3" },
-  { key: "defaultLoan", label: "Default Loan", color: "#e2564a" },
+  { key: "accountBalance", label: "Account Balance", color: "#4caf50", href: null },
+  { key: "loanWithdrawal", label: "Loan Withdrawal", color: "#f0b429", href: "/loans/withdrawal" },
+  {
+    key: "expectationReceivable",
+    label: "Expectation Receivable",
+    color: "#2196f3",
+    href: "/reports/today-receivable",
+  },
+  { key: "defaultLoan", label: "Default Loan", color: "#e2564a", href: "/reports/default-loan" },
 ] as const;
 
 export default async function DashboardPage() {
@@ -61,25 +73,35 @@ export default async function DashboardPage() {
 
       <section className="lg-card p-4">
         <div className="mb-4 flex justify-end">
-          <button
-            type="button"
-            className="flex items-center gap-1.5 rounded px-2 py-1.5 text-[14px]"
-            style={{ background: "var(--lg-link)", color: "var(--lg-on-link)" }}
-          >
-            <List className="size-4" strokeWidth={2} aria-hidden />
-            Branch
-          </button>
+          {/* Was a button with no handler. Opens the per-branch breakdown. */}
+          <BranchListButton rows={data.branchAccounts} />
         </div>
         <div className="grid gap-7 sm:grid-cols-2 xl:grid-cols-4">
-          {TILES.map((tile) => (
-            <div key={tile.key} className="rounded px-4 py-2 text-white" style={{ background: tile.color }}>
-              <Wallet className="size-[22px]" strokeWidth={1.6} aria-hidden />
-              <div className="font-tabular mt-1.5 text-[28px] font-semibold leading-tight">
-                {legacyNumber(data[tile.key])}
-              </div>
-              <div className="text-[15px]">{tile.label}</div>
-            </div>
-          ))}
+          {TILES.map((tile) =>
+            /*
+             * Account Balance opens the company account list; the other three
+             * are still plain tiles, because there is no per-account breakdown
+             * behind them to show. A tile that opens an empty dialog is worse
+             * than one that does not open.
+             */
+            tile.key === "accountBalance" ? (
+              <AccountBalanceTile
+                key={tile.key}
+                value={data.accountBalance}
+                label={tile.label}
+                color={tile.color}
+                rows={data.companyAccounts}
+              />
+            ) : (
+              <LinkTile
+                key={tile.key}
+                value={data[tile.key]}
+                label={tile.label}
+                color={tile.color}
+                href={tile.href!}
+              />
+            )
+          )}
         </div>
       </section>
 

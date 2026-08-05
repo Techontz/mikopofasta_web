@@ -27,8 +27,6 @@ export function ReviewStep({
   const category = categories.find((c) => c.id === values.customerCategoryId);
 
   const checklist = [
-    { label: "NIDA identity verified", done: Boolean(verification.nidaVerifiedAt) },
-    { label: "OTP verified", done: Boolean(verification.otpVerifiedAt) },
     { label: "Face liveness verified", done: Boolean(verification.faceVerifiedAt) },
     { label: "Category assigned", done: Boolean(values.customerCategoryId) },
   ];
@@ -49,7 +47,7 @@ export function ReviewStep({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Summary label="Full Name" value={[values.firstName, values.middleName, values.lastName].filter(Boolean).join(" ")} />
-        <Summary label="NIDA Number" value={values.nidaNumber} />
+        <Summary label="National ID" value={values.nidaNumber || "Not provided"} />
         <Summary label="Phone" value={values.phone} />
         <Summary label="Gender / DOB" value={`${values.gender}, ${values.dob}`} />
         <Summary label="Marital Status" value={values.maritalStatus ?? "—"} />

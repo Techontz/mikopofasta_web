@@ -2,26 +2,36 @@
 
 import * as React from "react";
 import { useFormContext } from "react-hook-form";
-import { toast } from "sonner";
-import { BadgeCheck, Fingerprint, Loader2, ScanFace, ShieldCheck } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { UserRound } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { MARITAL_STATUSES } from "@/types/enums";
+import { GENDERS, MARITAL_STATUSES } from "@/types/enums";
 import type { WizardValues } from "@/features/customers/registration-wizard/wizard-schema";
-import { lookupNida, verifyNidaOtp } from "@/features/customers/actions";
 import type { Branch } from "@/types/branch";
 import type { CustomerCategory } from "@/types/customer";
+import { Combobox } from "@/components/settings/combobox";
+import { FaceCapture } from "@/features/customers/registration-wizard/face-capture";
+import { activeIdentityProvider } from "@/features/customers/identity/active-provider";
 
 const NONE = "__none__";
 
 export interface VerificationState {
-  nidaVerifiedAt: string | null;
-  otpVerifiedAt: string | null;
   faceVerifiedAt: string | null;
+  /**
+   * The liveness image itself, held until the customer exists.
+   *
+   * `POST /customers/{id}/face-verify` needs a customer id, and during
+   * registration there is not one yet — the customer is created by the call
+   * that this verification is a precondition of. So the capture is held here
+   * and posted by the wizard the moment registration returns an id.
+   *
+   * It is what makes `faceVerifiedAt` mean something: the timestamp is only
+   * ever set alongside a real file, and the file is only ever set by the
+   * officer choosing one.
+   */
+  faceCapture: File | null;
 }
 
 export function PersonalDetailsStep({
@@ -44,118 +54,146 @@ export function PersonalDetailsStep({
     formState: { errors },
   } = useFormContext<WizardValues>();
 
-  const [otp, setOtp] = React.useState("");
-  const [isLookingUp, setIsLookingUp] = React.useState(false);
-  const [isVerifying, setIsVerifying] = React.useState(false);
-  const [isCapturingFace, setIsCapturingFace] = React.useState(false);
 
-  const nidaNumber = watch("nidaNumber");
-  const firstName = watch("firstName");
-
-  async function handleLookup() {
-    setIsLookingUp(true);
-    const result = await lookupNida({ nidaNumber });
-    setIsLookingUp(false);
-    if (!result.ok || !result.data) {
-      toast.error(result.message ?? "NIDA lookup failed.");
-      return;
-    }
-    setValue("firstName", result.data.firstName, { shouldValidate: true });
-    setValue("middleName", result.data.middleName);
-    setValue("lastName", result.data.lastName, { shouldValidate: true });
-    setValue("dob", result.data.dob, { shouldValidate: true });
-    setValue("gender", result.data.gender, { shouldValidate: true });
-    setVerification((v) => ({ ...v, nidaVerifiedAt: new Date().toISOString() }));
-    toast.success(result.message ?? "Identity found.");
-  }
-
-  async function handleVerifyOtp() {
-    setIsVerifying(true);
-    const result = await verifyNidaOtp({ nidaNumber, otp });
-    setIsVerifying(false);
-    if (!result.ok) {
-      toast.error(result.message ?? "OTP verification failed.");
-      return;
-    }
-    // The API's own timestamp, not the browser's — it is the value the
-    // registration payload is validated against.
-    setVerification((v) => ({ ...v, otpVerifiedAt: result.verifiedAt ?? new Date().toISOString() }));
-    toast.success(result.message ?? "OTP verified.");
-  }
-
-  function handleCaptureFace() {
-    setIsCapturingFace(true);
-    setTimeout(() => {
-      setVerification((v) => ({ ...v, faceVerifiedAt: new Date().toISOString() }));
-      setIsCapturingFace(false);
-      toast.success("Face liveness verified.");
-    }, 800);
-  }
 
   return (
     <div className="space-y-5">
       <Card>
-        <CardContent className="space-y-3 pt-6">
+        <CardContent className="space-y-4 pt-6">
+          {/*
+            Identity, entered by the officer.
+
+            This block used to be a NIDA lookup and an OTP step. Both were
+            served by `NidaRegistry` on the API, which generated a name, a date
+            of birth and a gender from a hash of whatever number was typed — so
+            the "Verified" badge, the OTP field and the read-only identity
+            fields were all reporting on a check that never happened.
+
+            There is no registry to call, so the fields are typed and nothing
+            claims otherwise. `activeIdentityProvider` decides this: the day a
+            real NIDA provider is assigned, `supportsLookup` turns the lookup
+            control back on and `identityIsUserEntered` makes these read-only
+            again, without this file changing.
+          */}
           <div className="flex items-center gap-2">
-            <Fingerprint className="size-4 text-muted-foreground" aria-hidden />
-            <p className="text-sm font-medium">NIDA Identity Verification</p>
-            {verification.nidaVerifiedAt && (
-              <Badge variant="default" className="ml-auto gap-1">
-                <BadgeCheck className="size-3.5" /> Verified
-              </Badge>
-            )}
+            <UserRound className="size-4 text-muted-foreground" aria-hidden />
+            <p className="text-sm font-medium">Customer Identity</p>
+            <span className="ml-auto text-xs text-muted-foreground">
+              {activeIdentityProvider.label}
+            </span>
           </div>
-          <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+
+          <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-1.5">
-              <Label htmlFor="nidaNumber">NIDA Number</Label>
-              <Input id="nidaNumber" placeholder="19900101-12345-12345-12" disabled={Boolean(verification.nidaVerifiedAt)} {...register("nidaNumber")} />
-              {errors.nidaNumber && <p className="text-xs text-destructive">{errors.nidaNumber.message}</p>}
+              <Label htmlFor="firstName">
+                First Name <span className="text-destructive">*</span>
+              </Label>
+              <Input id="firstName" placeholder="First name" {...register("firstName")} />
+              {errors.firstName && (
+                <p className="text-xs text-destructive">{errors.firstName.message}</p>
+              )}
             </div>
-            <div className="flex items-end">
-              <Button type="button" variant="outline" onClick={handleLookup} disabled={isLookingUp || !nidaNumber || Boolean(verification.nidaVerifiedAt)}>
-                {isLookingUp && <Loader2 className="size-4 animate-spin" />}
-                {verification.nidaVerifiedAt ? "Looked up" : "Lookup"}
-              </Button>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="middleName">Middle Name</Label>
+              <Input id="middleName" placeholder="Middle name" {...register("middleName")} />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="lastName">
+                Last Name <span className="text-destructive">*</span>
+              </Label>
+              <Input id="lastName" placeholder="Last name" {...register("lastName")} />
+              {errors.lastName && (
+                <p className="text-xs text-destructive">{errors.lastName.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="dob">
+                Date of Birth <span className="text-destructive">*</span>
+              </Label>
+              <Input id="dob" type="date" {...register("dob")} />
+              {errors.dob && <p className="text-xs text-destructive">{errors.dob.message}</p>}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>
+                Gender <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={watch("gender") ?? ""}
+                onValueChange={(v) => v && setValue("gender", v as WizardValues["gender"], { shouldValidate: true })}
+              >
+                <SelectTrigger aria-label="Gender" className="w-full">
+                  <SelectValue placeholder="Select gender">
+                    {(v: string) => v || "Select gender"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {GENDERS.map((g) => (
+                    <SelectItem key={g} value={g} className="capitalize">
+                      {g}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.gender && <p className="text-xs text-destructive">{errors.gender.message}</p>}
+            </div>
+
+            {/*
+              Optional, and labelled so. Many customers of a Tanzanian
+              microfinance institution do not carry a National ID; the API
+              accepts the record without one and rates its KYC `incomplete`,
+              which is the accurate description of a record nothing verified.
+            */}
+            {/*
+              Writes `nationalIdNumber`, NOT `nidaNumber`.
+              
+              `nidaNumber` is the NIDA registry's own identifier and the API
+              pairs it with `nidaVerifiedAt` — supply one and you must supply
+              the other, because an ID from the registry without the check that
+              produced it is exactly the fabricated verification this flow was
+              built to end. A number the officer reads off a card is not that:
+              nothing verified it, so it belongs in the plain column.
+              
+              Sending it as `nidaNumber` made registration impossible — the
+              manual provider correctly reports no verification timestamp, so
+              typing an ID guaranteed a 422 on a field the form never showed.
+            */}
+            <div className="space-y-1.5">
+              <Label htmlFor="nationalIdNumber">National ID Number</Label>
+              <Input
+                id="nationalIdNumber"
+                placeholder="Optional"
+                {...register("nationalIdNumber")}
+              />
+              {errors.nationalIdNumber && (
+                <p className="text-xs text-destructive">{errors.nationalIdNumber.message}</p>
+              )}
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          {verification.nidaVerifiedAt && !verification.otpVerifiedAt && (
-            <div className="grid gap-3 rounded-md border bg-muted/40 p-3 sm:grid-cols-[1fr_auto]">
-              <div className="space-y-1.5">
-                <Label htmlFor="otp">Enter OTP sent to customer&apos;s registered number</Label>
-                <Input id="otp" value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="123456" maxLength={6} />
-              </div>
-              <div className="flex items-end">
-                <Button type="button" onClick={handleVerifyOtp} disabled={isVerifying || otp.length !== 6}>
-                  {isVerifying && <Loader2 className="size-4 animate-spin" />}
-                  Verify OTP
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {verification.nidaVerifiedAt && (
-            <div className="grid gap-4 border-t pt-3 sm:grid-cols-3">
-              <Field label="First Name" value={firstName} />
-              <Field label="Middle Name (editable)" input={<Input {...register("middleName")} placeholder="—" />} />
-              <Field label="Last Name" value={watch("lastName")} />
-              <Field label="Date of Birth" value={watch("dob")} />
-              <Field label="Gender" value={watch("gender")} className="capitalize" />
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Face Verification</Label>
-                {verification.faceVerifiedAt ? (
-                  <Badge variant="default" className="gap-1">
-                    <ShieldCheck className="size-3.5" /> Verified
-                  </Badge>
-                ) : (
-                  <Button type="button" size="sm" variant="outline" onClick={handleCaptureFace} disabled={!verification.otpVerifiedAt || isCapturingFace}>
-                    {isCapturingFace ? <Loader2 className="size-4 animate-spin" /> : <ScanFace className="size-4" />}
-                    Capture & Verify Face
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
+      <Card>
+        <CardContent className="space-y-3 pt-6">
+          <p className="text-sm font-medium">Face Capture</p>
+          <p className="text-xs text-muted-foreground">
+            Becomes the customer&rsquo;s photo. Not checked against any registry — there is none to
+            check against — so this records who was present, it does not prove who they are.
+          </p>
+          <FaceCapture
+            capture={verification.faceCapture}
+            onCapture={(file) =>
+              setVerification((v) => ({
+                ...v,
+                faceVerifiedAt: new Date().toISOString(),
+                faceCapture: file,
+              }))
+            }
+            onClear={() => setVerification((v) => ({ ...v, faceVerifiedAt: null, faceCapture: null }))}
+          />
         </CardContent>
       </Card>
 
@@ -185,37 +223,33 @@ export function PersonalDetailsStep({
 
         <div className="space-y-1.5">
           <Label>Branch</Label>
-          <Select value={watch("branchId")} onValueChange={(v) => v && setValue("branchId", v, { shouldValidate: true })} disabled={branchLocked}>
-            <SelectTrigger aria-label="Branch" className="w-full">
-              <SelectValue placeholder="Select branch">{(v: string) => branches.find((b) => b.id === v)?.name ?? "Select branch"}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {branches.map((b) => (
-                <SelectItem key={b.id} value={b.id}>
-                  {b.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {/* Searchable: an institution with forty branches is a list you
+              type into, not one you scroll. */}
+          <Combobox
+            id="reg-branch"
+            value={watch("branchId") || null}
+            onChange={(v) => v && setValue("branchId", v, { shouldValidate: true })}
+            options={branches.map((b) => ({ value: b.id, label: b.name }))}
+            disabled={branchLocked}
+            disabledMessage="Fixed to your branch"
+            placeholder="Search branch…"
+            emptyMessage="No branches are configured."
+            invalid={!!errors.branchId}
+          />
           {errors.branchId && <p className="text-xs text-destructive">{errors.branchId.message}</p>}
         </div>
 
         <div className="space-y-1.5 sm:col-span-2">
           <Label>Customer Category</Label>
-          <Select value={watch("customerCategoryId")} onValueChange={(v) => v && setValue("customerCategoryId", v, { shouldValidate: true })}>
-            <SelectTrigger aria-label="Customer Category" className="w-full">
-              <SelectValue placeholder="Select the customer's segment">
-                {(v: string) => categories.find((c) => c.id === v)?.name ?? "Select the customer's segment"}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Combobox
+            id="reg-category"
+            value={watch("customerCategoryId") || null}
+            onChange={(v) => v && setValue("customerCategoryId", v, { shouldValidate: true })}
+            options={categories.map((c) => ({ value: c.id, label: c.name }))}
+            placeholder="Search the customer's segment…"
+            emptyMessage="No customer categories are configured."
+            invalid={!!errors.customerCategoryId}
+          />
           <p className="text-xs text-muted-foreground">Drives which KYC documents and dynamic fields are required next.</p>
           {errors.customerCategoryId && <p className="text-xs text-destructive">{errors.customerCategoryId.message}</p>}
         </div>
@@ -224,11 +258,3 @@ export function PersonalDetailsStep({
   );
 }
 
-function Field({ label, value, input, className }: { label: string; value?: string; input?: React.ReactNode; className?: string }) {
-  return (
-    <div className="space-y-1.5">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
-      {input ?? <p className={`text-sm font-medium ${className ?? ""}`}>{value || "—"}</p>}
-    </div>
-  );
-}

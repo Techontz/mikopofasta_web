@@ -92,12 +92,91 @@ export const CustomerSchema = z.object({
   nidaVerifiedAt: z.string().nullable(),
   otpVerifiedAt: z.string().nullable(),
   faceVerifiedAt: z.string().nullable(),
+
+  /* The active face scan's summary, so a list can show "verified, 92%"
+     without a request per row. The full report lives behind
+     /customers/{id}/face-scans — see types/face-scan.ts. */
+  faceScanId: z.string().nullable().optional(),
+  faceScanStatus: z.enum(["passed", "failed"]).nullable().optional(),
+  faceScanQuality: z.number().nullable().optional(),
+  faceScanVersion: z.string().nullable().optional(),
+  faceScannedAt: z.string().nullable().optional(),
+  faceScannedById: z.string().nullable().optional(),
+  faceScannedByName: z.string().nullable().optional(),
+
+  /* Why the account stands as it does — recorded on every suspension and
+     reactivation, like `rejectionReason` is on a rejection. */
+  statusReason: z.string().nullable().optional(),
+  statusRemarks: z.string().nullable().optional(),
+  statusChangedAt: z.string().nullable().optional(),
+  statusChangedById: z.string().nullable().optional(),
+
   maritalStatus: z.enum(MARITAL_STATUSES).nullable(),
   regionId: z.string().nullable(),
   districtId: z.string().nullable(),
   wardId: z.string().nullable(),
   streetId: z.string().nullable(),
   residenceType: z.enum(RESIDENCE_TYPES).nullable(),
+
+  /*
+   * The KYC detail block — real columns on the API, not `dynamicFormData`.
+   * That stays for whatever a customer *category* asks; these are facts every
+   * customer has and that the business searches and reports on.
+   * All nullable: a microfinance customer often has no email, TIN or passport.
+   */
+  alternativePhone: z.string().nullable().optional(),
+  email: z.string().nullable().optional(),
+  nationality: z.string().nullable().optional(),
+  nationalIdNumber: z.string().nullable().optional(),
+  tinNumber: z.string().nullable().optional(),
+  passportNumber: z.string().nullable().optional(),
+  village: z.string().nullable().optional(),
+  houseNumber: z.string().nullable().optional(),
+  postalCode: z.string().nullable().optional(),
+  landmark: z.string().nullable().optional(),
+  occupation: z.string().nullable().optional(),
+  employer: z.string().nullable().optional(),
+  monthlyIncome: z.number().nullable().optional(),
+  employmentType: z.string().nullable().optional(),
+  businessName: z.string().nullable().optional(),
+  businessType: z.string().nullable().optional(),
+  businessAddress: z.string().nullable().optional(),
+  bankName: z.string().nullable().optional(),
+  bankBranch: z.string().nullable().optional(),
+  accountName: z.string().nullable().optional(),
+  accountNumber: z.string().nullable().optional(),
+  mobileMoneyProvider: z.string().nullable().optional(),
+  walletNumber: z.string().nullable().optional(),
+  registrationSource: z.string().nullable().optional(),
+
+  // ---- legacy registration form: master-data references + its own fields ----
+  employeeId: z.string().nullable().optional(),
+  loanTypeId: z.string().nullable().optional(),
+  customerTypeId: z.string().nullable().optional(),
+  accountTypeId: z.string().nullable().optional(),
+  workTypeId: z.string().nullable().optional(),
+  employmentTypeId: z.string().nullable().optional(),
+  occupationId: z.string().nullable().optional(),
+  maritalStatusId: z.string().nullable().optional(),
+  bankId: z.string().nullable().optional(),
+  mobileMoneyProviderId: z.string().nullable().optional(),
+  nickname: z.string().nullable().optional(),
+  department: z.string().nullable().optional(),
+  councilNumber: z.string().nullable().optional(),
+  placeOfEmployment: z.string().nullable().optional(),
+  retirementDate: z.string().nullable().optional(),
+  dependentsCount: z.number().nullable().optional(),
+  basicSalary: z.number().nullable().optional(),
+  takeHome: z.number().nullable().optional(),
+  checkNumber: z.string().nullable().optional(),
+  voterIdNumber: z.string().nullable().optional(),
+  driverLicenceNumber: z.string().nullable().optional(),
+  workIdNumber: z.string().nullable().optional(),
+  /* Sent full, stored as last four. See the API's RegisterCustomerAction. */
+  cardNumber: z.string().nullable().optional(),
+  cardLastFour: z.string().nullable().optional(),
+  cardExpiryMonth: z.number().nullable().optional(),
+  cardExpiryYear: z.number().nullable().optional(),
   customerCategoryId: z.string().nullable(),
   /** Validated against customerCategory.dynamicFormSchema at write time. */
   dynamicFormData: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).nullable(),
@@ -170,10 +249,35 @@ export interface NidaLookupResult {
 
 /** The full Registration Wizard payload, assembled client-side across every step. */
 export const RegisterCustomerInputSchema = z.object({
-  nidaNumber: z.string().min(10),
-  nidaVerifiedAt: z.string(),
-  otpVerifiedAt: z.string(),
-  faceVerifiedAt: z.string(),
+  /*
+   * Identity assurance is optional, and matches the API rule exactly: a
+   * National ID may be absent, but if one is supplied the timestamp that
+   * verified it must be too. Both were `required` while `NidaRegistry` stood in
+   * for the registry — which meant every registration carried timestamps for
+   * checks that never ran. Manual registration is the supported flow until the
+   * integration exists; see features/customers/identity/identity-provider.ts.
+   */
+  /*
+   * Empty means "not provided", not "too short".
+   *
+   * The field is optional, but it is registered by an <input>, so an untouched
+   * one arrives as "" rather than null — and `.min(10)` rejected that with
+   * "expected string to have >=10 characters", blocking every manual
+   * registration on a field the officer had deliberately left blank. Empty is
+   * normalised to null here, which is also what the API wants.
+   */
+  nidaNumber: z
+    .string()
+    .trim()
+    .transform((v) => (v === "" ? null : v))
+    .nullable()
+    .refine((v) => v === null || v.length >= 10, {
+      message: "A National ID must be at least 10 characters.",
+    })
+    .optional(),
+  nidaVerifiedAt: z.string().nullable().optional(),
+  otpVerifiedAt: z.string().nullable().optional(),
+  faceVerifiedAt: z.string().nullable().optional(),
   firstName: z.string().min(1),
   middleName: z.string().nullable(),
   lastName: z.string().min(1),
@@ -186,8 +290,70 @@ export const RegisterCustomerInputSchema = z.object({
   wardId: z.string().nullable(),
   streetId: z.string().nullable(),
   residenceType: z.enum(RESIDENCE_TYPES).nullable(),
+
+  /*
+   * The KYC detail block — real columns on the API, not `dynamicFormData`.
+   * That stays for whatever a customer *category* asks; these are facts every
+   * customer has and that the business searches and reports on.
+   * All nullable: a microfinance customer often has no email, TIN or passport.
+   */
+  alternativePhone: z.string().nullable().optional(),
+  email: z.string().nullable().optional(),
+  nationality: z.string().nullable().optional(),
+  nationalIdNumber: z.string().nullable().optional(),
+  tinNumber: z.string().nullable().optional(),
+  passportNumber: z.string().nullable().optional(),
+  village: z.string().nullable().optional(),
+  houseNumber: z.string().nullable().optional(),
+  postalCode: z.string().nullable().optional(),
+  landmark: z.string().nullable().optional(),
+  occupation: z.string().nullable().optional(),
+  employer: z.string().nullable().optional(),
+  monthlyIncome: z.number().nullable().optional(),
+  employmentType: z.string().nullable().optional(),
+  businessName: z.string().nullable().optional(),
+  businessType: z.string().nullable().optional(),
+  businessAddress: z.string().nullable().optional(),
+  bankName: z.string().nullable().optional(),
+  bankBranch: z.string().nullable().optional(),
+  accountName: z.string().nullable().optional(),
+  accountNumber: z.string().nullable().optional(),
+  mobileMoneyProvider: z.string().nullable().optional(),
+  walletNumber: z.string().nullable().optional(),
+  registrationSource: z.string().nullable().optional(),
+
+  // ---- legacy registration form: master-data references + its own fields ----
+  employeeId: z.string().nullable().optional(),
+  loanTypeId: z.string().nullable().optional(),
+  customerTypeId: z.string().nullable().optional(),
+  accountTypeId: z.string().nullable().optional(),
+  workTypeId: z.string().nullable().optional(),
+  employmentTypeId: z.string().nullable().optional(),
+  occupationId: z.string().nullable().optional(),
+  maritalStatusId: z.string().nullable().optional(),
+  bankId: z.string().nullable().optional(),
+  mobileMoneyProviderId: z.string().nullable().optional(),
+  nickname: z.string().nullable().optional(),
+  department: z.string().nullable().optional(),
+  councilNumber: z.string().nullable().optional(),
+  placeOfEmployment: z.string().nullable().optional(),
+  retirementDate: z.string().nullable().optional(),
+  dependentsCount: z.number().nullable().optional(),
+  basicSalary: z.number().nullable().optional(),
+  takeHome: z.number().nullable().optional(),
+  checkNumber: z.string().nullable().optional(),
+  voterIdNumber: z.string().nullable().optional(),
+  driverLicenceNumber: z.string().nullable().optional(),
+  workIdNumber: z.string().nullable().optional(),
+  /* Sent full, stored as last four. See the API's RegisterCustomerAction. */
+  cardNumber: z.string().nullable().optional(),
+  cardLastFour: z.string().nullable().optional(),
+  cardExpiryMonth: z.number().nullable().optional(),
+  cardExpiryYear: z.number().nullable().optional(),
   branchId: z.string(),
-  customerCategoryId: z.string(),
+  /* Optional: the legacy registration form has no category field — it's
+     assigned later from the profile. See RegisterCustomerRequest. */
+  customerCategoryId: z.string().optional(),
   dynamicFormData: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
   bankDetails: z
     .object({ bankName: z.string(), accountNumber: z.string(), accountName: z.string(), phoneNumber: z.string().nullable() })

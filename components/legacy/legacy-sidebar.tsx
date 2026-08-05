@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { LEGACY_TABS, isLegacyItemVisible, legacyMenuFor } from "@/config/legacy-nav";
+import { useMobileNav } from "@/components/legacy/mobile-nav";
 import type { AuthenticatedUser } from "@/types/auth";
 
 /**
@@ -20,6 +21,7 @@ export function LegacySidebar({ user, tenantName }: { user: AuthenticatedUser; t
    * a group closed keeps it closed while they browse inside it.
    */
   const [openMenu, setOpenMenu] = React.useState<string | null>(null);
+  const { open: mobileOpen } = useMobileNav();
 
   const tabs = LEGACY_TABS.filter((tab) => isLegacyItemVisible(user, tab));
 
@@ -79,7 +81,19 @@ export function LegacySidebar({ user, tenantName }: { user: AuthenticatedUser; t
 
   return (
     <aside
-      className="hidden w-[var(--lg-sidebar-w)] shrink-0 flex-col border-r lg:flex"
+      id="legacy-sidebar"
+      /*
+       * A column on a wide screen, a drawer on a narrow one.
+       *
+       * Below `lg` it used to be `hidden` with nothing to reveal it, which left
+       * every phone and tablet with no navigation at all. It is now positioned
+       * off-canvas and slid in by MobileNavTrigger; at `lg` and up the
+       * translate and the fixed positioning are dropped and it is the ordinary
+       * static rail again, unchanged.
+       */
+      className={`fixed inset-y-0 left-0 z-50 flex w-[var(--lg-sidebar-w)] shrink-0 flex-col border-r transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0 lg:transition-none ${
+        mobileOpen ? "translate-x-0" : "-translate-x-full"
+      }`}
       style={{ borderColor: "var(--lg-line)", background: "var(--lg-surface)" }}
     >
       <div className="px-4 pb-3 pt-5">
@@ -112,6 +126,26 @@ export function LegacySidebar({ user, tenantName }: { user: AuthenticatedUser; t
         {items.map((item) => {
           const children = item.children?.filter((child) => isLegacyItemVisible(user, child)) ?? [];
           const expandable = children.length > 0;
+
+          /*
+           * A section whose entries are all hidden is dropped, not flattened.
+           *
+           * `expandable` is computed from the *visible* children, so a section
+           * that permissions emptied fell through to the plain-link branch at
+           * the bottom of this function and rendered a link to its own `href`.
+           * That href is a grouping key — "/penalty", "/expenses",
+           * "/hq/transactions" — and no page answers on it; the section's real
+           * destinations are the entries underneath. The result would have been
+           * a menu row that looks like every other one and lands on a 404.
+           *
+           * Today no section can reach that state, because each one's entries
+           * carry the same permission the section itself is gated on. That is a
+           * coincidence of the current configuration, not a property of it: the
+           * first entry given a narrower permission than its parent would
+           * reintroduce the bug silently. An empty section is nothing to click
+           * anyway, so it is removed here rather than left to fall through.
+           */
+          if (item.children !== undefined && !expandable) return null;
 
           /*
            * A section is current when it owns the winning destination — either

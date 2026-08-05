@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +17,7 @@ const INITIAL_STATE: LoginState = { ok: false };
  */
 export function LoginForm() {
   const [state, formAction, pending] = useActionState(loginAction, INITIAL_STATE);
+  const expired = useSearchParams().get("expired") === "1";
 
   return (
     <Card>
@@ -24,6 +26,21 @@ export function LoginForm() {
         <CardDescription>Enter your phone number and password to continue.</CardDescription>
       </CardHeader>
       <CardContent>
+        {/*
+          Says why they are here, when they did not come here on purpose.
+          /session-expired sets this after clearing a session whose API token
+          the server had already stopped honouring. Without it the user is
+          dropped on a login form for no stated reason, moments after the
+          application was behaving as though they were signed in.
+        */}
+        {expired && (
+          <p
+            role="status"
+            className="mb-4 rounded-md border border-dashed px-3 py-2.5 text-sm text-muted-foreground"
+          >
+            Your session ended and you were signed out. Please log in again.
+          </p>
+        )}
         <form action={formAction} className="space-y-4" noValidate>
           <div className="space-y-1.5">
             <Label htmlFor="phone">Phone number</Label>
@@ -51,6 +68,38 @@ export function LoginForm() {
         <p className="mt-4 text-xs text-muted-foreground">
           Demo accounts: any seeded phone number (e.g. 0754000001) with password <code>password</code>.
         </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * What the login card looks like before the query string is known.
+ *
+ * Same card, same heading, same field geometry — only the interactive parts are
+ * missing — so the boundary above resolves without the layout moving.
+ */
+export function LoginFormSkeleton() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Log in to your account</CardTitle>
+        <CardDescription>Enter your phone number and password to continue.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4" aria-hidden>
+          <div className="space-y-1.5">
+            <Label>Phone number</Label>
+            <Input disabled placeholder="Eg. 0753XXXXXX" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Password</Label>
+            <Input disabled type="password" />
+          </div>
+          <Button className="w-full" disabled>
+            Log in
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

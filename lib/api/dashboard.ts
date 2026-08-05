@@ -1,4 +1,5 @@
 import "server-only";
+import { getBranches } from "@/lib/api/organization";
 import { getAllJournalEntries, getLedgerAccounts, type LedgerAccount, type LedgerEntry } from "@/lib/api/ledger";
 import { getAllLoans, getRepaymentSchedules, type LoanListItem } from "@/lib/api/loans";
 import { getAllPayments, type PaymentListItem } from "@/lib/api/payments";
@@ -40,6 +41,12 @@ const OPEN_STATUSES: LoanStatus[] = ["active", "arrears", "frozen"];
 const PENDING_STATUSES: LoanStatus[] = [
   "draft",
   "pending_manager_approval",
+  // The approval chain's other resting places. A loan waiting on the zone, held
+  // for a site visit, or back with the officer is still an application in
+  // flight — leaving them out would understate the pipeline.
+  "pending_zone_approval",
+  "returned_for_modification",
+  "on_hold",
   "mandate_pending_otp",
   "mandate_failed",
   "mandate_active",
@@ -98,8 +105,38 @@ export interface CustomerTypeTotals {
   href: string | null;
 }
 
+/**
+ * One branch's row in the Branch List popup.
+ *
+ * Every figure is that branch's own ledger accounts, not a share of a company
+ * total: the chart of accounts carries `branchId` on the dynamic accounts, so a
+ * branch's principal, interest, fee, penalty and reserve are read directly
+ * rather than apportioned. Columns and their order are the legacy screen's.
+ */
+export interface BranchAccountRow {
+  branchId: string;
+  branchName: string;
+  principal: number;
+  interest: number;
+  loanFee: number;
+  penalty: number;
+  reserve: number;
+  agent: number;
+  insurance: number;
+}
+
+/** One row of the Company Account List popup — a named account and its balance. */
+export interface CompanyAccountRow {
+  name: string;
+  amount: number;
+}
+
 export interface DashboardData {
   accounts: AccountTile[];
+  /** Feeds the Branch List popup behind the Branch button. */
+  branchAccounts: BranchAccountRow[];
+  /** Feeds the Company Account List popup behind the Account Balance tile. */
+  companyAccounts: CompanyAccountRow[];
   accountBalance: number;
   loanWithdrawal: number;
   expectationReceivable: number;
@@ -141,7 +178,7 @@ export async function getDashboardData(): Promise<DashboardData> {
    */
   const today = todayInDar();
 
-  const [accounts, loans, payments, customers, schedules, entries, advances] = await Promise.all([
+  const [accounts, loans, payments, customers, schedules, entries, advances, branches] = await Promise.all([
     getLedgerAccounts().catch(() => [] as LedgerAccount[]),
     getAllLoans().catch(() => [] as LoanListItem[]),
     getAllPayments().catch(() => [] as PaymentListItem[]),
@@ -149,7 +186,43 @@ export async function getDashboardData(): Promise<DashboardData> {
     getRepaymentSchedules().catch(() => []),
     getAllJournalEntries({ from: today, to: today }).catch(() => [] as LedgerEntry[]),
     getStaffAdvances().catch(() => [] as StaffAdvanceWithName[]),
+    getBranches().catch(() => []),
   ]);
+
+  /*
+   * The two popup breakdowns.
+   *
+   * A branch's accounts are its dynamic accounts — the ones carrying its
+   * `branchId` — bucketed by what the account's code says it is. Agent and
+   * Insurance have no accounts in this chart (no such module exists yet), so
+   * they are reported as zero rather than omitted: the legacy screen prints
+   * both columns, and a missing column reads as a layout change while a zero
+   * reads as what it is.
+   */
+  const live = accounts.filter((a) => a.deletedAt === null);
+  const sumFor = (branchId: string, code: string) =>
+    live.filter((a) => a.branchId === branchId && a.code.startsWith(code)).reduce((n, a) => n + a.balance, 0);
+
+  const branchAccounts: BranchAccountRow[] = branches.map((b) => ({
+    branchId: b.id,
+    branchName: b.name,
+    principal: sumFor(b.id, ACCOUNT.outstandingLoan),
+    interest: sumFor(b.id, ACCOUNT.interest),
+    loanFee: sumFor(b.id, ACCOUNT.loanFee),
+    penalty: sumFor(b.id, ACCOUNT.penalty),
+    reserve: sumFor(b.id, ACCOUNT.reserve),
+    agent: 0,
+    insurance: 0,
+  }));
+
+  /*
+   * A company account is a dynamic account with no branch — the same rule the
+   * bank screens use to tell a company bank account from a branch till.
+   */
+  const companyAccounts: CompanyAccountRow[] = live
+    .filter((a) => !a.isSystem && a.branchId === null)
+    .map((a) => ({ name: a.name, amount: a.balance }))
+    .sort((x, y) => x.name.localeCompare(y.name));
 
   // Cash on hand: every branch till plus every bank account. Both are dynamic
   // accounts, so they are found by shape rather than by a hardcoded code list.
@@ -292,6 +365,8 @@ export async function getDashboardData(): Promise<DashboardData> {
   });
 
   return {
+    branchAccounts,
+    companyAccounts,
     accounts: [
       { label: "LOAN FEE A/C", value: balanceOf(accounts, ACCOUNT.loanFee) },
       { label: "PENARTY A/C", value: balanceOf(accounts, ACCOUNT.penalty) },

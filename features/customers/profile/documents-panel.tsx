@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EmptyState } from "@/components/feedback/empty-state";
+import { Combobox } from "@/components/settings/combobox";
 import { removeCustomerDocument, uploadCustomerDocument } from "@/features/customers/actions";
 import { isPreviewable, type CustomerDocument } from "@/types/customer";
+import type { MasterDataOption } from "@/lib/api/master-data";
 
 function formatSize(bytes: number | null): string {
   if (bytes === null) return "";
@@ -23,19 +25,41 @@ function formatSize(bytes: number | null): string {
  * storage path — that route sits outside Sanctum precisely so it can be used as
  * a plain href, which no bearer token could be attached to. Download and
  * preview are therefore ordinary links, and the signature authorizes them.
+ *
+ * Document Type is a dropdown off the admin-managed `document-types` list, not
+ * a text box. It used to be one, with "e.g. salary_slip" as the only guidance,
+ * and this database consequently holds a customer document filed under `HJK`.
+ * A category that requires `salary_slip` is not satisfied by an officer typing
+ * `salary slip`, so the requirement was unenforceable by construction.
  */
 export function DocumentsPanel({
   customerId,
   documents,
+  documentTypes,
   missingDocuments,
   canManage,
 }: {
   customerId: string;
   documents: CustomerDocument[];
+  /** The admin-managed list; `code` is what the API and the checklist match on. */
+  documentTypes: MasterDataOption[];
   missingDocuments: string[];
   canManage: boolean;
 }) {
-  const [documentType, setDocumentType] = React.useState("");
+  const [documentType, setDocumentType] = React.useState<string | null>(null);
+
+  /* Codes are what the data stores; names are what people read. One lookup
+     serves the upload dropdown, the uploaded list and the missing-documents
+     banner, so a renamed type reads the same everywhere. */
+  const nameFor = React.useCallback(
+    (code: string) =>
+      documentTypes.find((t) => t.code === code)?.name ?? code.replace(/_/g, " "),
+    [documentTypes]
+  );
+
+  /* Already on file, so the dropdown can say so rather than letting an officer
+     upload a second salary slip and wonder which one counts. */
+  const uploaded = new Set(documents.map((d) => d.documentType));
   const [file, setFile] = React.useState<File | null>(null);
   const [pending, startTransition] = useTransition();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -50,7 +74,7 @@ export function DocumentsPanel({
       const result = await uploadCustomerDocument(customerId, formData);
       if (result.ok) {
         toast.success(result.message);
-        setDocumentType("");
+        setDocumentType(null);
         setFile(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
       } else {
@@ -71,7 +95,7 @@ export function DocumentsPanel({
     <div className="space-y-4">
       {missingDocuments.length > 0 && (
         <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
-          Missing required documents: {missingDocuments.join(", ")}
+          Missing required documents: {missingDocuments.map(nameFor).join(", ")}
         </div>
       )}
 
@@ -79,7 +103,26 @@ export function DocumentsPanel({
         <div className="grid gap-3 rounded-lg border p-3 sm:grid-cols-[1fr_1fr_auto]">
           <div className="space-y-1.5">
             <Label htmlFor="doc-type">Document Type</Label>
-            <Input id="doc-type" placeholder="e.g. salary_slip" value={documentType} onChange={(e) => setDocumentType(e.target.value)} />
+            <Combobox
+              id="doc-type"
+              value={documentType}
+              onChange={setDocumentType}
+              options={documentTypes.map((t) => ({
+                value: t.code,
+                /* Required-but-missing first in the officer's eye, already-held
+                   marked so it is not filed twice by accident. */
+                label: uploaded.has(t.code)
+                  ? `${t.name} (on file)`
+                  : missingDocuments.includes(t.code)
+                    ? `${t.name} — required`
+                    : t.name,
+              }))}
+              placeholder="Select a document type…"
+              /* No screen creates these yet — the list is API-only — so the
+                 message says what is true rather than pointing at a page
+                 that does not exist. */
+              emptyMessage="No document types are configured."
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="doc-file">File</Label>
@@ -109,7 +152,7 @@ export function DocumentsPanel({
               <div className="flex min-w-0 items-center gap-2">
                 <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium capitalize">{doc.documentType.replace(/_/g, " ")}</p>
+                  <p className="truncate text-sm font-medium">{nameFor(doc.documentType)}</p>
                   <p className="truncate text-xs text-muted-foreground">
                     {doc.originalName ? `${doc.originalName} · ` : ""}
                     Uploaded {new Date(doc.createdAt).toLocaleDateString()}

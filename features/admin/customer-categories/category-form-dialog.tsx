@@ -6,6 +6,7 @@ import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
+import { requiredText } from "@/lib/forms/required-text";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { SettingsDialog } from "@/components/settings/dialog";
 import { SectionDivider } from "@/components/settings";
@@ -22,6 +23,8 @@ const FormSchema = CustomerCategorySchema.pick({
   dynamicFormSchema: true,
   requiresExtraApproval: true,
 }).extend({
+  name: requiredText("Name"),
+  code: requiredText("Code"),
   requiredDocumentsText: z.string(),
 });
 type FormValues = z.infer<typeof FormSchema>;

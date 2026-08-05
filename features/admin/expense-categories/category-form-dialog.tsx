@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
+import { requiredText } from "@/lib/forms/required-text";
 import { Pencil, Plus } from "lucide-react";
 import { SettingsDialog } from "@/components/settings/dialog";
 import { Button, Field, IconButton, Select, TextInput } from "@/components/settings/form";
@@ -13,7 +14,9 @@ import { ExpenseCategorySchema } from "@/types/expense";
 import type { ExpenseRegisterEntry } from "@/lib/api/expenses";
 import { createExpenseCategory, updateExpenseCategory } from "@/features/admin/expense-categories/actions";
 
-const FormSchema = ExpenseCategorySchema.pick({ name: true, scope: true });
+const FormSchema = ExpenseCategorySchema.pick({ name: true, scope: true }).extend({
+  name: requiredText("Name"),
+});
 type FormValues = z.infer<typeof FormSchema>;
 
 export function ExpenseCategoryFormDialog({ category }: { category?: ExpenseRegisterEntry }) {

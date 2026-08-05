@@ -2,20 +2,27 @@
 
 import { revalidatePath } from "next/cache";
 import { LoanApplicationInputSchema, type LoanApplicationInput } from "@/types/loan";
-import type { DisbursementChannel } from "@/types/enums";
+import type { DisbursementChannel, LoanStatus } from "@/types/enums";
+import { LOAN_STATUS_LABELS } from "@/lib/domain/loan-status-machine";
 import {
   applyForLoanRequest,
   cancelLoanRequest,
   checkEligibilityRequest,
   closeLoanRequest,
+  decideApprovalRequest,
   decideLoanRequest,
   prepareDisbursementRequest,
+  previewScheduleRequest,
+  resubmitLoanRequest,
   retryDisbursementRequest,
   retryMandateRequest,
   settleDisbursementRequest,
+  settleLoanEarlyRequest,
   telcoVerifyRequest,
   verifyMandateRequest,
+  type ApprovalDecision,
   type EligibilityViolation,
+  type SchedulePreview,
 } from "@/lib/api/loans";
 import { describeError } from "@/lib/api/errors";
 import type { ActionResult } from "@/lib/domain/action-result";
@@ -67,6 +74,26 @@ export async function checkLoanEligibility(
   }
 }
 
+/**
+ * The installment plan a product would produce for these terms.
+ *
+ * Reads only. The schedule the customer is shown is built by the same engine,
+ * with the same strategy, that will build the real one at approval — so the
+ * preview cannot disagree with the loan.
+ */
+export async function previewLoanSchedule(input: {
+  loanProductId: string;
+  repaymentScheduleId: string;
+  principalAmount: number;
+  tenureDays: number;
+}): Promise<ActionResult & { preview?: SchedulePreview }> {
+  try {
+    return { ok: true, message: "Preview ready.", preview: await previewScheduleRequest(input) };
+  } catch (error) {
+    return { ok: false, message: describeError(error) };
+  }
+}
+
 export async function applyForLoan(input: LoanApplicationInput): Promise<ActionResult & { loanId?: string }> {
   const parsed = LoanApplicationInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid input." };
@@ -87,6 +114,14 @@ export async function applyForLoan(input: LoanApplicationInput): Promise<ActionR
 // Manager approval — separation of duties (backend §14)
 // ---------------------------------------------------------------------------
 
+/**
+ * Stage one of the approval chain, through its own named endpoint.
+ *
+ * The panel now calls `decideApproval` for every tier, including this one, so
+ * nothing in the UI reaches this today. It is kept because `approve-manager` is
+ * still a live, tested API route with its own guard, and deleting the client for
+ * it would leave that endpoint reachable only by hand.
+ */
 export async function decideLoanApproval(
   loanId: string,
   decision: "approve" | "reject",
@@ -108,15 +143,109 @@ export async function decideLoanApproval(
 
   if (decision === "reject") return { ok: true, message: "Loan application rejected." };
 
-  // Which of the two the API chose is visible in the status it returns, so the
-  // message describes what actually happened rather than predicting it.
+  return { ok: true, message: approvalMessage(loan.status) };
+}
+
+// ---------------------------------------------------------------------------
+// The approval chain — Branch Manager → Zone Manager → Head Office Credit
+// ---------------------------------------------------------------------------
+
+/**
+ * Says where the loan actually went.
+ *
+ * Read from the status the API returned rather than predicted from the
+ * decision: which stage comes next is the server's answer, and it changes
+ * whenever the chain is reconfigured. A hardcoded "sent to credit review" would
+ * start lying the moment somebody deactivates the zone tier.
+ */
+function approvalMessage(status: LoanStatus): string {
+  const destination = LOAN_STATUS_LABELS[status] ?? status;
+
+  return status === "mandate_pending_otp"
+    ? "Approved — E-Mandate OTP required next."
+    : `Approved — now ${destination}.`;
+}
+
+/**
+ * Any of the four decisions, at whatever stage the loan is at.
+ *
+ * The stage, the permission and the destination are all the server's to decide;
+ * this only carries the decision and the reason. Which decisions are OFFERED
+ * comes from `availableDecisions` on the approval endpoint, computed by the
+ * same rule that would refuse the write.
+ */
+export async function decideApproval(
+  loanId: string,
+  decision: ApprovalDecision,
+  reason?: string
+): Promise<ActionResult> {
+  if (decision !== "approved" && decision !== "released" && !reason?.trim()) {
+    return { ok: false, message: "A reason is required so the applicant and the next approver know what happened." };
+  }
+
+  let loan;
+
+  try {
+    loan = await decideApprovalRequest(loanId, decision, reason?.trim() || undefined);
+  } catch (error) {
+    return { ok: false, message: describeError(error) };
+  }
+
+  revalidateLoan(loanId);
+
+  switch (decision) {
+    case "approved":
+      return { ok: true, message: approvalMessage(loan.status) };
+    case "rejected":
+      return { ok: true, message: "Loan application rejected." };
+    case "returned_for_modification":
+      return { ok: true, message: "Returned to the officer for modification." };
+    case "held":
+      return { ok: true, message: "Loan placed on hold. Its place in the chain is kept." };
+    case "released":
+      return { ok: true, message: `Released from hold — now ${LOAN_STATUS_LABELS[loan.status] ?? loan.status}.` };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Early settlement — the deliberate alternative to letting an advance accrue
+// ---------------------------------------------------------------------------
+
+/**
+ * Settles a loan today, cancelling what remains.
+ *
+ * The amount comes from the quote the officer was just shown, but the server
+ * re-computes it: a screen minutes old could otherwise close a loan for less
+ * than a freshly accrued penalty made it worth.
+ */
+export async function settleLoanEarly(loanId: string, cashRequired: string): Promise<ActionResult> {
+  let loan;
+
+  try {
+    loan = await settleLoanEarlyRequest(loanId, cashRequired);
+  } catch (error) {
+    return { ok: false, message: describeError(error) };
+  }
+
+  revalidateLoan(loanId);
+
   return {
     ok: true,
-    message:
-      loan.status === "mandate_pending_otp"
-        ? "Approved — E-Mandate OTP required next."
-        : "Approved — sent to credit review.",
+    message: `Loan settled and closed. ${LOAN_STATUS_LABELS[loan.status] ?? loan.status}.`,
   };
+}
+
+/** The officer's side of a return: send the corrected application back in. */
+export async function resubmitLoan(loanId: string, note?: string): Promise<ActionResult> {
+  try {
+    await resubmitLoanRequest(loanId, note?.trim() || undefined);
+  } catch (error) {
+    return { ok: false, message: describeError(error) };
+  }
+
+  revalidateLoan(loanId);
+
+  return { ok: true, message: "Resubmitted for approval from the first stage." };
 }
 
 // ---------------------------------------------------------------------------

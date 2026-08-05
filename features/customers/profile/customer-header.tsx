@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import { toast } from "sonner";
 import { Snowflake, ThumbsDown, ThumbsUp, UserRoundCheck, UserRoundX } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { CustomerAvatar } from "@/components/customer-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ReasonDialog } from "@/features/customers/profile/reason-dialog";
@@ -24,9 +24,6 @@ const APPROVAL_VARIANT: Record<string, "default" | "secondary" | "destructive" |
   rejected: "destructive",
 };
 
-function initials(name: string): string {
-  return name.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("");
-}
 
 export function CustomerHeader({
   customer,
@@ -51,9 +48,10 @@ export function CustomerHeader({
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-4">
-        <Avatar className="size-14">
-          <AvatarFallback className="text-base">{initials(fullName)}</AvatarFallback>
-        </Avatar>
+        {/* The KYC capture when there is one, initials otherwise — the same
+            component and the same tint the customer carries on every other
+            screen, so the person is recognisable before the name is read. */}
+        <CustomerAvatar name={fullName} photoUrl={customer.photoPath} size="lg" />
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-lg font-semibold">{fullName}</h1>
@@ -116,16 +114,37 @@ export function CustomerHeader({
             Unfreeze
           </Button>
         )}
+        {/*
+          Suspend and Reactivate now ask for a reason, like Freeze and Reject.
+          Stopping a customer borrowing — and letting them start again — are
+          decisions somebody is accountable for, and until now they were the
+          only ones in this header recorded as a bare status change.
+        */}
         {canManage && customer.status !== "frozen" && (
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={pending}
-            onClick={() => runSimple(() => setCustomerActiveStatus(customer.id, customer.status !== "active"))}
-          >
-            {customer.status === "active" ? <UserRoundX className="size-4" /> : <UserRoundCheck className="size-4" />}
-            {customer.status === "active" ? "Suspend" : "Reactivate"}
-          </Button>
+          <ReasonDialog
+            trigger={
+              <Button size="sm" variant="outline" disabled={pending}>
+                {customer.status === "active" ? (
+                  <UserRoundX className="size-4" />
+                ) : (
+                  <UserRoundCheck className="size-4" />
+                )}
+                {customer.status === "active" ? "Suspend" : "Reactivate"}
+              </Button>
+            }
+            title={customer.status === "active" ? "Suspend this customer?" : "Reactivate this customer?"}
+            description={
+              customer.status === "active"
+                ? `"${fullName}" will be blocked from new loan applications until reactivated.`
+                : `"${fullName}" will be able to apply for loans again.`
+            }
+            confirmLabel={customer.status === "active" ? "Suspend" : "Reactivate"}
+            destructive={customer.status === "active"}
+            withRemarks
+            onConfirm={(reason, remarks) =>
+              setCustomerActiveStatus(customer.id, customer.status !== "active", reason, remarks)
+            }
+          />
         )}
       </div>
     </div>

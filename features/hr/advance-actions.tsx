@@ -5,6 +5,7 @@ import { useTransition } from "react";
 import { toast } from "sonner";
 import { Check, Plus, Send, X } from "lucide-react";
 import { Button, Field, FieldGrid, Select, TextInput } from "@/components/settings/form";
+import { Combobox } from "@/components/settings/combobox";
 import { decideStaffAdvance, disburseStaffAdvance, requestStaffAdvance } from "@/features/hr/actions";
 import type { ActionResult } from "@/lib/domain/action-result";
 
@@ -42,14 +43,16 @@ export function RequestAdvanceForm({ staff }: { staff: { id: string; label: stri
   return (
     <FieldGrid columns={3}>
       <Field label="Staff member" htmlFor="adv-staff" className="sm:col-span-2">
-        <Select id="adv-staff" value={staffId} onChange={(e) => setStaffId(e.target.value)}>
-          <option value="">Select staff</option>
-          {staff.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.label}
-            </option>
-          ))}
-        </Select>
+        {/* Searchable — an institution's staff book is long enough that
+            scrolling to a name is the slow way to pick one. */}
+        <Combobox
+          id="adv-staff"
+          value={staffId || null}
+          onChange={(v) => setStaffId(v ?? "")}
+          options={staff.map((s) => ({ value: s.id, label: s.label }))}
+          placeholder="Search staff…"
+          emptyMessage="No staff on the book."
+        />
       </Field>
 
       <Field label="Amount (TZS)" htmlFor="adv-amount">

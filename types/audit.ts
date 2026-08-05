@@ -25,6 +25,8 @@ export const AUDIT_ACTIONS = {
   CUSTOMER_REJECTED: "CUSTOMER_REJECTED",
   CUSTOMER_SUSPENDED: "CUSTOMER_SUSPENDED",
   CUSTOMER_REACTIVATED: "CUSTOMER_REACTIVATED",
+  /* A biometric capture, separate from the KYC checklist it may complete. */
+  CUSTOMER_FACE_SCANNED: "CUSTOMER_FACE_SCANNED",
 } as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS] | (string & {});
 

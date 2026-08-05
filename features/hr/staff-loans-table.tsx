@@ -6,6 +6,7 @@ import { HandCoins } from "lucide-react";
 import { Money, StatusBadge, type StatusTone } from "@/components/settings";
 import { SettingsTable } from "@/components/settings/table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
+import { CustomerCell } from "@/components/customer-avatar";
 import { formatMoney } from "@/lib/domain/money";
 import { STAFF_LOAN_STATUSES } from "@/types/enums";
 import type { StaffLoanWithName } from "@/lib/api/hr";
@@ -42,11 +43,8 @@ export function StaffLoansTable({ loans }: { loans: StaffLoanWithName[] }) {
       accessorKey: "staffName",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Staff name" />,
       cell: ({ row }) => (
-        <Link
-          href={`/hr/staff/${row.original.staffProfileId}`}
-          className="whitespace-nowrap font-medium text-[var(--st-ink)] hover:underline"
-        >
-          {row.original.staffName ?? row.original.staffProfileId}
+        <Link href={`/hr/staff/${row.original.staffProfileId}`} className="hover:underline">
+          <CustomerCell name={row.original.staffName ?? row.original.staffProfileId} size="xs" />
         </Link>
       ),
     },

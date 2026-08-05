@@ -10,6 +10,13 @@ import type {
   NidaLookupResult,
   RegisterCustomerInput,
 } from "@/types/customer";
+import {
+  FaceScanAuditSchema,
+  FaceScanSchema,
+  type FaceScan,
+  type FaceScanAudit,
+} from "@/types/face-scan";
+import { AccountFreezeSchema, type AccountFreeze } from "@/types/audit";
 import type { CustomerNote } from "@/types/customer-note";
 import type { Guarantor } from "@/types/guarantor";
 import type { NextOfKin } from "@/types/next-of-kin";
@@ -152,6 +159,43 @@ export async function getAllCustomers(filters: CustomerFilters = {}): Promise<Cu
   return all;
 }
 
+/**
+ * PUT /api/v1/customers/{id} — the profile's save.
+ *
+ * Partial by design: only the keys passed are sent, and the API treats an
+ * absent key as "not being edited" rather than "clear it". That is what lets
+ * one section of the profile save without the others posting stale values back
+ * over a change somebody else made a moment ago.
+ */
+export type CustomerUpdate = Partial<Record<string, string | number | null>>;
+
+export async function updateCustomerRequest(
+  id: string,
+  changes: CustomerUpdate
+): Promise<Customer> {
+  return apiData<Customer>(`/api/v1/customers/${id}`, {
+    method: "PUT",
+    token: await token(),
+    body: changes,
+  });
+}
+
+/**
+ * GET /api/v1/customers/{customer}/freezes — the freeze history.
+ *
+ * Every freeze this customer has been under, newest first, open ones included
+ * (`unfrozenAt: null`). The profile used to have no way to ask: freeze and
+ * unfreeze were POSTs with no counterpart, so the timeline was assembled from
+ * an empty array and said nothing about who froze an account or why.
+ */
+export async function getCustomerFreezes(customerId: string): Promise<AccountFreeze[]> {
+  const rows = await apiData<unknown[]>(`/api/v1/customers/${customerId}/freezes`, {
+    token: await token(),
+  });
+
+  return rows.map((row) => AccountFreezeSchema.parse(row));
+}
+
 export async function getCustomer(id: string): Promise<Customer> {
   return apiData<Customer>(`/api/v1/customers/${id}`, { token: await token() });
 }
@@ -175,6 +219,12 @@ export async function getKycStatus(customerId: string): Promise<KycStatusResult>
  * identity, address, category, dynamic KYC data, bank details, guarantors and
  * next-of-kin.
  */
+/** An untouched input arrives as "", which the API reads as a value. Drop it. */
+function blank(value: string | null | undefined): string | undefined {
+  const trimmed = (value ?? "").trim();
+  return trimmed === "" ? undefined : trimmed;
+}
+
 export async function registerCustomerRequest(input: RegisterCustomerInput): Promise<Customer> {
   return apiData<Customer>("/api/v1/customers", {
     method: "POST",
@@ -202,6 +252,65 @@ export async function registerCustomerRequest(input: RegisterCustomerInput): Pro
       bankDetails: input.bankDetails,
       guarantors: input.guarantors,
       nextOfKin: input.nextOfKin,
+
+      /*
+       * The legacy registration form's own fields.
+       *
+       * This body is an explicit allowlist rather than a spread, so that only
+       * what the API accepts is sent — but that also means a field absent from
+       * this list is silently dropped on the way out. Every one of these was
+       * typed by the officer, validated by the form and then discarded here,
+       * which is exactly the "nothing should silently disappear" failure.
+       */
+      employeeId: toId(input.employeeId),
+      loanTypeId: toId(input.loanTypeId),
+      customerTypeId: toId(input.customerTypeId),
+      accountTypeId: toId(input.accountTypeId),
+      workTypeId: toId(input.workTypeId),
+      employmentTypeId: toId(input.employmentTypeId),
+      occupationId: toId(input.occupationId),
+      maritalStatusId: toId(input.maritalStatusId),
+      bankId: toId(input.bankId),
+      mobileMoneyProviderId: toId(input.mobileMoneyProviderId),
+
+      nickname: blank(input.nickname),
+      department: blank(input.department),
+      councilNumber: blank(input.councilNumber),
+      placeOfEmployment: blank(input.placeOfEmployment),
+      retirementDate: blank(input.retirementDate),
+      dependentsCount: input.dependentsCount ?? undefined,
+      basicSalary: input.basicSalary ?? undefined,
+      takeHome: input.takeHome ?? undefined,
+      checkNumber: blank(input.checkNumber),
+
+      accountName: blank(input.accountName),
+      nationalIdNumber: blank(input.nationalIdNumber),
+      voterIdNumber: blank(input.voterIdNumber),
+      driverLicenceNumber: blank(input.driverLicenceNumber),
+      workIdNumber: blank(input.workIdNumber),
+      /* Sent in full; the API keeps only the last four. Never stored here. */
+      cardNumber: blank(input.cardNumber),
+      cardExpiryMonth: input.cardExpiryMonth ?? undefined,
+      cardExpiryYear: input.cardExpiryYear ?? undefined,
+
+      email: blank(input.email),
+      alternativePhone: blank(input.alternativePhone),
+      nationality: blank(input.nationality),
+      tinNumber: blank(input.tinNumber),
+      passportNumber: blank(input.passportNumber),
+      village: blank(input.village),
+      houseNumber: blank(input.houseNumber),
+      postalCode: blank(input.postalCode),
+      landmark: blank(input.landmark),
+      occupation: blank(input.occupation),
+      employer: blank(input.employer),
+      monthlyIncome: input.monthlyIncome ?? undefined,
+      businessName: blank(input.businessName),
+      businessType: blank(input.businessType),
+      businessAddress: blank(input.businessAddress),
+      bankBranch: blank(input.bankBranch),
+      mobileMoneyProvider: blank(input.mobileMoneyProvider),
+      walletNumber: blank(input.walletNumber),
     },
   });
 }
@@ -247,18 +356,45 @@ export async function nidaOtpVerifyRequest(nidaNumber: string, otp: string): Pro
 }
 
 /**
- * POST /api/v1/customers/{customer}/face-verify — a real liveness capture,
- * uploaded as an image, which also sets the customer's photo.
+ * POST /api/v1/customers/{customer}/face-verify — a liveness capture and the
+ * scanner's report on it.
+ *
+ * The FormData is passed straight through rather than rebuilt here. It already
+ * carries the image plus eleven checks and eight measurements assembled by
+ * `appendReport()`, and copying that apart field by field would be one more
+ * place for the two ends of the contract to drift.
  */
-export async function faceVerifyRequest(customerId: string, capture: File): Promise<Customer> {
-  const form = new FormData();
-  form.append("capture", capture);
-
+export async function faceVerifyRequest(customerId: string, form: FormData): Promise<Customer> {
   return apiData<Customer>(`/api/v1/customers/${customerId}/face-verify`, {
     method: "POST",
     token: await token(),
     formData: form,
   });
+}
+
+/**
+ * GET /api/v1/customers/{customer}/face-scans — the whole history, newest
+ * first, with the active scan flagged.
+ *
+ * Superseded scans are kept deliberately: a re-scan replaces the photograph a
+ * branch identifies somebody by, and the previous one is the only thing the
+ * new one can be checked against.
+ */
+export async function getFaceScans(customerId: string): Promise<FaceScan[]> {
+  const scans = await apiData<unknown[]>(`/api/v1/customers/${customerId}/face-scans`, {
+    token: await token(),
+  });
+
+  return scans.map((scan) => FaceScanSchema.parse(scan));
+}
+
+/** GET /api/v1/customers/{customer}/face-scans/{scan}/audit — the export. */
+export async function getFaceScanAudit(customerId: string, scanId: string): Promise<FaceScanAudit> {
+  return FaceScanAuditSchema.parse(
+    await apiData<unknown>(`/api/v1/customers/${customerId}/face-scans/${scanId}/audit`, {
+      token: await token(),
+    })
+  );
 }
 
 /** POST /api/v1/customers/{customer}/additional-data — the post-registration correction path. */
@@ -344,11 +480,16 @@ export async function unfreezeCustomerRequest(customerId: string): Promise<Custo
   });
 }
 
-export async function setCustomerStatusRequest(customerId: string, active: boolean): Promise<Customer> {
+export async function setCustomerStatusRequest(
+  customerId: string,
+  active: boolean,
+  reason: string,
+  remarks: string | null
+): Promise<Customer> {
   return apiData<Customer>(`/api/v1/customers/${customerId}/status`, {
     method: "PATCH",
     token: await token(),
-    body: { active },
+    body: { active, reason, remarks },
   });
 }
 

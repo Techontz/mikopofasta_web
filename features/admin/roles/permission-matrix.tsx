@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PERMISSION_GROUPS, PERMISSION_LABELS, ROLE_LABELS } from "@/config/permissions";
-import { ROLES, type Role } from "@/types/auth";
+import { ASSIGNABLE_ROLES, type Role } from "@/types/auth";
 import { toggleRolePermission } from "@/features/admin/roles/roles-actions";
 
 interface PermissionMatrixProps {
@@ -23,7 +23,7 @@ export function PermissionMatrix({ rolePermissions, canEdit }: PermissionMatrixP
           <TableRow>
             {/* The permission name stays put while the roles scroll past it. */}
             <TableHead className="sticky left-0 z-20 min-w-52 bg-[var(--st-subtle)]">Permission</TableHead>
-            {ROLES.map((role) => (
+            {ASSIGNABLE_ROLES.map((role) => (
               <TableHead key={role} className="min-w-28 text-center [&]:text-center">
                 {ROLE_LABELS[role]}
               </TableHead>
@@ -35,7 +35,7 @@ export function PermissionMatrix({ rolePermissions, canEdit }: PermissionMatrixP
             <Fragment key={group.label}>
               <TableRow key={group.label} className="hover:bg-transparent">
                 <TableCell
-                  colSpan={ROLES.length + 1}
+                  colSpan={ASSIGNABLE_ROLES.length + 1}
                   className="sticky left-0 py-2 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-[var(--st-ink-faint)]"
                   style={{ background: "var(--st-subtle-strong)" }}
                 >
@@ -47,7 +47,7 @@ export function PermissionMatrix({ rolePermissions, canEdit }: PermissionMatrixP
                   <TableCell className="sticky left-0 z-10 bg-[var(--st-card)] font-mono text-[12px]">
                     {PERMISSION_LABELS[permission]}
                   </TableCell>
-                  {ROLES.map((role) => {
+                  {ASSIGNABLE_ROLES.map((role) => {
                     const isSuperAdmin = role === "super_admin";
                     const checked = isSuperAdmin || rolePermissions[role].includes(permission);
                     return (

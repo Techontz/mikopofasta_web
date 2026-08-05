@@ -13,6 +13,7 @@ import { Money, SettingsCard } from "@/components/settings";
 import { SettingsTable } from "@/components/settings/table";
 import { ConfirmDialog } from "@/components/settings/dialog";
 import { Button, Field, FieldGrid, IconButton, Select, TextInput } from "@/components/settings/form";
+import { Combobox } from "@/components/settings/combobox";
 import { formatMoney } from "@/lib/domain/money";
 import {
   SalaryAdvanceRequestInputSchema,
@@ -88,6 +89,7 @@ export function RequestPanel({
     handleSubmit,
     reset,
     control,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<SalaryAdvanceRequestInput>({
     resolver: zodResolver(SalaryAdvanceRequestInputSchema),
@@ -99,6 +101,7 @@ export function RequestPanel({
   const branch = useWatch({ control, name: "branch" });
   const categoryId = useWatch({ control, name: "categoryId" });
   const loanAmount = useWatch({ control, name: "loanAmount" });
+  const customerName = useWatch({ control, name: "customerName" });
 
   // The customer list narrows to the chosen branch — an advance is raised where
   // the customer is served, and offering all of them invites a mismatched pair.
@@ -218,14 +221,21 @@ export function RequestPanel({
                   : `${customers.length} customer${customers.length === 1 ? "" : "s"} at ${branch}.`
               }
             >
-              <Select id="sr-customer" invalid={!!errors.customerName} {...register("customerName")}>
-                <option value="">Select customer</option>
-                {customers.map((c) => (
-                  <option key={c.name} value={c.name}>
-                    {c.name}
-                  </option>
-                ))}
-              </Select>
+              {/* Searchable: this is the branch's whole customer book, and a
+                  native select over it cannot be typed into. Registered
+                  through RHF's setValue rather than `register` because the
+                  combobox reports a value, not a change event. */}
+              <Combobox
+                id="sr-customer"
+                value={customerName || null}
+                onChange={(v) => setValue("customerName", v ?? "", { shouldValidate: true })}
+                options={customers.map((c) => ({ value: c.name, label: c.name }))}
+                disabled={branch === ""}
+                disabledMessage="Choose a branch first"
+                placeholder="Search customer…"
+                emptyMessage="No customers at this branch."
+                invalid={!!errors.customerName}
+              />
             </Field>
           </FieldGrid>
 

@@ -6,6 +6,7 @@ import { UsersRound } from "lucide-react";
 import { Money, StatusBadge, type StatusTone } from "@/components/settings";
 import { SettingsTable } from "@/components/settings/table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
+import { CustomerCell } from "@/components/customer-avatar";
 import { formatMoney } from "@/lib/domain/money";
 import { EMPLOYMENT_STATUSES, type EmploymentStatus } from "@/types/enums";
 
@@ -63,11 +64,8 @@ export function StaffTable({ staff }: { staff: StaffRow[] }) {
       accessorKey: "name",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
       cell: ({ row }) => (
-        <Link
-          href={`/hr/staff/${row.original.id}`}
-          className="whitespace-nowrap font-medium text-[var(--st-ink)] hover:underline"
-        >
-          {row.original.name}
+        <Link href={`/hr/staff/${row.original.id}`} className="hover:underline">
+          <CustomerCell name={row.original.name} size="xs" />
         </Link>
       ),
     },

@@ -10,6 +10,7 @@ import { hasPermission, ROLE_LABELS } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
 import { formatMoney } from "@/lib/domain/money";
 import { getAllPayrollRuns, getStaffMember } from "@/lib/api/hr";
+import { EmploymentStatusControl } from "@/features/hr/employment-status-control";
 import { getZones } from "@/lib/api/organization";
 import { ApiError } from "@/lib/api/errors";
 
@@ -40,6 +41,7 @@ export default async function StaffProfilePage({ params }: { params: Promise<{ i
   const { id } = await params;
   const user = await getCurrentUser();
   if (!user || !hasPermission(user, PERMISSIONS.HR_VIEW)) return <AccessDeniedState />;
+  const canManage = hasPermission(user, PERMISSIONS.HR_MANAGE);
 
   // `show` carries this employee's loans, advances and performance in its
   // meta, so the profile is one request rather than four.
@@ -116,6 +118,17 @@ export default async function StaffProfilePage({ params }: { params: Promise<{ i
               {staff.employmentStatus}
             </StatusBadge>
           </div>
+
+          {/* Only hr.manage may change it — hr.view can read the badge above
+              and nothing else, which is the same split the API enforces. */}
+          {canManage && (
+            <div
+              className="mt-4 w-full border-t pt-4"
+              style={{ borderColor: "var(--st-line)" }}
+            >
+              <EmploymentStatusControl staffId={staff.id} current={staff.employmentStatus} />
+            </div>
+          )}
         </SettingsCard>
 
         <SettingsCard title="Employment" className="lg:col-span-2">

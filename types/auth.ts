@@ -14,9 +14,41 @@ export const ROLES = [
   "regional_manager",
   "teller",
   "auditor",
+
+  /*
+   * The operational roles the enterprise structure names.
+   *
+   * "Head Office Teller" is not among them on purpose: that is a `teller`
+   * posted to the Head Office branch, which is how a branch-scoped system
+   * already says where somebody works. Minting an office-specific twin of
+   * every role would record the office twice — in the role and in the posting
+   * — free to disagree the day somebody transfers.
+   */
+  "head_office_manager",
+  "accountant",
+  "cashier",
+  "recovery_officer",
+  "customer_care",
+
+  /** The automation — non-login, no permissions. See the backend's RoleName. */
+  "system",
 ] as const;
 
 export type Role = (typeof ROLES)[number];
+
+/**
+ * The roles a human may hold, and the only ones any administration screen
+ * should offer.
+ *
+ * `system` is excluded: it is the automation's identity, holds no permissions,
+ * can never hold any, and cannot be logged into. Offering it in a user form
+ * would let an administrator create a real person who is powerless and looks
+ * like the automation in every audit row; offering it in the permission matrix
+ * would be a column of checkboxes that can never be ticked.
+ *
+ * It stays in ROLES so a response carrying it still parses.
+ */
+export const ASSIGNABLE_ROLES = ROLES.filter((role) => role !== "system");
 
 /**
  * Permission strings mirror the backend spec's permission naming (§14).
@@ -30,6 +62,15 @@ export const PERMISSIONS = {
   LOANS_VIEW: "loans.view",
   LOANS_CREATE: "loans.create",
   LOANS_APPROVE: "loans.approve",
+  /*
+   * The zone tier of the approval chain, and the right to pause or return an
+   * application. Separate grants, not extensions of `loans.approve` — see
+   * docs/modules/loan-approval-workflow.md §3.
+   */
+  LOANS_ZONE_APPROVE: "loans.zone_approve",
+  /** Closing a live loan early, which cancels its remaining installments. */
+  LOANS_SETTLE_EARLY: "loans.settle_early",
+  LOANS_HOLD: "loans.hold",
   LOANS_CREDIT_REVIEW: "loans.credit_review",
   LOANS_DISBURSE: "loans.disburse",
   LOANS_REVIEW_CROSS_BRANCH: "loans.review_cross_branch",
@@ -37,6 +78,13 @@ export const PERMISSIONS = {
   REPAYMENTS_MANAGE: "repayments.manage",
   REPAYMENTS_CASH_ENTRY: "repayments.cash_entry",
   REPAYMENTS_RECONCILE: "repayments.reconcile",
+  // Month-end close, the Reserve fund, and bad debt — Decision Register D1.
+  // Reserve is split in two on purpose: Finance proposes, Admin releases.
+  ACCOUNTING_PERIOD_CLOSE: "accounting.period_close",
+  RESERVE_REQUEST: "reserve.request",
+  RESERVE_APPROVE: "reserve.approve",
+  LOANS_WRITE_OFF: "loans.write_off",
+  LOANS_RECOVER: "loans.recover",
   LEDGER_VIEW: "ledger.view",
   LEDGER_REVERSE_REQUEST: "ledger.reverse.request",
   LEDGER_REVERSE_APPROVE: "ledger.reverse.approve",

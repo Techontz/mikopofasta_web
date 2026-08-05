@@ -10,8 +10,11 @@ import type { ActionResult } from "@/lib/domain/action-result";
 /**
  * Settings → Interest Formula.
  *
- * Name/description only — `code` is fixed because lib/domain/loan-schedule.ts
- * branches on SIMPLE/FLAT/REDUCING by code; it isn't a free-text CRUD field.
+ * Name/description only — `code` is fixed because the backend's
+ * InterestStrategyRegistry resolves a pricing strategy by it
+ * (app/Domain/Loans/Engine/Strategies); it isn't a free-text CRUD field.
+ * Schedules are priced server-side and previewed via /loans/schedule-preview,
+ * so nothing in the browser branches on the code at all.
  * The API agrees and routes no create or delete at all, so this is the whole
  * surface of the screen.
  *

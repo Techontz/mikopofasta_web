@@ -108,9 +108,33 @@ export function ContributionsPanel({
         <form id="capital-form" noValidate onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           {/* Field order is the legacy form's. */}
           <FieldGrid columns={3}>
-            <Field label="Share Holder Name" htmlFor="cap-holder" required error={errors.shareholderId?.message}>
-              <Select id="cap-holder" invalid={!!errors.shareholderId} {...register("shareholderId")}>
-                <option value="">Select Share Holder</option>
+            {/*
+              A contribution needs somebody to have contributed it, and on a
+              fresh installation nobody is registered yet. The select then
+              renders with its placeholder and nothing else — a required field
+              that cannot be satisfied, and no indication that the fix is one
+              screen away rather than a fault. Say which screen.
+            */}
+            <Field
+              label="Share Holder Name"
+              htmlFor="cap-holder"
+              required
+              error={errors.shareholderId?.message}
+              help={
+                shareholders.length === 0
+                  ? "No shareholders are registered yet — add one under Capital → Share Holders."
+                  : undefined
+              }
+            >
+              <Select
+                id="cap-holder"
+                invalid={!!errors.shareholderId}
+                disabled={shareholders.length === 0}
+                {...register("shareholderId")}
+              >
+                <option value="">
+                  {shareholders.length === 0 ? "No shareholders registered" : "Select Share Holder"}
+                </option>
                 {shareholders.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.fullName}

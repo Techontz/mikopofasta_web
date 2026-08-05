@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Banknote, Coins, Landmark, PiggyBank, Users } from "lucide-react";
+import { Banknote, CalendarCheck, Coins, FileX2, Landmark, PiggyBank, ShieldCheck, Users } from "lucide-react";
 import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -8,6 +8,8 @@ import { PERMISSIONS } from "@/types/auth";
 import { formatMoney, round2 } from "@/lib/domain/money";
 import { classifyAccount, getLedgerAccounts, getTrialBalance } from "@/lib/api/ledger";
 import { getCapitalContributions } from "@/lib/api/capital";
+import { getAccountingPeriods, getCashDeposits, getReserveUtilisations } from "@/lib/api/accounting";
+import { formatPeriod } from "@/features/accounting/format";
 import { SYSTEM_ACCOUNT_CODES } from "@/types/ledger";
 import { Money, PageHeader, SettingsCard, StatCard } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
@@ -36,10 +38,21 @@ export default async function TreasuryPage() {
    * (the Capital module owns them), so this reads the same endpoint that screen
    * does rather than a fixture that could disagree with it.
    */
-  const [trial, accounts, capital] = await Promise.all([
+  /*
+   * The three accounting reads are additive and every one of them fails soft.
+   *
+   * A Treasury reader may hold `treasury.view` without `ledger.view`, so the
+   * close and the reserve queue can legitimately come back refused — and an
+   * overview that refused to render because one of its tiles could not be
+   * filled would be worse than a tile that says so.
+   */
+  const [trial, accounts, capital, periods, reserve, deposits] = await Promise.all([
     getTrialBalance(),
     getLedgerAccounts(),
     getCapitalContributions().catch(() => null),
+    getAccountingPeriods().catch(() => null),
+    getReserveUtilisations().catch(() => null),
+    getCashDeposits().catch(() => null),
   ]);
   const byCode = (code: string) => trial.rows.find((r) => r.code === code)?.balance ?? 0;
 
@@ -60,6 +73,53 @@ export default async function TreasuryPage() {
   // Newest first, and only a handful — the Capital module owns the full list.
   const recent = (capital?.contributions ?? []).slice(0, 6);
 
+  /*
+   * The month-end state, in the words an operator actually uses.
+   *
+   * `periods` is newest-first, so the head is the last close. Null means the
+   * read was refused, which is a different answer from "nothing closed yet" and
+   * is shown as such.
+   */
+  const lastClosed = periods?.[0] ?? null;
+  const pendingReserve = (reserve?.requests ?? []).filter((r) => r.status === "pending");
+
+  const monthEnd = [
+    {
+      label: "Last period closed",
+      value: periods === null ? "Unavailable" : lastClosed ? formatPeriod(lastClosed.period) : "None yet",
+      hint:
+        periods === null
+          ? "Needs ledger.view"
+          : lastClosed
+            ? `Reserve ${formatMoney(lastClosed.reserveAppropriated)} at ${lastClosed.reservePercentage}%`
+            : "Close a period to recognise its profit",
+      icon: CalendarCheck,
+      tone: "accent" as const,
+    },
+    {
+      label: "Reserve awaiting approval",
+      value: reserve === null ? "Unavailable" : String(pendingReserve.length),
+      hint:
+        reserve === null
+          ? "Needs ledger.view"
+          : pendingReserve.length === 0
+            ? "Nothing to decide"
+            : formatMoney(pendingReserve.reduce((sum, r) => sum + r.amount, 0)),
+      icon: ShieldCheck,
+    },
+    {
+      label: "Deposits to verify",
+      value: deposits === null ? "Unavailable" : String(deposits.pendingCount),
+      hint:
+        deposits === null
+          ? "Needs repayments.view"
+          : deposits.pendingCount === 0
+            ? "Every deposit confirmed"
+            : formatMoney(deposits.pendingTotal),
+      icon: FileX2,
+    },
+  ];
+
   return (
     <>
       <PageHeader
@@ -74,6 +134,24 @@ export default async function TreasuryPage() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {tiles.map((tile) => (
           <StatCard key={tile.label} label={tile.label} value={tile.value} icon={tile.icon} tone={tile.tone} />
+        ))}
+      </div>
+
+      {/*
+        Month-end state, beneath the balances and above the registers: an
+        operator opening Bank wants to know what the books say before they act
+        on what the accounts hold.
+      */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {monthEnd.map((tile) => (
+          <StatCard
+            key={tile.label}
+            label={tile.label}
+            value={tile.value}
+            hint={tile.hint}
+            icon={tile.icon}
+            tone={tile.tone}
+          />
         ))}
       </div>
 

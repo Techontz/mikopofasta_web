@@ -6,6 +6,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
+import { requiredText } from "@/lib/forms/required-text";
 import { Pencil, Plus } from "lucide-react";
 import { SettingsDialog } from "@/components/settings/dialog";
 import { Button, Field, FieldGrid, IconButton, Select, TextInput } from "@/components/settings/form";
@@ -21,6 +22,8 @@ const FormSchema = BranchSchema.pick({
   type: true,
   parentBranchId: true,
   status: true,
+}).extend({
+  name: requiredText("Name"),
 });
 type FormValues = z.infer<typeof FormSchema>;
 const NONE = "__none__";

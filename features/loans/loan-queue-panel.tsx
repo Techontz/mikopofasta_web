@@ -9,9 +9,10 @@ import { toLoanRow } from "@/features/loans/queries";
  * The four legacy Loan list screens — Pending Approve, Disbursed, Rejected,
  * Withdrawal.
  *
- * All four drew from `lib/legacy/source.ts`, transcribed from screenshots of
- * the running legacy system, and every row action was inert. They now read
- * `GET /loans`; the endpoint has existed since the Loans phase.
+ * All four drew from a hardcoded transcription of screenshots of the running
+ * legacy system, and every row action was inert. They now read `GET /loans`;
+ * the endpoint has existed since the Loans phase, and the transcription file
+ * has since been deleted outright.
  *
  * ## Why one panel rather than four
  *

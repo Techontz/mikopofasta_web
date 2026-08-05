@@ -2,6 +2,7 @@ import { Ban, Banknote, ClipboardList, Clock } from "lucide-react";
 import Link from "next/link";
 import { Money, SettingsCard, StatCard, StatusBadge } from "@/components/settings";
 import { EmptyState } from "@/components/feedback/empty-state";
+import { CustomerCell } from "@/components/customer-avatar";
 import { formatMoney } from "@/lib/domain/money";
 import { ORIGINATION_STATUSES, OPEN_BOOK_STATUSES } from "@/lib/domain/loan-status-machine";
 import { getAllLoans } from "@/lib/api/loans";
@@ -97,15 +98,13 @@ export async function LoanOverviewPanel() {
                 {activity.map(({ loan, at, event }) => (
                   <tr key={loan.id}>
                     <td>
-                      <Link
-                        href={`/loans/${loan.id}`}
-                        className="font-medium text-[var(--st-ink)] hover:underline"
-                      >
-                        {loan.customerName ?? loan.loanNumber}
+                      <Link href={`/loans/${loan.id}`} className="hover:underline">
+                        <CustomerCell
+                          name={loan.customerName ?? loan.loanNumber}
+                          secondary={loan.branchName ?? "—"}
+                          size="xs"
+                        />
                       </Link>
-                      <p className="mt-0.5 text-[12px] text-[var(--st-ink-faint)]">
-                        {loan.branchName ?? "—"}
-                      </p>
                     </td>
                     <td>
                       <StatusBadge tone={event === "Disbursed" ? "active" : "warning"}>

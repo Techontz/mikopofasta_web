@@ -25,8 +25,21 @@ const SECTOR_ICON: Record<CustomerCategory["sector"], typeof Briefcase> = {
 };
 
 export function CategoryDataStep({ category }: { category: CustomerCategory | undefined }) {
-  const { setValue, watch } = useFormContext<WizardValues>();
+  const {
+    setValue,
+    watch,
+    formState: { errors },
+  } = useFormContext<WizardValues>();
   const dynamicFormData = watch("dynamicFormData");
+
+  /*
+   * Server errors for these fields arrive keyed by their dotted path —
+   * `dynamicFormData.daily_income` — because that is how Laravel reports a
+   * nested failure and how React Hook Form stores one. This step rendered no
+   * errors at all, so "Average Daily Income is required" could only ever
+   * appear in a toast, above a field that looked perfectly fine.
+   */
+  const dynamicErrors = (errors.dynamicFormData ?? {}) as Record<string, { message?: string }>;
 
   if (!category) {
     return <EmptyState icon={FileQuestion} title="Select a customer category first" description="Go back to Personal Details and assign a category to continue." />;
@@ -53,8 +66,13 @@ export function CategoryDataStep({ category }: { category: CustomerCategory | un
       <div className="grid gap-4 sm:grid-cols-2">
         {category.dynamicFormSchema.map((field) => {
           const value = dynamicFormData[field.key] ?? "";
+          const fieldError = dynamicErrors[field.key]?.message;
           return (
-            <div key={field.key} className={field.type === "textarea" ? "sm:col-span-2 space-y-1.5" : "space-y-1.5"}>
+            <div
+              key={field.key}
+              className={field.type === "textarea" ? "sm:col-span-2 space-y-1.5" : "space-y-1.5"}
+              data-field={`dynamicFormData.${field.key}`}
+            >
               <Label htmlFor={`dyn-${field.key}`}>
                 {field.label}
                 {field.required && <span className="text-destructive"> *</span>}
@@ -99,6 +117,7 @@ export function CategoryDataStep({ category }: { category: CustomerCategory | un
                   }
                 />
               )}
+              {fieldError && <p className="text-xs text-destructive">{fieldError}</p>}
             </div>
           );
         })}

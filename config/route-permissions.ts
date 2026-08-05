@@ -2,7 +2,7 @@ import { PERMISSIONS, type Permission } from "@/types/auth";
 
 /**
  * Single source of truth for "which permission does this route need" —
- * consumed by BOTH proxy.ts (actual enforcement) and config/nav.ts (nav
+ * consumed by BOTH proxy.ts (actual enforcement) and config/legacy-nav.ts (nav
  * visibility), so a route's guard and its nav entry can never drift apart.
  * Mirrors backend spec §14's permission strings 1:1.
  *
@@ -31,6 +31,20 @@ export const ROUTE_PERMISSIONS: { prefix: string; permission: Permission | Permi
   { prefix: "/expenses", permission: PERMISSIONS.TREASURY_VIEW },
   { prefix: "/hq", permission: PERMISSIONS.TREASURY_VIEW },
   { prefix: "/hr", permission: PERMISSIONS.HR_VIEW },
+  /*
+   * The four accounting screens sit under /treasury but are NOT treasury.view
+   * work — Decision Register D1. Listed before the section itself only for
+   * readability; matching picks the longest prefix, so these win regardless.
+   *
+   * Reconciliation is the one that matters most here. A teller banks the day's
+   * cash and holds neither treasury.view nor ledger.view, so without its own
+   * entry the section gate would redirect them away from their own workflow —
+   * which is exactly what happened before this was added.
+   */
+  { prefix: "/treasury/reconciliation", permission: PERMISSIONS.REPAYMENTS_VIEW },
+  { prefix: "/treasury/periods", permission: PERMISSIONS.LEDGER_VIEW },
+  { prefix: "/treasury/reserve", permission: PERMISSIONS.LEDGER_VIEW },
+  { prefix: "/treasury/write-offs", permission: PERMISSIONS.LOANS_VIEW },
   { prefix: "/treasury", permission: PERMISSIONS.TREASURY_VIEW },
   // Capital is treasury work, not administration: it sits at its own prefix
   // so it is not caught by the /admin rule's admin.org_settings requirement.

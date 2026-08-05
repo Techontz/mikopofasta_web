@@ -6,6 +6,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
+import { requiredText } from "@/lib/forms/required-text";
 import { Pencil, Plus } from "lucide-react";
 import { SettingsDialog } from "@/components/settings/dialog";
 import { SectionDivider } from "@/components/settings";
@@ -29,7 +30,14 @@ const FormSchema = LoanProductSchema.pick({
   penaltyCapAmount: true,
   requiresMandate: true,
   status: true,
-}).extend({ repaymentScheduleIds: z.array(z.string()) });
+}).extend({
+  name: requiredText("Name"),
+  code: requiredText("Code"),
+  /* The API rejects a product with no schedule attached — "Select at least one
+     repayment schedule" — so the form says it beside the checkboxes instead of
+     after a round trip. */
+  repaymentScheduleIds: z.array(z.string()).min(1, "Select at least one repayment schedule."),
+});
 type FormValues = z.infer<typeof FormSchema>;
 
 interface ProductFormDialogProps {
@@ -39,11 +47,24 @@ interface ProductFormDialogProps {
   productScheduleIds?: string[];
 }
 
-function defaultsFor(product: ProductFormDialogProps["product"], productScheduleIds: string[]): FormValues {
+function defaultsFor(
+  product: ProductFormDialogProps["product"],
+  productScheduleIds: string[],
+  formulas: InterestFormula[]
+): FormValues {
   return {
     name: product?.name ?? "",
     code: product?.code ?? "",
-    interestFormulaId: product?.interestFormulaId ?? "",
+    /*
+     * A NEW product starts on whichever formula the API flags as default —
+     * Reducing EMI, per the client's Decision 2. Read from the data rather
+     * than named here, so changing the default is a row update and the two
+     * sides cannot disagree about what it is.
+     *
+     * An existing product keeps its own formula, always. Editing a product's
+     * name must never silently reprice it.
+     */
+    interestFormulaId: product?.interestFormulaId ?? formulas.find((f) => f.isDefault)?.id ?? formulas[0]?.id ?? "",
     interestRate: product?.interestRate ?? 10,
     minAmount: product?.minAmount ?? 100_000,
     maxAmount: product?.maxAmount ?? 1_000_000,
@@ -71,7 +92,7 @@ export function ProductFormDialog({ product, formulas, schedules, productSchedul
     control,
     reset,
     formState: { errors },
-  } = useForm<FormValues>({ resolver: zodResolver(FormSchema), defaultValues: defaultsFor(product, productScheduleIds) });
+  } = useForm<FormValues>({ resolver: zodResolver(FormSchema), defaultValues: defaultsFor(product, productScheduleIds, formulas) });
 
   function onSubmit(values: FormValues) {
     startTransition(async () => {
@@ -97,7 +118,7 @@ export function ProductFormDialog({ product, formulas, schedules, productSchedul
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
-        if (next) reset(defaultsFor(product, productScheduleIds));
+        if (next) reset(defaultsFor(product, productScheduleIds, formulas));
       }}
       trigger={
         isEdit ? (

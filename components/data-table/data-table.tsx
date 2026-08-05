@@ -96,13 +96,33 @@ export function DataTable<TData, TValue>({
   const [globalFilter, setGlobalFilter] = React.useState("");
   const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
 
+  /*
+   * Narrowing the table sends you back to page one.
+   *
+   * `autoResetPageIndex` is off below so that a background revalidation — a
+   * mutation elsewhere on the page refreshing the server data — does not yank
+   * the reader back to page one mid-read. But that switch also governs the case
+   * it must not: with it off, searching from page 4 kept pageIndex at 3, the
+   * page slice landed past the end of a now-shorter result set, and the table
+   * rendered its "no results" empty state while matches sat on page one. So the
+   * reset is done here instead, on the two changes that are the reader's own
+   * doing, and nowhere else.
+   */
+  const toFirstPage = () => setPagination((p) => (p.pageIndex === 0 ? p : { ...p, pageIndex: 0 }));
+
   const table = useReactTable({
     data,
     columns,
     state: { sorting, columnFilters, globalFilter, pagination },
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onGlobalFilterChange: setGlobalFilter,
+    onColumnFiltersChange: (updater) => {
+      setColumnFilters(updater);
+      toFirstPage();
+    },
+    onGlobalFilterChange: (updater) => {
+      setGlobalFilter(updater);
+      toFirstPage();
+    },
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -115,6 +135,18 @@ export function DataTable<TData, TValue>({
     },
     autoResetPageIndex: false,
   });
+
+  /*
+   * ...and a shrinking result set never strands the reader past the end.
+   * Approving the last two of twenty-one requests revalidates the list to
+   * nineteen rows, and page three stops existing. Clamped during render, not in
+   * an effect, so the corrected page is what paints — there is no frame showing
+   * an empty table first.
+   */
+  const pageCount = table.getPageCount();
+  if (pagination.pageIndex > 0 && pagination.pageIndex >= pageCount) {
+    setPagination((p) => ({ ...p, pageIndex: Math.max(0, pageCount - 1) }));
+  }
 
   const isFiltered = columnFilters.length > 0 || globalFilter.length > 0;
 

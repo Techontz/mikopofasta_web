@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { AlertCircle, ChevronDown, Loader2, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -271,20 +272,37 @@ export const Button = React.forwardRef<
   );
 });
 
-/** Square icon-only button. `label` is required — it becomes the accessible name. */
+/**
+ * Square icon-only button. `label` is required — it becomes the accessible name.
+ *
+ * Pass `href` and it renders a real link instead of a button. Row actions that
+ * open a record are navigations, not commands: as an anchor they get
+ * middle-click, cmd-click, "open in new tab" and a status-bar preview for free,
+ * and screen readers announce them as links. Same square styling either way.
+ */
 export const IconButton = React.forwardRef<
   HTMLButtonElement,
-  React.ButtonHTMLAttributes<HTMLButtonElement> & { tone?: ButtonTone; icon: LucideIcon; label: string }
->(function IconButton({ tone = "ghost", icon: Icon, label, className, ...props }, ref) {
+  React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    tone?: ButtonTone;
+    icon: LucideIcon;
+    label: string;
+    href?: string;
+  }
+>(function IconButton({ tone = "ghost", icon: Icon, label, className, href, ...props }, ref) {
+  const classes = cn("st-btn st-btn-icon", `st-btn-${tone}`, className);
+  const glyph = <Icon className="size-4" strokeWidth={1.9} aria-hidden />;
+
+  if (href !== undefined) {
+    return (
+      <Link href={href} aria-label={label} title={label} className={classes}>
+        {glyph}
+      </Link>
+    );
+  }
+
   return (
-    <button
-      ref={ref}
-      aria-label={label}
-      title={label}
-      className={cn("st-btn st-btn-icon", `st-btn-${tone}`, className)}
-      {...props}
-    >
-      <Icon className="size-4" strokeWidth={1.9} aria-hidden />
+    <button ref={ref} aria-label={label} title={label} className={classes} {...props}>
+      {glyph}
     </button>
   );
 });

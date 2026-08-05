@@ -1,10 +1,17 @@
-import type { DisbursementBatch, EMandate, LoanStatusHistory, TelcoVerification } from "@/types/loan";
+import type {
+  DisbursementBatch,
+  EarlySettlementRecord,
+  EMandate,
+  LoanStatusHistory,
+  TelcoVerification,
+} from "@/types/loan";
 import { LOAN_STATUS_LABELS } from "@/lib/domain/loan-status-machine";
+import { formatMoney } from "@/lib/domain/money";
 
 export interface LoanTimelineEvent {
   id: string;
   at: string;
-  kind: "status" | "mandate" | "telco" | "disbursement" | "decision";
+  kind: "status" | "mandate" | "telco" | "disbursement" | "decision" | "settlement";
   title: string;
   description?: string;
   actorId: string | null;
@@ -19,7 +26,8 @@ export function buildLoanTimeline(
   history: LoanStatusHistory[],
   mandates: EMandate[],
   telcoVerifications: TelcoVerification[],
-  batches: DisbursementBatch[]
+  batches: DisbursementBatch[],
+  earlySettlement: EarlySettlementRecord | null = null
 ): LoanTimelineEvent[] {
   const events: LoanTimelineEvent[] = [];
 
@@ -74,6 +82,32 @@ export function buildLoanTimeline(
         actorId: b.requestedBy,
       });
     }
+  }
+
+  /*
+   * The settlement is its own event, not just the `closed` transition.
+   *
+   * The status history records that the loan closed; only this says it closed
+   * EARLY, what was forgiven to make that possible and who decided. Every
+   * figure comes from the served record — nothing here is recomputed.
+   */
+  if (earlySettlement) {
+    const paid = earlySettlement.amountPaid === null ? null : formatMoney(earlySettlement.amountPaid);
+
+    events.push({
+      id: "early-settlement",
+      at: earlySettlement.settledAt,
+      kind: "settlement",
+      title: "Loan settled early",
+      description: [
+        paid === null ? "Settled by waived interest alone" : `${paid} paid`,
+        `${formatMoney(earlySettlement.interestWaived)} interest waived`,
+        earlySettlement.reference,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      actorId: earlySettlement.officerId,
+    });
   }
 
   return events.filter((e) => e.at).sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());

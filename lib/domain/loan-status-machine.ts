@@ -18,6 +18,9 @@ import type { LoanStatus } from "@/types/enums";
 export const LOAN_STATUS_LABELS: Record<LoanStatus, string> = {
   draft: "Draft",
   pending_manager_approval: "Pending Manager Approval",
+  pending_zone_approval: "Pending Zone Approval",
+  returned_for_modification: "Returned for Modification",
+  on_hold: "On Hold",
   rejected: "Rejected",
   mandate_pending_otp: "Mandate — Pending OTP",
   mandate_failed: "Mandate Failed",
@@ -42,6 +45,12 @@ export type LoanStatusTone = "neutral" | "progress" | "good" | "warn" | "bad";
 export const LOAN_STATUS_TONE: Record<LoanStatus, LoanStatusTone> = {
   draft: "neutral",
   pending_manager_approval: "progress",
+  pending_zone_approval: "progress",
+  // Neither is a failure and neither is progress: the application is alive and
+  // waiting on someone. Amber says "this needs attention" without saying "this
+  // went wrong", which is exactly what a return and a hold mean.
+  returned_for_modification: "warn",
+  on_hold: "warn",
   rejected: "bad",
   mandate_pending_otp: "progress",
   mandate_failed: "bad",
@@ -65,6 +74,9 @@ export const LOAN_STATUS_TONE: Record<LoanStatus, LoanStatusTone> = {
 export const ORIGINATION_STATUSES: LoanStatus[] = [
   "draft",
   "pending_manager_approval",
+  "pending_zone_approval",
+  "returned_for_modification",
+  "on_hold",
   "mandate_pending_otp",
   "mandate_failed",
   "mandate_active",

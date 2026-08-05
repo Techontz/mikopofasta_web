@@ -6,7 +6,7 @@ import type {
 import { apiData, apiRequest } from "@/lib/api/client";
 import { getApiToken } from "@/lib/auth/session";
 import type { ApiPagination } from "@/lib/api/types";
-import type { Loan, LoanSchedule, LoanStatusHistory } from "@/types/loan";
+import type { EarlySettlementRecord, Loan, LoanSchedule, LoanStatusHistory } from "@/types/loan";
 import type { CategoryProductEligibility, LoanProduct } from "@/types/loan-product";
 import type { DisbursementChannel, LoanStatus } from "@/types/enums";
 
@@ -80,6 +80,10 @@ interface LoanWire {
   createdBy: string | null;
   createdAt: string | null;
   deletedAt: string | null;
+  earlySettledAt: string | null;
+  interestWaived: string;
+  /** Absent unless the caller loaded it; null when the loan was not settled. */
+  earlySettlement?: EarlySettlementWire | null;
   customerName?: string | null;
   customerNumber?: string | null;
   branchName?: string | null;
@@ -87,6 +91,15 @@ interface LoanWire {
   schedules?: LoanScheduleWire[];
   totalPayable?: string;
   outstandingTotal?: string;
+}
+
+interface EarlySettlementWire {
+  settledAt: string;
+  interestWaived: string;
+  amountPaid: string | null;
+  reference: string | null;
+  officerId: string | null;
+  officerName: string | null;
 }
 
 interface LoanScheduleWire {
@@ -149,6 +162,13 @@ export interface LoanListItem extends Loan {
   createdAt: string | null;
   outstanding: number;
   totalPayable: number;
+  /**
+   * The settlement record, on the endpoints that load it (`show` and the
+   * settle response). Undefined means "the caller did not ask", null means
+   * "this loan was never settled early" — the list endpoint says the first,
+   * never the second.
+   */
+  earlySettlement?: EarlySettlementRecord | null;
 }
 
 function toLoan(wire: LoanWire): LoanListItem {
@@ -176,6 +196,21 @@ function toLoan(wire: LoanWire): LoanListItem {
     frozenUntil: wire.frozenUntil,
     createdBy: wire.createdBy,
     deletedAt: wire.deletedAt,
+    earlySettledAt: wire.earlySettledAt,
+    interestWaived: num(wire.interestWaived),
+    earlySettlement:
+      wire.earlySettlement === undefined
+        ? undefined
+        : wire.earlySettlement === null
+          ? null
+          : {
+              settledAt: wire.earlySettlement.settledAt,
+              interestWaived: num(wire.earlySettlement.interestWaived),
+              amountPaid: wire.earlySettlement.amountPaid === null ? null : num(wire.earlySettlement.amountPaid),
+              reference: wire.earlySettlement.reference,
+              officerId: wire.earlySettlement.officerId,
+              officerName: wire.earlySettlement.officerName,
+            },
 
     statusLabel: wire.statusLabel,
     customerName: wire.customerName ?? null,
@@ -434,6 +469,160 @@ export async function decideLoanRequest(
     method: "POST",
     token: await token(),
     body: { decision, ...(decision === "reject" ? { reason } : {}) },
+  });
+  return toLoan(wire);
+}
+
+/**
+ * What a product would produce — priced by the engine, not by the browser.
+ *
+ * Amounts stay as decimal STRINGS here, unlike most of this module. The preview
+ * is displayed and never arithmetic-ed, so parsing them would be a conversion
+ * performed for no reason — and the engine's own totals are already exact.
+ */
+export interface SchedulePreview {
+  formulaCode: string;
+  formulaName: string;
+  installmentCount: number;
+  totalPrincipal: string;
+  totalInterest: string;
+  totalPayable: string;
+  installments: {
+    installmentNumber: number;
+    dueDate: string;
+    principalDue: string;
+    interestDue: string;
+    totalDue: string;
+  }[];
+}
+
+export async function previewScheduleRequest(input: {
+  loanProductId: string;
+  repaymentScheduleId: string;
+  principalAmount: number;
+  tenureDays: number;
+}): Promise<SchedulePreview> {
+  return apiData<SchedulePreview>("/api/v1/loans/schedule-preview", {
+    method: "POST",
+    token: await token(),
+    body: {
+      loanProductId: toId(input.loanProductId),
+      repaymentScheduleId: toId(input.repaymentScheduleId),
+      principalAmount: input.principalAmount.toFixed(2),
+      tenureDays: input.tenureDays,
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// The approval chain — Branch Manager → Zone Manager → Head Office Credit
+// ---------------------------------------------------------------------------
+
+/** One decision an approver can take. Mirrors the backend enum exactly. */
+export type ApprovalDecision = "approved" | "rejected" | "returned_for_modification" | "held" | "released";
+
+export interface ApprovalStage {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  sequence: number;
+  loanStatus: LoanStatus;
+  requiredPermission: string;
+  requiresMandateBefore: boolean;
+  isActive: boolean;
+}
+
+export interface ApprovalDecisionRecord {
+  id: string;
+  stageCode: string;
+  stageName: string;
+  decision: ApprovalDecision;
+  decisionLabel: string;
+  fromStatus: LoanStatus;
+  toStatus: LoanStatus;
+  reason: string | null;
+  decidedBy?: { id: string; name: string };
+  decidedAt: string | null;
+}
+
+export interface LoanApprovalState {
+  loanId: string;
+  status: LoanStatus;
+  currentStage: ApprovalStage | null;
+  chain: ApprovalStage[];
+  isOwnApplication: boolean;
+  canDecide: boolean;
+  /**
+   * What this user may actually do right now.
+   *
+   * Computed by the API from the same rule that would refuse the write, so a
+   * button is never offered that the server would then reject — and never
+   * hidden from someone entitled to press it.
+   */
+  availableDecisions: (ApprovalDecision | "resubmit")[];
+  holdResumeStatus: LoanStatus | null;
+  decisions: ApprovalDecisionRecord[];
+}
+
+export async function getLoanApproval(loanId: string): Promise<LoanApprovalState> {
+  return apiData<LoanApprovalState>(`/api/v1/loans/${loanId}/approval`, { token: await token() });
+}
+
+export async function decideApprovalRequest(
+  loanId: string,
+  decision: ApprovalDecision,
+  reason?: string
+): Promise<LoanListItem> {
+  const wire = await apiData<LoanWire>(`/api/v1/loans/${loanId}/approval/decide`, {
+    method: "POST",
+    token: await token(),
+    body: { decision, ...(reason ? { reason } : {}) },
+  });
+  return toLoan(wire);
+}
+
+export async function resubmitLoanRequest(loanId: string, note?: string): Promise<LoanListItem> {
+  const wire = await apiData<LoanWire>(`/api/v1/loans/${loanId}/approval/resubmit`, {
+    method: "POST",
+    token: await token(),
+    body: note ? { note } : {},
+  });
+  return toLoan(wire);
+}
+
+// ---------------------------------------------------------------------------
+// Early settlement — "Close Loan Early" (client Decision 1, Option B)
+// ---------------------------------------------------------------------------
+
+/**
+ * What closing a loan today costs, and what the borrower is forgiven.
+ *
+ * Amounts stay as decimal strings: they are displayed and confirmed, never
+ * arithmetic-ed here. The server is the only place that decides the figure, and
+ * it re-quotes at settlement so the number shown is the number charged.
+ */
+export interface EarlySettlementQuote {
+  penalty: string;
+  principal: string;
+  interestEarned: string;
+  interestWaived: string;
+  advanceHeld: string;
+  payable: string;
+  cashRequired: string;
+  payableIfRunToTerm: string;
+  installmentsCancelled: number;
+}
+
+export async function getEarlySettlementQuote(loanId: string): Promise<EarlySettlementQuote> {
+  return apiData<EarlySettlementQuote>(`/api/v1/loans/${loanId}/early-settlement`, { token: await token() });
+}
+
+export async function settleLoanEarlyRequest(loanId: string, amount: string): Promise<LoanListItem> {
+  const wire = await apiData<LoanWire>(`/api/v1/loans/${loanId}/early-settlement`, {
+    method: "POST",
+    token: await token(),
+    body: { amount },
   });
   return toLoan(wire);
 }

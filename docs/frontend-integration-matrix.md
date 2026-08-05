@@ -8,7 +8,14 @@ that endpoint, so a page cannot be counted live because of a comment or an
 unused import. Every route was then rendered against a seeded API with a real
 super-admin session and checked for a 200 and an absence of error shells.
 
-**109 routes — 97 live, 4 carrying no data by design, 8 excluded.**
+**113 routes — 101 live, 4 carrying no data by design, 8 excluded.**
+
+> **Phase 1 (August 2026) added four routes**, all inside the existing Bank
+> section: `/treasury/periods`, `/treasury/reserve`, `/treasury/reconciliation`
+> and `/treasury/write-offs`. Each was rendered against a live seeded API across
+> four roles (Finance, Admin, Teller, Loan Officer) and driven through its full
+> workflow in a real browser — 22/22 interaction checks. See
+> `../../mikopofasta_api/docs/modules/accounting.md`.
 
 ## Excluded from this phase
 
@@ -110,7 +117,7 @@ screen reading `/branches` to populate a branch facet.
 | [/insurance/today-withdrawals](/insurance/today-withdrawals) | `lib/legacy/source.ts` | ⛔ Excluded (Agent/Insurance/VISA) |
 | [/loan-fee/deducted-income](/loan-fee/deducted-income) | `/penalties, /loan-fees/income` · `/branches, /regions, /zones` | ✅ Live |
 | [/loans](/loans) | `/loans, /loan-products` · `/repayment-schedules, /interest-formulas` | ✅ Live |
-| [/loans/[id]](/loans/[id]) | `/loans, /loan-products` · `/repayment-schedules, /interest-formulas` · `/users, /roles` | ✅ Live |
+| [/loans/[id]](/loans/[id]) | `/loans, /loan-products` · `/repayment-schedules, /interest-formulas` · `/users, /roles` · `/write-offs, /loans/{id}/recoveries, /bank-accounts` (only when the loan is written off or recovered) | ✅ Live |
 | [/loans/book](/loans/book) | `/loans, /loan-products` · `/repayment-schedules, /interest-formulas` | ✅ Live |
 | [/loans/disbursed](/loans/disbursed) | `/loans, /loan-products` · `/repayment-schedules, /interest-formulas` | ✅ Live |
 | [/loans/new](/loans/new) | `/customers` | ✅ Live |
@@ -147,6 +154,10 @@ screen reading `/branches` to populate a branch facet.
 | [/treasury](/treasury) | `/capital-contributions, /float-transfers, /shareholders` · `/ledger/*` | ✅ Live |
 | [/treasury/accounts](/treasury/accounts) | `/bank-accounts, /bank-transactions` · `/branches, /regions, /zones` | ✅ Live |
 | [/treasury/bank-accounts](/treasury/bank-accounts) | `/bank-accounts, /bank-transactions` | ✅ Live |
+| [/treasury/periods](/treasury/periods) | `/accounting/periods`, `/accounting/periods/{period}/preview` · `/reserve-setting` | ✅ Live |
+| [/treasury/reconciliation](/treasury/reconciliation) | `/cash-deposits`, `/cash-deposits/unbanked` · `/bank-accounts` | ✅ Live |
+| [/treasury/reserve](/treasury/reserve) | `/reserve/utilisations` · `/branches` | ✅ Live |
+| [/treasury/write-offs](/treasury/write-offs) | `/write-offs` | ✅ Live |
 | [/treasury/capital](/treasury/capital) | `/capital-contributions, /float-transfers, /shareholders` · `/ledger/*` | ✅ Live |
 | [/treasury/expenses](/treasury/expenses) | `/bank-accounts, /bank-transactions` · `/expense-requests, /expense-categories` | ✅ Live |
 | [/treasury/expenses/requests](/treasury/expenses/requests) | `/expense-requests, /expense-categories` · `/branches, /regions, /zones` | ✅ Live |

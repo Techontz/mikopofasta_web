@@ -9,7 +9,7 @@ import { z } from "zod";
 import { Pencil, Plus } from "lucide-react";
 import { SettingsDialog } from "@/components/settings/dialog";
 import { Button, Field, FieldGrid, IconButton, Select, TextInput } from "@/components/settings/form";
-import { ROLES, type Role } from "@/types/auth";
+import { ASSIGNABLE_ROLES, ROLES, type Role } from "@/types/auth";
 import { ROLE_LABELS } from "@/config/permissions";
 import { createUser, updateUser } from "@/features/admin/users/users-actions";
 import type { User } from "@/types/user";
@@ -137,7 +137,7 @@ export function UserFormDialog({ user, branches, zones, regions }: UserFormDialo
             value={role}
             onChange={(e) => setValue("role", e.target.value as Role, { shouldDirty: true })}
           >
-            {ROLES.map((r) => (
+            {ASSIGNABLE_ROLES.map((r) => (
               <option key={r} value={r}>
                 {ROLE_LABELS[r]}
               </option>

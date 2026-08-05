@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored MediaPipe runtime. Self-hosted so the face scanner never calls
+    // a CDN with a customer's face; it is generated Emscripten output and is
+    // not ours to lint or fix.
+    "public/mediapipe/**",
   ]),
 ]);
 

@@ -34,8 +34,40 @@ export const LoanSchema = z.object({
   frozenUntil: z.string().nullable(),
   createdBy: z.string().nullable(),
   deletedAt: z.string().nullable(),
+
+  /**
+   * Early settlement — client Decision 1, Option B.
+   *
+   * Always present, because they describe the loan itself: `earlySettledAt` is
+   * null and `interestWaived` is 0 on a loan that simply ran its course, which
+   * is what tells a settlement apart from an ordinary closure.
+   */
+  earlySettledAt: z.string().nullable(),
+  interestWaived: z.number().nonnegative(),
 });
 export type Loan = z.infer<typeof LoanSchema>;
+
+/**
+ * The settlement record, served whole.
+ *
+ * Every figure here is the backend's. `amountPaid` especially is not
+ * recoverable in the browser: the waiver reduced the balance before the money
+ * was taken, so subtracting outstanding from payable would give what was owed
+ * before forgiveness rather than what the customer actually handed over.
+ *
+ * `amountPaid` and `reference` are null when the waiver alone settled the loan
+ * — a balance made entirely of unearned interest takes no cash, so there is no
+ * payment to reference. The officer is recorded either way.
+ */
+export const EarlySettlementRecordSchema = z.object({
+  settledAt: z.string(),
+  interestWaived: z.number().nonnegative(),
+  amountPaid: z.number().nonnegative().nullable(),
+  reference: z.string().nullable(),
+  officerId: z.string().nullable(),
+  officerName: z.string().nullable(),
+});
+export type EarlySettlementRecord = z.infer<typeof EarlySettlementRecordSchema>;
 
 export const LoanStatusHistorySchema = z.object({
   id: z.string(),

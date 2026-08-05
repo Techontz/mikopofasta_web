@@ -37,6 +37,10 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     PERMISSIONS.BRANCHES_VIEW_ALL,
     PERMISSIONS.USERS_MANAGE,
     PERMISSIONS.ROLES_VIEW,
+    // D1: "Reserve transfers require Admin approval." Admin approves and does
+    // not propose — an approver who could also raise a request would be
+    // approving their own.
+    PERMISSIONS.RESERVE_APPROVE,
   ],
   finance: [
     PERMISSIONS.CUSTOMERS_VIEW,
@@ -54,6 +58,12 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     PERMISSIONS.PAYROLL_FINALIZE,
     PERMISSIONS.REPORTS_VIEW,
     PERMISSIONS.BRANCHES_VIEW_ALL,
+    // Finance closes the books, proposes uses of the Reserve, and takes bad
+    // debt off the book. It cannot approve its own reserve request (D1).
+    PERMISSIONS.ACCOUNTING_PERIOD_CLOSE,
+    PERMISSIONS.RESERVE_REQUEST,
+    PERMISSIONS.LOANS_WRITE_OFF,
+    PERMISSIONS.LOANS_RECOVER,
   ],
   branch_manager: [
     PERMISSIONS.CUSTOMERS_VIEW,
@@ -62,6 +72,9 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     PERMISSIONS.LOANS_VIEW,
     PERMISSIONS.LOANS_CREATE,
     PERMISSIONS.LOANS_APPROVE,
+    // Stage one of the approval chain: may clear, and may pause or return an
+    // incomplete file rather than having to reject it.
+    PERMISSIONS.LOANS_HOLD,
     PERMISSIONS.REPAYMENTS_VIEW,
     PERMISSIONS.REPORTS_VIEW,
   ],
@@ -73,11 +86,26 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     PERMISSIONS.REPORTS_VIEW,
   ],
   // Telco verification + credit review only — never approval, never creation (§14).
-  credit_officer: [PERMISSIONS.CUSTOMERS_VIEW, PERMISSIONS.LOANS_VIEW, PERMISSIONS.LOANS_CREDIT_REVIEW, PERMISSIONS.REPORTS_VIEW],
+  // The client's four decisions at the credit stage. Hold and return, not
+  // approve: clearing credit is still `loans.credit_review`.
+  credit_officer: [
+    PERMISSIONS.CUSTOMERS_VIEW,
+    PERMISSIONS.LOANS_VIEW,
+    PERMISSIONS.LOANS_CREDIT_REVIEW,
+    PERMISSIONS.LOANS_HOLD,
+    PERMISSIONS.REPORTS_VIEW,
+  ],
   hr: [PERMISSIONS.HR_VIEW, PERMISSIONS.HR_MANAGE, PERMISSIONS.PAYROLL_GENERATE, PERMISSIONS.REPORTS_VIEW],
+  /*
+   * Stage two of the approval chain. `loans.zone_approve` is the Zone Manager's
+   * alone — a Regional Manager oversees performance and is not in the chain the
+   * client specified.
+   */
   zone_manager: [
     PERMISSIONS.CUSTOMERS_VIEW,
     PERMISSIONS.LOANS_VIEW,
+    PERMISSIONS.LOANS_ZONE_APPROVE,
+    PERMISSIONS.LOANS_HOLD,
     PERMISSIONS.REPAYMENTS_VIEW,
     PERMISSIONS.REPORTS_VIEW,
     PERMISSIONS.BRANCHES_VIEW_ALL,
@@ -91,6 +119,74 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   ],
   // Cash payment entry only — no reconciliation, no confirmation (§14).
   teller: [PERMISSIONS.REPAYMENTS_VIEW, PERMISSIONS.REPAYMENTS_CASH_ENTRY],
+  /*
+   * The Head Office as an operational office: approves like a Branch Manager,
+   * sees the whole institution, oversees staff. No disbursement and no close —
+   * separation of duties does not stop applying because somebody is senior.
+   */
+  head_office_manager: [
+    PERMISSIONS.CUSTOMERS_VIEW,
+    PERMISSIONS.CUSTOMERS_MANAGE,
+    PERMISSIONS.CUSTOMERS_APPROVE,
+    PERMISSIONS.LOANS_VIEW,
+    PERMISSIONS.LOANS_CREATE,
+    PERMISSIONS.LOANS_APPROVE,
+    PERMISSIONS.LOANS_HOLD,
+    PERMISSIONS.LOANS_SETTLE_EARLY,
+    // Not LOANS_REVIEW_CROSS_BRANCH: §13/§14 make that an explicit per-user
+    // grant, never implied by seniority or by seeing every branch.
+    PERMISSIONS.REPAYMENTS_VIEW,
+    PERMISSIONS.LEDGER_VIEW,
+    PERMISSIONS.TREASURY_VIEW,
+    PERMISSIONS.HR_VIEW,
+    PERMISSIONS.REPORTS_VIEW,
+    PERMISSIONS.BRANCHES_VIEW_ALL,
+  ],
+
+  // The books, and nothing that decides who gets money.
+  accountant: [
+    PERMISSIONS.CUSTOMERS_VIEW,
+    PERMISSIONS.LOANS_VIEW,
+    PERMISSIONS.REPAYMENTS_VIEW,
+    PERMISSIONS.REPAYMENTS_MANAGE,
+    PERMISSIONS.REPAYMENTS_RECONCILE,
+    PERMISSIONS.LEDGER_VIEW,
+    PERMISSIONS.LEDGER_REVERSE_REQUEST,
+    PERMISSIONS.TREASURY_VIEW,
+    PERMISSIONS.ACCOUNTING_PERIOD_CLOSE,
+    PERMISSIONS.REPORTS_VIEW,
+  ],
+
+  // The counter. Never reconciles its own cash — that is the Accountant's.
+  cashier: [
+    PERMISSIONS.CUSTOMERS_VIEW,
+    PERMISSIONS.LOANS_VIEW,
+    PERMISSIONS.REPAYMENTS_VIEW,
+    PERMISSIONS.REPAYMENTS_CASH_ENTRY,
+    PERMISSIONS.TREASURY_VIEW,
+  ],
+
+  // Records what comes back; cannot forgive what does not.
+  recovery_officer: [
+    PERMISSIONS.CUSTOMERS_VIEW,
+    PERMISSIONS.LOANS_VIEW,
+    PERMISSIONS.REPAYMENTS_VIEW,
+    PERMISSIONS.REPAYMENTS_CASH_ENTRY,
+    PERMISSIONS.LOANS_RECOVER,
+    PERMISSIONS.REPORTS_VIEW,
+  ],
+
+  // Sees the book and decides nothing on it.
+  customer_care: [
+    PERMISSIONS.CUSTOMERS_VIEW,
+    PERMISSIONS.CUSTOMERS_MANAGE,
+    PERMISSIONS.LOANS_VIEW,
+    PERMISSIONS.REPAYMENTS_VIEW,
+  ],
+
+  // The automation. Deliberately empty — it needs an identity, not authority.
+  system: [],
+
   // Read-only, cross-branch, by design: an auditor can see everything
   // financial (ledger, treasury, HR, reports, audit trail) but holds no
   // manage/approve/finalize/reverse permission anywhere in the system.
@@ -128,9 +224,16 @@ export const PERMISSION_GROUPS: { label: string; permissions: Permission[] }[] =
       PERMISSIONS.LOANS_VIEW,
       PERMISSIONS.LOANS_CREATE,
       PERMISSIONS.LOANS_APPROVE,
+      PERMISSIONS.LOANS_ZONE_APPROVE,
+      PERMISSIONS.LOANS_HOLD,
+      PERMISSIONS.LOANS_SETTLE_EARLY,
       PERMISSIONS.LOANS_CREDIT_REVIEW,
       PERMISSIONS.LOANS_DISBURSE,
       PERMISSIONS.LOANS_REVIEW_CROSS_BRANCH,
+      // Bad debt sits with Loans because both are decisions about one loan and
+      // the screens that carry them are the loan screens.
+      PERMISSIONS.LOANS_WRITE_OFF,
+      PERMISSIONS.LOANS_RECOVER,
     ],
   },
   {
@@ -143,6 +246,17 @@ export const PERMISSION_GROUPS: { label: string; permissions: Permission[] }[] =
     ],
   },
   { label: "Ledger", permissions: [PERMISSIONS.LEDGER_VIEW, PERMISSIONS.LEDGER_REVERSE_REQUEST, PERMISSIONS.LEDGER_REVERSE_APPROVE] },
+  // Grouped apart from Treasury: the close and the Reserve are accounting acts
+  // on the books, and an administrator building a Finance role looks for them
+  // beside the ledger permissions. Mirrors PermissionName::group().
+  {
+    label: "Accounting & Reserve",
+    permissions: [
+      PERMISSIONS.ACCOUNTING_PERIOD_CLOSE,
+      PERMISSIONS.RESERVE_REQUEST,
+      PERMISSIONS.RESERVE_APPROVE,
+    ],
+  },
   { label: "Treasury", permissions: [PERMISSIONS.TREASURY_VIEW, PERMISSIONS.TREASURY_MANAGE] },
   { label: "HR & Payroll", permissions: [PERMISSIONS.HR_VIEW, PERMISSIONS.HR_MANAGE, PERMISSIONS.PAYROLL_GENERATE, PERMISSIONS.PAYROLL_FINALIZE] },
   { label: "Reports", permissions: [PERMISSIONS.REPORTS_VIEW] },
@@ -157,6 +271,9 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   [PERMISSIONS.LOANS_VIEW]: "View loans",
   [PERMISSIONS.LOANS_CREATE]: "Create loan applications",
   [PERMISSIONS.LOANS_APPROVE]: "Approve loans",
+  [PERMISSIONS.LOANS_ZONE_APPROVE]: "Approve loans at zone level",
+  [PERMISSIONS.LOANS_SETTLE_EARLY]: "Settle loans early (waives unearned interest)",
+  [PERMISSIONS.LOANS_HOLD]: "Hold or return loan applications",
   [PERMISSIONS.LOANS_CREDIT_REVIEW]: "Run credit/telco review",
   [PERMISSIONS.LOANS_DISBURSE]: "Execute disbursement",
   [PERMISSIONS.LOANS_REVIEW_CROSS_BRANCH]: "Review loans cross-branch",
@@ -164,6 +281,11 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   [PERMISSIONS.REPAYMENTS_MANAGE]: "Confirm/allocate repayments",
   [PERMISSIONS.REPAYMENTS_CASH_ENTRY]: "Record cash payments",
   [PERMISSIONS.REPAYMENTS_RECONCILE]: "Bank reconciliation",
+  [PERMISSIONS.ACCOUNTING_PERIOD_CLOSE]: "Close accounting period",
+  [PERMISSIONS.RESERVE_REQUEST]: "Request reserve utilisation",
+  [PERMISSIONS.RESERVE_APPROVE]: "Approve reserve utilisation",
+  [PERMISSIONS.LOANS_WRITE_OFF]: "Write off loans",
+  [PERMISSIONS.LOANS_RECOVER]: "Record loan recoveries",
   [PERMISSIONS.LEDGER_VIEW]: "View ledger",
   [PERMISSIONS.LEDGER_REVERSE_REQUEST]: "Request reversal",
   [PERMISSIONS.LEDGER_REVERSE_APPROVE]: "Approve reversal",
@@ -190,10 +312,18 @@ export const ROLE_DESCRIPTIONS: Record<Role, string> = {
   loan_officer: "Loan application and KYC capture — own branch, cannot approve own submissions.",
   credit_officer: "Telco verification and credit review — strictly branch-scoped.",
   hr: "Staff registration and payroll generation — finalization is Finance's job.",
-  zone_manager: "Branch performance oversight for one zone, plus commission override.",
+  zone_manager: "Zone-tier loan approval and branch performance oversight for one zone, plus commission override.",
   regional_manager: "Branch performance oversight for one region.",
   teller: "Cash payment entry only — own branch.",
   auditor: "Read-only, cross-branch access to ledger, treasury, HR, and the full audit trail.",
+  head_office_manager:
+    "Runs the Head Office as an operational centre: loan approval, staff oversight and institution-wide visibility.",
+  accountant: "Ledger, reconciliation and the accounting close — books only, no lending decisions.",
+  cashier: "Counter cash: receipts, deposits and the branch till.",
+  recovery_officer: "Chases arrears and defaults, and records what is recovered.",
+  customer_care: "Customer enquiries and record upkeep — sees the book, decides nothing on it.",
+  system:
+    "Automated processing only. Cannot log in and holds no permissions — it exists so the books can name who posted a scheduled entry.",
 };
 
 /**
@@ -246,4 +376,10 @@ export const ROLE_LABELS: Record<Role, string> = {
   regional_manager: "Regional Manager",
   teller: "Teller",
   auditor: "Auditor",
+  head_office_manager: "Head Office Manager",
+  accountant: "Accountant",
+  cashier: "Cashier",
+  recovery_officer: "Recovery Officer",
+  customer_care: "Customer Care",
+  system: "System",
 };

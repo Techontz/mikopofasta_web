@@ -6,6 +6,7 @@ import { FilePlus2, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/data-table/data-table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
+import { CustomerCell } from "@/components/customer-avatar";
 import { LoanStatusBadge } from "@/features/loans/loan-status-badge";
 import { LOAN_STATUS_LABELS } from "@/lib/domain/loan-status-machine";
 import { formatMoney } from "@/lib/domain/money";
@@ -34,7 +35,14 @@ export function LoansTable({ loans, canCreate }: { loans: LoanRow[]; canCreate: 
         </Link>
       ),
     },
-    { accessorKey: "customerName", header: ({ column }) => <DataTableColumnHeader column={column} title="Customer" /> },
+    {
+      accessorKey: "customerName",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Customer" />,
+      /* An avatar makes a loan book scannable by borrower — the same face and
+         tint the customer carries on every other screen. No photo on the loan
+         row, so initials; that is the ordinary case. */
+      cell: ({ row }) => <CustomerCell name={row.original.customerName} size="xs" />,
+    },
     { accessorKey: "branchName", header: "Branch" },
     { accessorKey: "productName", header: "Product" },
     {

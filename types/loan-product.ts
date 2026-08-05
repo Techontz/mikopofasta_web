@@ -1,11 +1,21 @@
 import { z } from "zod";
-import { ACTIVE_INACTIVE, INTEREST_FORMULA_CODES, PENALTY_TYPES } from "@/types/enums";
+import { ACTIVE_INACTIVE, PENALTY_TYPES } from "@/types/enums";
 
 export const InterestFormulaSchema = z.object({
   id: z.string(),
   name: z.string(),
-  code: z.enum(INTEREST_FORMULA_CODES),
+  /*
+   * A plain string, not an enum.
+   *
+   * The server's formula registry decides what can be priced, and adding a
+   * formula there is a row plus a class. A closed enum here would make the
+   * loan-product screens fail to parse the moment one was added — refusing to
+   * render a page because it did not recognise a NAME.
+   */
+  code: z.string(),
   description: z.string().nullable(),
+  /** Which formula a new product starts on — client Decision 2. */
+  isDefault: z.boolean().optional(),
   deletedAt: z.string().nullable(),
 });
 export type InterestFormula = z.infer<typeof InterestFormulaSchema>;

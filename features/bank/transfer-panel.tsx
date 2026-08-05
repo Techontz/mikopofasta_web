@@ -228,9 +228,37 @@ export function TransferPanel({
                 ))}
               </Select>
             </Field>
-            <Field label={destinationLabel} htmlFor="tf-to" required error={errors.toAccount?.message}>
-              <Select id="tf-to" invalid={!!errors.toAccount} {...register("toAccount")}>
-                <option value="">Select destination</option>
+            {/*
+              An empty destination list says so.
+
+              This dropdown is required, and it can legitimately come back with
+              nothing in it — the destinations are picked out of the active
+              accounts by what they are for, so an institution that has not
+              registered its float accounts yet has none to offer. Rendering an
+              empty required select gives the officer a form they cannot
+              complete and no clue why: it looks broken rather than unconfigured.
+              The message names the missing thing and where to add it.
+            */}
+            <Field
+              label={destinationLabel}
+              htmlFor="tf-to"
+              required
+              error={errors.toAccount?.message}
+              help={
+                destinations.length === 0
+                  ? "No destination account is registered yet — add one under Bank → Register Account."
+                  : undefined
+              }
+            >
+              <Select
+                id="tf-to"
+                invalid={!!errors.toAccount}
+                disabled={destinations.length === 0}
+                {...register("toAccount")}
+              >
+                <option value="">
+                  {destinations.length === 0 ? "No destination available" : "Select destination"}
+                </option>
                 {destinations.map((d) => (
                   <option key={d.value} value={d.value}>
                     {d.label}

@@ -3,11 +3,14 @@ import { z } from "zod";
 /**
  * The Bank module's shapes.
  *
- * These describe the screens the original system presents. Where the API does
- * not yet serve a shape, the screen runs on the placeholder state in
- * lib/mock-data/bank.ts — the types are declared here regardless so the UI is
- * written against a contract rather than against a fixture, and swapping the
- * fixture for a real endpoint later is a change of one module.
+ * These describe the screens the original system presents. Every shape here is
+ * now served: accounts, transactions and transfers through lib/api/bank.ts,
+ * expenses through features/bank/expense-actions.ts. The placeholder fixture
+ * they were originally written against has been deleted.
+ *
+ * Declaring the types separately from the client is what made that swap a
+ * change of one module — the UI was always written against this contract
+ * rather than against the fixture.
  *
  * Money is a `number` at this boundary, coerced once wherever it enters.
  */

@@ -30,7 +30,15 @@ export function RegionsTable({ regions, branches }: { regions: Region[]; branche
           <RegionFormDialog region={row.original} />
           <ConfirmDeleteDialog
             trigger={
-              <Button variant="ghost" size="icon-sm" className="text-destructive hover:text-destructive">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                /* Icon-only and destructive, so the name has to come from somewhere.
+                   Without this the button announces as just "button", and every row
+                   on the table announces identically. */
+                aria-label={`Delete region ${row.original.name}`}
+                className="text-destructive hover:text-destructive"
+              >
                 <Trash2 />
               </Button>
             }

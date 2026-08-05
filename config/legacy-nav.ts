@@ -15,10 +15,23 @@ import { CAPITAL_SECTIONS } from "@/config/capital-sections";
  * instruction. What a migration must preserve is where a thing lives and what
  * it does; reproducing a typo preserves neither.
  *
- * `href: null` marks an entry the old system has and this one does not serve.
- * It renders identically, keeps its place and its indentation, and is inert
- * rather than pointing at a page that does not exist — a dead link is worse
- * than an unlit one, and inventing the page would be inventing the module.
+ * EVERY ENTRY IN THIS FILE OPENS A PAGE. There are no `href: null` rows left.
+ *
+ * There used to be: entries the old system has and this one does not serve were
+ * kept in place with a null href, rendering as inert spans on the reasoning
+ * that a dead link is worse than an unlit one. Both are worse than not being
+ * there. An unlit row still occupies the menu, still reads as a feature, and
+ * still gets clicked — it just fails silently instead of loudly. The four that
+ * remained (Staff Leave, Allowance, Deduction, Loan category) have no endpoint
+ * at any layer and are documented where they were, in the HRM list below.
+ *
+ * A `href` on an EXPANDABLE row is a grouping key, not a destination — several
+ * of them ("/penalty", "/expenses", "/hq/transactions") have no page. That is
+ * fine: the sidebar renders an expandable row as a toggle button, never a link,
+ * and uses the value only to decide which section owns the current URL. The row
+ * is dropped entirely if permissions leave it with no visible entries, so it
+ * can never fall through to the plain-link branch and offer that key as a
+ * destination.
  */
 export interface LegacyNavChild {
   label: string;
@@ -110,6 +123,27 @@ export const LEGACY_MENU: LegacyNavItem[] = [
         permission: PERMISSIONS.TREASURY_VIEW,
       },
       { label: "Payroll", href: "/treasury/payroll", permission: PERMISSIONS.TREASURY_VIEW },
+
+      /*
+       * The four accounting screens — Decision Register D1.
+       *
+       * Added to the existing Bank group rather than given a group of their
+       * own: they are treasury work, and a second sidebar section would split
+       * "where the money is" from "what the books say about it".
+       *
+       * Gated more tightly than their neighbours, and deliberately not on
+       * treasury.view — these act on the books. Reconciliation is the one
+       * exception, because a teller must reach it to bank the day's cash and
+       * holds no ledger grant.
+       */
+      {
+        label: "Bank Reconciliation",
+        href: "/treasury/reconciliation",
+        permission: PERMISSIONS.REPAYMENTS_VIEW,
+      },
+      { label: "Accounting Periods", href: "/treasury/periods", permission: PERMISSIONS.LEDGER_VIEW },
+      { label: "Reserve Fund", href: "/treasury/reserve", permission: PERMISSIONS.LEDGER_VIEW },
+      { label: "Write-offs & Recovery", href: "/treasury/write-offs", permission: PERMISSIONS.LOANS_VIEW },
     ],
   },
   {
@@ -348,9 +382,25 @@ export const LEGACY_HRM_MENU: LegacyNavItem[] = [
     expandable: false,
     permission: PERMISSIONS.HR_VIEW,
   },
-  { label: "Staff Leave", href: null, icon: List, expandable: false },
-  { label: "Staff Allowance", href: null, icon: Folder, expandable: true },
-  { label: "Staff Deduction", href: null, icon: List, expandable: false },
+  /*
+   * Staff Leave, Staff Allowance, Staff Deduction and Staff Loan category are
+   * NOT listed here, and the omission is deliberate.
+   *
+   * The legacy HRM menu has all four. They were carried over as rows with
+   * `href: null`, which render as inert spans — menu items that sit in the list
+   * looking like every other one and do nothing when clicked. That is a dead
+   * menu item, and there is no version of it that is honest: it either reads as
+   * broken or as "not for you", and neither is true. What is true is that the
+   * feature does not exist yet.
+   *
+   * And it does not exist at any layer. A search of every route file in the API
+   * for leave, allowance, deduction and loan-category matches nothing; Allowance
+   * and Deduction exist as Eloquent models that feed PayrollLine, with no
+   * controller, no route and no resource. There is no endpoint to point a page
+   * at, so there is no page to link to.
+   *
+   * Restore these four rows — with real hrefs — on the day those endpoints ship.
+   */
   { label: "Salary Sheet", href: "/hr/payroll", icon: List, expandable: false, permission: PERMISSIONS.HR_VIEW },
   {
     label: "Salary Advanced",
@@ -366,7 +416,6 @@ export const LEGACY_HRM_MENU: LegacyNavItem[] = [
     expandable: false,
     permission: PERMISSIONS.HR_VIEW,
   },
-  { label: "Staff Loan category", href: null, icon: Settings, expandable: false },
   {
     label: "Staff salary advance category",
     href: "/salary-advance/categories",

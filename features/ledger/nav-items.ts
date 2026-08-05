@@ -29,6 +29,24 @@ const TREASURY: { href: string; label: string; permission: (typeof PERMISSIONS)[
   { href: "/treasury/expenses/requests", label: "Request Expenses", permission: PERMISSIONS.TREASURY_VIEW },
   { href: "/treasury/payroll", label: "Payroll", permission: PERMISSIONS.TREASURY_VIEW },
   { href: "/treasury/capital", label: "Capital & Dividends", permission: PERMISSIONS.TREASURY_VIEW },
+
+  /*
+   * The four accounting screens — Decision Register D1.
+   *
+   * Gated on `ledger.view` rather than `treasury.view`, unlike everything above
+   * them. These read and act on the books themselves: the close recognises
+   * profit, the reserve is appropriated from it, reconciliation posts a
+   * transfer, and the write-off register reports an expense. A role that can
+   * see bank balances is not automatically a role that should see the close.
+   *
+   * Reconciliation is the exception among the four, because a teller must reach
+   * it to bank the day's cash and a teller holds no ledger grant — so it takes
+   * the repayments grant its own workflow uses.
+   */
+  { href: "/treasury/reconciliation", label: "Bank Reconciliation", permission: PERMISSIONS.REPAYMENTS_VIEW },
+  { href: "/treasury/periods", label: "Accounting Periods", permission: PERMISSIONS.LEDGER_VIEW },
+  { href: "/treasury/reserve", label: "Reserve Fund", permission: PERMISSIONS.LEDGER_VIEW },
+  { href: "/treasury/write-offs", label: "Write-offs & Recovery", permission: PERMISSIONS.LOANS_VIEW },
 ];
 
 /*
@@ -110,11 +128,23 @@ const LOAN: SectionNavItem[] = [
 const CUSTOMER: SectionNavItem[] = [
   { href: "/customers/overview", label: "Overview" },
   /*
-   * The wizard, not the retired design pass at /customers/new — that screen was
-   * a rendering of the legacy three-step form and saved nothing, while this one
-   * actually registers a customer through the API.
+   * The registration wizard, which now lives at /customers/new.
+   *
+   * It used to sit at /customers/new/register, one segment deeper, because
+   * /customers/new was occupied by a retired design-only rendering of the
+   * legacy form. That screen was deleted and this one was never moved up, so
+   * two of the three places that link to registration — the sidebar and the
+   * dashboard's quick actions — kept pointing at /customers/new and got Next's
+   * 404. Not because nothing answered there, which would at least have been
+   * obvious, but because /customers/[id] answered: the router read "new" as a
+   * customer id, the API found no such customer, and the page called
+   * notFound().
+   *
+   * Moving the wizard here fixes both links and closes the trap for good — a
+   * static segment wins over a dynamic one, so /customers/new can never again
+   * be read as somebody's id.
    */
-  { href: "/customers/new/register", label: "Register Customer" },
+  { href: "/customers/new", label: "Register Customer" },
   { href: "/customers", label: "All Customer" },
   { href: "/customers/profile", label: "Customer Profile" },
 ];

@@ -2,10 +2,11 @@
 
 import * as React from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Eye, Pencil, Trash2, UserCheck, UserPlus, UserX, Users } from "lucide-react";
+import { Eye, UserCheck, UserPlus, UserX, Users } from "lucide-react";
 import { Filter, FilterBar, SettingsCard, StatCard, StatusBadge } from "@/components/settings";
 import { SettingsTable } from "@/components/settings/table";
 import { IconButton, Select } from "@/components/settings/form";
+import { CustomerCell } from "@/components/customer-avatar";
 
 /**
  * Customer → All Customer.
@@ -26,6 +27,17 @@ export interface CustomerListRow {
   gender: string | null;
   phone: string | null;
   branch: string;
+  /** Signed URL to the KYC capture, or null. */
+  photoUrl: string | null;
+  /** Searchable identifiers — not columns, but matched by the search box. */
+  email: string | null;
+  nationalId: string | null;
+  tin: string | null;
+  passport: string | null;
+  accountNumber: string | null;
+  walletNumber: string | null;
+  businessName: string | null;
+  occupation: string | null;
   /** Our vocabulary — active / suspended / frozen. */
   status: string;
   createdAt: string;
@@ -113,12 +125,11 @@ export function AllCustomersPanel({
       accessorKey: "name",
       header: "Customer",
       cell: ({ row }) => (
-        <div className="min-w-0">
-          <p className="whitespace-nowrap font-medium text-[var(--st-ink)]">{row.original.name}</p>
-          <p className="font-tabular mt-0.5 text-[12px] text-[var(--st-ink-faint)]">
-            {row.original.customerId}
-          </p>
-        </div>
+        <CustomerCell
+          name={row.original.name}
+          photoUrl={row.original.photoUrl}
+          secondary={<span className="font-tabular">{row.original.customerId}</span>}
+        />
       ),
     },
     {
@@ -156,11 +167,26 @@ export function AllCustomersPanel({
     {
       id: "actions",
       header: () => <span className="block text-right">Action</span>,
-      cell: () => (
+      /*
+       * One action, and it works.
+       *
+       * This column used to carry View, Edit and Delete, all three permanently
+       * disabled. Edit and Delete are gone rather than wired because the API has
+       * neither: there is no customer update endpoint and no customer delete
+       * endpoint, and there should not be — a microfinance customer with a loan
+       * history is never deleted, they are frozen or suspended, which is a
+       * reason-captured, permission-gated action that belongs on the record
+       * itself (see customer-header.tsx), not behind an unconfirmed icon in a
+       * list row. View is a real link to that record, where editing and every
+       * status change already live.
+       */
+      cell: ({ row }) => (
         <div className="flex justify-end gap-1">
-          <IconButton icon={Eye} label="View customer" disabled />
-          <IconButton icon={Pencil} label="Edit customer" disabled />
-          <IconButton icon={Trash2} label="Delete customer" tone="danger" disabled />
+          <IconButton
+            icon={Eye}
+            label={`View ${row.original.name}`}
+            href={`/customers/${row.original.id}`}
+          />
         </div>
       ),
     },
@@ -222,8 +248,21 @@ export function AllCustomersPanel({
           <SettingsTable
             columns={columns}
             data={filtered}
-            searchFields={["name", "customerId", "phone", "branch"]}
-            searchPlaceholder="Search name, ID or phone…"
+            searchFields={[
+              "name",
+              "customerId",
+              "phone",
+              "branch",
+              "email",
+              "nationalId",
+              "tin",
+              "passport",
+              "accountNumber",
+              "walletNumber",
+              "businessName",
+              "occupation",
+            ]}
+            searchPlaceholder="Search name, ID, phone, email, TIN, account…"
             emptyState={{
               icon: Users,
               title: active ? "No customers match these filters" : "No records to show",

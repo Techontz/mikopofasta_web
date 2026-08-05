@@ -8,7 +8,9 @@ import {
   getCustomer,
   getCustomerCategories,
   getCustomerDocuments,
+  getCustomerFreezes,
   getCustomerNotes,
+  getFaceScans,
   getGuarantors,
   getKycStatus,
   getNextOfKin,
@@ -33,6 +35,10 @@ import { GuarantorsPanel } from "@/features/customers/profile/guarantors-panel";
 import { NextOfKinPanel } from "@/features/customers/profile/next-of-kin-panel";
 import { GroupPanel } from "@/features/customers/profile/group-panel";
 import { AuditTrailPanel } from "@/features/customers/profile/audit-trail-panel";
+import { ProfileSections } from "@/features/customers/profile/profile-sections";
+import { FaceVerificationPanel } from "@/features/customers/profile/face-verification-panel";
+import { getRegistrationLookups } from "@/lib/api/master-data";
+import { getUsers } from "@/lib/api/users";
 
 export default async function CustomerProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -62,6 +68,19 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
     getBranches(),
   ]);
 
+  /* The biometric record. Fails soft to an empty history: a customer
+     registered before the scanner existed genuinely has none, and the panel
+     says so rather than the page falling over. */
+  const faceScans = await getFaceScans(id).catch(() => []);
+
+  /* The master-data lists and the staff book, for the editable sections'
+     dropdowns. Both fail soft: an unreachable lookup should leave one select
+     empty, not take the whole profile down. */
+  const [lookups, users] = await Promise.all([
+    getRegistrationLookups(),
+    getUsers().catch(() => ({ users: [] })),
+  ]);
+
   // The address chain is resolved one level at a time, each filtered by the
   // level above, rather than pulling every street in the country to name one.
   const [regions, districts, wards, streets] = await Promise.all([
@@ -79,16 +98,14 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
   const street = streets.find((s) => s.id === customer.streetId);
 
   /*
-   * There is no endpoint that lists account freezes — freeze and unfreeze are
-   * POSTs and nothing reads the history back. So the timeline is built without
-   * them, rather than from a fixture that would show one customer's seeded
-   * freeze against every other customer's real record.
+   * The freeze history, which the timeline reads for "frozen by whom, when and
+   * why". This was hard-coded to an empty array because nothing could read
+   * `account_freezes` back; there is an endpoint now.
    *
-   * The freeze STATE is not lost: `customer.status` carries it, and the header
-   * shows it. What is missing is when it happened and who did it, and an empty
-   * array says that honestly where invented rows would not.
+   * Fails soft: a profile should not fall over because one panel's history is
+   * unavailable, and an empty list renders honestly as no freezes on record.
    */
-  const freezes: never[] = [];
+  const freezes = await getCustomerFreezes(id).catch(() => []);
   /*
    * This record's own history, from the audit trail.
    *
@@ -119,6 +136,7 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
   const membership = groupWithMember?.members?.find((m) => m.customerId === customer.id);
 
   const timeline = buildCustomerTimeline(customer, documents, notes, freezes, auditLogs);
+  const staffNames = Object.fromEntries(users.users.map((u) => [u.id, u.name]));
 
   return (
     <div className="space-y-4">
@@ -134,7 +152,9 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
       <Tabs defaultValue="overview">
         <TabsList className="max-w-full justify-start overflow-x-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="kyc">KYC</TabsTrigger>
+          <TabsTrigger value="face">Face KYC</TabsTrigger>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
           <TabsTrigger value="documents">Documents ({documents.length})</TabsTrigger>
           <TabsTrigger value="notes">Notes ({notes.length})</TabsTrigger>
@@ -143,6 +163,21 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
           <TabsTrigger value="group">Group</TabsTrigger>
           <TabsTrigger value="audit">Audit Trail</TabsTrigger>
         </TabsList>
+
+        {/*
+          Every registration field, editable in place. Each section saves on
+          its own and revalidates the pages that read the customer book, so an
+          edit shows up in the list, the pickers and search without a reload.
+        */}
+        <TabsContent value="details">
+          <ProfileSections
+            customer={customer}
+            lookups={lookups}
+            branches={branches.map((b) => ({ id: b.id, name: b.name }))}
+            employees={users.users.map((u) => ({ id: u.id, name: u.name }))}
+            canEdit={canManage}
+          />
+        </TabsContent>
 
         <TabsContent value="overview">
           <Card>
@@ -162,10 +197,21 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
           </Card>
         </TabsContent>
 
+        <TabsContent value="face">
+          <FaceVerificationPanel
+            customerId={customer.id}
+            customerNumber={customer.customerNumber}
+            scans={faceScans}
+            canManage={canManage}
+          />
+        </TabsContent>
+
         <TabsContent value="timeline">
           <Card>
             <CardContent className="pt-6">
-              <TimelinePanel events={timeline} />
+              {/* The staff book, so an event can name who did it rather than
+                  carrying an id nobody can read. */}
+              <TimelinePanel events={timeline} staff={staffNames} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -173,7 +219,13 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
         <TabsContent value="documents">
           <Card>
             <CardContent className="pt-6">
-              <DocumentsPanel customerId={customer.id} documents={documents} missingDocuments={kyc.missingDocuments} canManage={canManage} />
+              <DocumentsPanel
+                customerId={customer.id}
+                documents={documents}
+                documentTypes={lookups["document-types"]}
+                missingDocuments={kyc.missingDocuments}
+                canManage={canManage}
+              />
             </CardContent>
           </Card>
         </TabsContent>

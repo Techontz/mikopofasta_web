@@ -13,9 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { formatMoney } from "@/lib/domain/money";
-import { generateLoanSchedule } from "@/lib/domain/loan-schedule";
 import { effectiveMaxAmount } from "@/lib/domain/loan-eligibility";
-import { applyForLoan, checkLoanEligibility } from "@/features/loans/actions";
+import { applyForLoan, checkLoanEligibility, previewLoanSchedule } from "@/features/loans/actions";
+import type { SchedulePreview } from "@/lib/api/loans";
 import type { EligibilityViolation } from "@/lib/api/loans";
 import type { LoanProductWithConfig } from "@/lib/api/loans";
 import type { CustomerListItem } from "@/lib/api/customers";
@@ -120,31 +120,62 @@ export function LoanApplicationForm({ customers, products, schedules, formulas, 
   }, [complete, customerId, productId, scheduleId, principalNumber, tenureNumber]);
 
   /*
-   * The preview is computed locally because the API has no preview endpoint —
-   * a schedule only exists once a manager approves. lib/domain/loan-schedule.ts
-   * mirrors the backend generator, but the two allocate rounding remainders
-   * differently, so individual installments can differ by a cent or two from
-   * the schedule that is finally generated.
+   * The preview comes from the ENGINE, not from the browser.
+   *
+   * It used to be computed here, from a TypeScript copy of the interest
+   * formulas whose own comment admitted the two "allocate rounding remainders
+   * differently, so individual installments can differ by a cent or two". That
+   * copy knew three formulas; the engine now implements four, and the fourth is
+   * the default for new products — so a locally computed preview would have
+   * shown an officer a plan priced by arithmetic the loan would never use.
+   *
+   * One implementation, server-side. The figures shown to a customer are the
+   * figures they will owe.
    */
-  const preview = React.useMemo(() => {
-    if (!product || !schedule || !principalNumber || !tenureNumber || violations.length > 0) return [];
-    const formula = formulas.find((f) => f.id === product.interestFormulaId);
-    if (!formula) return [];
-    return generateLoanSchedule({
-      loanId: "preview",
-      principalAmount: principalNumber,
-      interestRate: product.interestRate,
-      tenureDays: tenureNumber,
-      frequencyDays: schedule.frequencyDays,
-      interestFormulaCode: formula.code,
-      startDate: new Date(),
-    });
-  }, [product, schedule, principalNumber, tenureNumber, formulas, violations]);
+  /*
+   * The preview is keyed by the terms it was priced for.
+   *
+   * Without the key, changing the amount would leave the OLD plan on screen
+   * until the new one arrived — an officer reading figures for a loan they are
+   * no longer applying for. Comparing the key is also what lets the effect
+   * avoid clearing state synchronously, which cascades renders.
+   */
+  const previewKey =
+    product && schedule && principalNumber && tenureNumber && violations.length === 0
+      ? `${productId}|${scheduleId}|${principalNumber}|${tenureNumber}`
+      : null;
 
-  const totals = preview.reduce(
-    (acc, i) => ({ principal: acc.principal + i.principalDue, interest: acc.interest + i.interestDue }),
-    { principal: 0, interest: 0 }
-  );
+  const [priced, setPriced] = React.useState<{ key: string; data: SchedulePreview } | null>(null);
+
+  React.useEffect(() => {
+    if (previewKey === null) return;
+
+    let cancelled = false;
+
+    // Debounced for the same reason the eligibility check is: the amount and
+    // tenure fields fire on every keystroke.
+    const timer = setTimeout(async () => {
+      const result = await previewLoanSchedule({
+        loanProductId: productId,
+        repaymentScheduleId: scheduleId,
+        principalAmount: principalNumber,
+        tenureDays: tenureNumber,
+      });
+
+      if (cancelled) return;
+
+      setPriced(result.ok && result.preview ? { key: previewKey, data: result.preview } : null);
+    }, 400);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [previewKey, productId, scheduleId, principalNumber, tenureNumber]);
+
+  const preview = priced?.key === previewKey ? priced.data : null;
+  const previewing = previewKey !== null && preview === null;
+  const installments = preview?.installments ?? [];
 
   const canSubmit = complete && violations.length === 0 && !checking;
 
@@ -316,14 +347,22 @@ export function LoanApplicationForm({ customers, products, schedules, formulas, 
           <CardTitle className="text-base">Repayment Schedule Preview</CardTitle>
         </CardHeader>
         <CardContent>
-          {preview.length === 0 ? (
-            <EmptyState title="Nothing to preview yet" description="Pick a product, schedule, amount, and tenure to see the installment plan." />
+          {installments.length === 0 ? (
+            <EmptyState
+              title={previewing ? "Working out the plan…" : "Nothing to preview yet"}
+              description={
+                previewing
+                  ? "Pricing this loan against the product's formula."
+                  : "Pick a product, schedule, amount, and tenure to see the installment plan."
+              }
+            />
           ) : (
             <div className="space-y-3">
-              <div className="grid gap-3 sm:grid-cols-3">
-                <Fact label="Installments" value={String(preview.length)} />
-                <Fact label="Total interest" value={formatMoney(totals.interest)} />
-                <Fact label="Total repayable" value={formatMoney(totals.principal + totals.interest)} />
+              <div className="grid gap-3 sm:grid-cols-4">
+                <Fact label="Installments" value={String(preview?.installmentCount ?? installments.length)} />
+                <Fact label="Formula" value={preview?.formulaName ?? "—"} />
+                <Fact label="Total interest" value={formatMoney(Number(preview?.totalInterest ?? 0))} />
+                <Fact label="Total repayable" value={formatMoney(Number(preview?.totalPayable ?? 0))} />
               </div>
               <div className="max-h-72 overflow-auto rounded-lg border">
                 <Table>
@@ -337,13 +376,13 @@ export function LoanApplicationForm({ customers, products, schedules, formulas, 
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {preview.map((i) => (
+                    {installments.map((i) => (
                       <TableRow key={i.installmentNumber}>
                         <TableCell>{i.installmentNumber}</TableCell>
                         <TableCell>{i.dueDate}</TableCell>
-                        <TableCell className="font-tabular">{formatMoney(i.principalDue)}</TableCell>
-                        <TableCell className="font-tabular">{formatMoney(i.interestDue)}</TableCell>
-                        <TableCell className="font-tabular">{formatMoney(i.principalDue + i.interestDue)}</TableCell>
+                        <TableCell className="font-tabular">{formatMoney(Number(i.principalDue))}</TableCell>
+                        <TableCell className="font-tabular">{formatMoney(Number(i.interestDue))}</TableCell>
+                        <TableCell className="font-tabular">{formatMoney(Number(i.totalDue))}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

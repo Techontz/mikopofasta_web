@@ -1,4 +1,4 @@
-import { Banknote, History, ShieldCheck, Signal, Workflow } from "lucide-react";
+import { Banknote, CheckCheck, History, ShieldCheck, Signal, Workflow } from "lucide-react";
 import { EmptyState } from "@/components/feedback/empty-state";
 import type { LoanTimelineEvent } from "@/lib/domain/loan-timeline";
 
@@ -8,6 +8,7 @@ const ICONS: Record<LoanTimelineEvent["kind"], typeof History> = {
   telco: Signal,
   disbursement: Banknote,
   decision: History,
+  settlement: CheckCheck,
 };
 
 export function LoanTimelinePanel({ events, actorNames }: { events: LoanTimelineEvent[]; actorNames: Record<string, string> }) {

@@ -6,7 +6,26 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { WizardValues } from "@/features/customers/registration-wizard/wizard-schema";
 
-export function ContactDetailsStep() {
+/**
+ * Phone and bank details, which now render on different steps.
+ *
+ * The legacy form puts the phone number with the basic information and the
+ * bank block on its own step beside the passport photo. Rather than split this
+ * into two components — duplicating the RHF wiring for a shared `bankDetails`
+ * object — the same component renders either half.
+ *
+ * Neither flag renders both, and no flag renders both: the default is unchanged
+ * for anything still calling this without props.
+ */
+export function ContactDetailsStep({
+  hideBank,
+  bankOnly,
+}: {
+  /** Phone only — the Basic Information step. */
+  hideBank?: boolean;
+  /** Bank block only — the Passport & Bank step. */
+  bankOnly?: boolean;
+} = {}) {
   const {
     register,
     setValue,
@@ -19,13 +38,15 @@ export function ContactDetailsStep() {
 
   return (
     <div className="space-y-5">
-      <div className="space-y-1.5">
-        <Label htmlFor="phone">Phone Number</Label>
-        <Input id="phone" placeholder="0754000000" {...register("phone")} />
-        {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
-      </div>
+      {!bankOnly && (
+        <div className="space-y-1.5">
+          <Label htmlFor="phone">Phone Number</Label>
+          <Input id="phone" placeholder="0754000000" {...register("phone")} />
+          {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
+        </div>
+      )}
 
-      <div className="space-y-3 rounded-lg border p-3">
+      <div className={`space-y-3 rounded-lg border p-3 ${hideBank ? "hidden" : ""}`}>
         <div className="flex items-center gap-2">
           <Checkbox
             id="has-bank"

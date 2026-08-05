@@ -3,30 +3,50 @@
 import * as React from "react";
 import { useTransition } from "react";
 import { toast } from "sonner";
-import { BadgeCheck, Ban, CheckCircle2, Loader2, RefreshCw, Send, ShieldCheck, ThumbsDown, ThumbsUp, XCircle } from "lucide-react";
+import {
+  BadgeCheck,
+  Ban,
+  CheckCircle2,
+  Loader2,
+  PauseCircle,
+  PlayCircle,
+  RefreshCw,
+  Send,
+  ShieldCheck,
+  ThumbsDown,
+  ThumbsUp,
+  Undo2,
+  XCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ReasonDialog } from "@/features/customers/profile/reason-dialog";
+import { ConfirmDialog } from "@/components/settings/dialog";
+import { formatMoney } from "@/lib/domain/money";
 import {
   cancelLoan,
   closeLoan,
-  decideLoanApproval,
+  decideApproval,
   prepareDisbursement,
+  resubmitLoan,
   retryDisbursement,
   retryMandate,
   runTelcoVerification,
   settleDisbursement,
+  settleLoanEarly,
   verifyMandateOtp,
 } from "@/features/loans/actions";
 import { DISBURSEMENT_CHANNELS, type DisbursementChannel, type LoanStatus } from "@/types/enums";
 import type { ActionResult } from "@/lib/domain/action-result";
+import type { ApprovalDecision, EarlySettlementQuote, LoanApprovalState } from "@/lib/api/loans";
 
 export interface LoanPermissions {
   canApprove: boolean;
   canCreditReview: boolean;
   canDisburse: boolean;
+  canSettleEarly: boolean;
   isOwnApplication: boolean;
 }
 
@@ -35,15 +55,30 @@ export function LoanActionsPanel({
   status,
   outstanding,
   permissions,
+  approval,
+  settlement,
 }: {
   loanId: string;
   status: LoanStatus;
   outstanding: number;
   permissions: LoanPermissions;
+  /**
+   * Where the loan sits in the approval chain, and what this user may do.
+   *
+   * Optional so the panel still renders on pages that do not fetch it — a
+   * loan past origination has no approval state worth asking for.
+   */
+  approval?: LoanApprovalState | null;
+  /**
+   * What settling today would cost. Absent for a loan that cannot be settled,
+   * which is why the button is gated on it rather than on the status alone.
+   */
+  settlement?: EarlySettlementQuote | null;
 }) {
   const [pending, startTransition] = useTransition();
   const [otp, setOtp] = React.useState("");
   const [channel, setChannel] = React.useState<DisbursementChannel>("vodacom");
+  const [settleOpen, setSettleOpen] = React.useState(false);
 
   function run(action: () => Promise<ActionResult>) {
     startTransition(async () => {
@@ -55,35 +90,133 @@ export function LoanActionsPanel({
 
   const actions: React.ReactNode[] = [];
 
-  if (status === "pending_manager_approval") {
-    if (!permissions.canApprove) {
-      actions.push(<Note key="no-approve">Awaiting a Branch Manager to review this application.</Note>);
-    } else if (permissions.isOwnApplication) {
+  /*
+   * The approval chain — Branch Manager → Zone Manager → Head Office Credit.
+   *
+   * Which decisions appear is the API's answer, not a rule re-derived here:
+   * `availableDecisions` comes from the same check that would refuse the write,
+   * so a button is never offered that the server would reject, and never hidden
+   * from someone entitled to press it.
+   */
+  if (approval) {
+    const can = (decision: ApprovalDecision | "resubmit") => approval.availableDecisions.includes(decision);
+
+    if (approval.currentStage) {
+      const position = approval.chain.findIndex((s) => s.code === approval.currentStage?.code) + 1;
+
       actions.push(
-        <Note key="sod" tone="warn">
-          You submitted this application, so you can&apos;t approve it — separation of duties requires a different approver.
+        <Note key="stage">
+          Stage {position} of {approval.chain.length} — {approval.currentStage.name}.
         </Note>
       );
-    } else {
+    }
+
+    if (approval.currentStage && !approval.canDecide) {
       actions.push(
-        <div key="approve" className="flex flex-wrap gap-2">
-          <Button size="sm" disabled={pending} onClick={() => run(() => decideLoanApproval(loanId, "approve"))}>
-            <ThumbsUp className="size-4" />
-            Approve
+        permissions.isOwnApplication ? (
+          <Note key="sod" tone="warn">
+            You submitted this application, so you can&apos;t decide it — separation of duties requires a different
+            approver at every stage.
+          </Note>
+        ) : (
+          <Note key="no-approve">Awaiting the {approval.currentStage.name} to review this application.</Note>
+        )
+      );
+    }
+
+    /*
+     * At the credit stage, clearing and declining are the telco verification
+     * buttons below — that decision is a CHECK, and offering a bare "Approve"
+     * beside it would let a Credit Officer clear the stage without running the
+     * verification the stage exists for. Return and Hold still apply.
+     *
+     * The API permits either path; this is the UI declining to offer the one
+     * that skips the check.
+     */
+    const clearedByVerification = status === "pending_credit_review";
+
+    if ((can("approved") && !clearedByVerification) || (can("rejected") && !clearedByVerification) || can("held")) {
+      actions.push(
+        <div key="decide" className="flex flex-wrap gap-2">
+          {can("approved") && !clearedByVerification && (
+            <Button size="sm" disabled={pending} onClick={() => run(() => decideApproval(loanId, "approved"))}>
+              <ThumbsUp className="size-4" />
+              Approve
+            </Button>
+          )}
+          {can("rejected") && !clearedByVerification && (
+            <ReasonDialog
+              trigger={
+                <Button size="sm" variant="outline" className="text-destructive hover:text-destructive">
+                  <ThumbsDown className="size-4" />
+                  Reject
+                </Button>
+              }
+              title="Reject this loan application?"
+              description="The applicant will be notified and the loan closed as rejected. This cannot be undone."
+              confirmLabel="Reject Loan"
+              destructive
+              onConfirm={(reason) => decideApproval(loanId, "rejected", reason)}
+            />
+          )}
+          {can("returned_for_modification") && (
+            <ReasonDialog
+              trigger={
+                <Button size="sm" variant="outline">
+                  <Undo2 className="size-4" />
+                  Return for Modification
+                </Button>
+              }
+              title="Return this application to the officer?"
+              description="The officer can correct it and resubmit. Any schedule generated so far is discarded, and the application re-enters the chain from the first stage."
+              confirmLabel="Return Application"
+              onConfirm={(reason) => decideApproval(loanId, "returned_for_modification", reason)}
+            />
+          )}
+          {can("held") && (
+            <ReasonDialog
+              trigger={
+                <Button size="sm" variant="outline">
+                  <PauseCircle className="size-4" />
+                  Hold
+                </Button>
+              }
+              title="Put this application on hold?"
+              description="Nothing changes except that the decision pauses. Releasing it later returns it to this exact stage."
+              confirmLabel="Hold Application"
+              onConfirm={(reason) => decideApproval(loanId, "held", reason)}
+            />
+          )}
+        </div>
+      );
+    }
+
+    if (can("released")) {
+      actions.push(
+        <div key="release" className="space-y-2">
+          <Note tone="warn">
+            On hold at the {approval.decisions.at(-1)?.stageName ?? "current"} stage
+            {approval.decisions.at(-1)?.reason ? ` — ${approval.decisions.at(-1)?.reason}` : ""}.
+          </Note>
+          <Button size="sm" disabled={pending} onClick={() => run(() => decideApproval(loanId, "released"))}>
+            <PlayCircle className="size-4" />
+            Release from Hold
           </Button>
-          <ReasonDialog
-            trigger={
-              <Button size="sm" variant="outline" className="text-destructive hover:text-destructive">
-                <ThumbsDown className="size-4" />
-                Reject
-              </Button>
-            }
-            title="Reject this loan application?"
-            description="The applicant will be notified and the loan closed as rejected."
-            confirmLabel="Reject Loan"
-            destructive
-            onConfirm={(reason) => decideLoanApproval(loanId, "reject", reason)}
-          />
+        </div>
+      );
+    }
+
+    if (can("resubmit")) {
+      actions.push(
+        <div key="resubmit" className="space-y-2">
+          <Note tone="warn">
+            Returned for modification
+            {approval.decisions.at(-1)?.reason ? ` — ${approval.decisions.at(-1)?.reason}` : ""}.
+          </Note>
+          <Button size="sm" disabled={pending} onClick={() => run(() => resubmitLoan(loanId))}>
+            <Send className="size-4" />
+            Resubmit for Approval
+          </Button>
         </div>
       );
     }
@@ -227,6 +360,55 @@ export function LoanActionsPanel({
           Close Loan
         </Button>
         {outstanding > 0.01 && <Note>Loan can only be closed once fully repaid.</Note>}
+      </div>
+    );
+  }
+
+  /*
+   * "Close Loan Early" — client Decision 1, Option B.
+   *
+   * Offered alongside the ordinary close, and deliberately distinct from it:
+   * this one ends a loan that still owes money, by charging what has been
+   * earned and forgiving what has not. The figures come from the server's
+   * quote, so the officer reads the customer the number the system will charge.
+   */
+  if ((status === "active" || status === "arrears") && settlement && permissions.canSettleEarly) {
+    actions.push(
+      <div key="settle" className="space-y-2">
+        <Note>
+          Settling today: {formatMoney(Number(settlement.payable))} — {formatMoney(Number(settlement.principal))}{" "}
+          principal and {formatMoney(Number(settlement.interestEarned))} interest earned.{" "}
+          {formatMoney(Number(settlement.interestWaived))} of future interest is waived and{" "}
+          {settlement.installmentsCancelled} installment{settlement.installmentsCancelled === 1 ? "" : "s"} cancelled.
+          {Number(settlement.advanceHeld) > 0 && (
+            <> {formatMoney(Number(settlement.advanceHeld))} of held advance is applied first.</>
+          )}
+        </Note>
+        <ConfirmDialog
+          open={settleOpen}
+          onOpenChange={setSettleOpen}
+          trigger={
+            <Button size="sm" variant="outline">
+              <BadgeCheck className="size-4" />
+              Close Loan Early
+            </Button>
+          }
+          title="Settle and close this loan today?"
+          consequence={
+            <>
+              The customer pays {formatMoney(Number(settlement.cashRequired))} now.{" "}
+              {settlement.installmentsCancelled} future installment
+              {settlement.installmentsCancelled === 1 ? " is" : "s are"} cancelled and{" "}
+              {formatMoney(Number(settlement.interestWaived))} of interest is waived. This cannot be undone.
+            </>
+          }
+          confirmLabel="Settle and Close"
+          pending={pending}
+          onConfirm={() => {
+            setSettleOpen(false);
+            run(() => settleLoanEarly(loanId, settlement.cashRequired));
+          }}
+        />
       </div>
     );
   }

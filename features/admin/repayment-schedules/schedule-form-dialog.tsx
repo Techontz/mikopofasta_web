@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
+import { requiredText } from "@/lib/forms/required-text";
 import { Pencil, Plus } from "lucide-react";
 import { SettingsDialog } from "@/components/settings/dialog";
 import { Button, Field, FieldGrid, IconButton, TextInput } from "@/components/settings/form";
@@ -13,7 +14,10 @@ import { RepaymentScheduleSchema } from "@/types/loan-product";
 import type { RepaymentScheduleRecord } from "@/lib/api/system-configuration";
 import { createRepaymentSchedule, updateRepaymentSchedule } from "@/features/admin/repayment-schedules/actions";
 
-const FormSchema = RepaymentScheduleSchema.pick({ name: true, code: true, frequencyDays: true });
+const FormSchema = RepaymentScheduleSchema.pick({ name: true, code: true, frequencyDays: true }).extend({
+  name: requiredText("Name"),
+  code: requiredText("Code"),
+});
 type FormValues = z.infer<typeof FormSchema>;
 
 export function ScheduleFormDialog({ schedule }: { schedule?: RepaymentScheduleRecord }) {

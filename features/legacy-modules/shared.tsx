@@ -1,138 +1,47 @@
-"use client";
-
-import * as React from "react";
-import { Filter, FilterBar, StatusBadge, type StatusTone } from "@/components/settings";
-import { Select } from "@/components/settings/form";
-import { LEGACY_BRANCHES } from "@/lib/legacy/source";
-
 /**
- * Pieces shared by the Teller, Agent, Insurance and VISA screens.
+ * Shared by the Agent, Insurance and VISA screens.
  *
- * Every captured legacy list follows the same shape — a numbered S/No., branch
- * and customer, a money column or two, a date, and a row of icon actions — so
- * these four screens follow it too. Sharing the cells rather than repeating
- * them means the nine pages cannot drift apart in ways nobody notices.
+ * This file used to hold a dozen small helpers — cell wrappers, a branch
+ * filter, a choice filter, a status badge, a note about inferred layouts. Every
+ * one of them had exactly one job: to make screens that could not load data
+ * look as though they might. The filters filtered permanently empty tables and
+ * offered branch names transcribed off a screenshot; the cell wrappers were
+ * never called, because there were no cells.
+ *
+ * They are gone with the toolbars they sat beside. What is left is the one
+ * thing those screens genuinely need: a way to say out loud that they are
+ * waiting on a backend.
  */
 
-export const ALL = "__all__";
-
-/** The legacy tables number their own rows. */
-export function Serial({ n }: { n: number }) {
-  return <span className="font-tabular text-[var(--st-ink-soft)]">{n}.</span>;
-}
-
-export function Name({ children }: { children: React.ReactNode }) {
-  return <span className="font-medium whitespace-nowrap text-[var(--st-ink)]">{children}</span>;
-}
-
-export function Muted({ children }: { children: React.ReactNode }) {
-  return <span className="whitespace-nowrap text-[var(--st-ink-soft)]">{children}</span>;
-}
-
-/** Dates and references, tabular so a column of them aligns. */
-export function Mono({ children }: { children: React.ReactNode }) {
-  return <span className="font-tabular whitespace-nowrap text-[var(--st-ink-soft)]">{children}</span>;
-}
-
 /**
- * A branch filter, populated from the three legacy branches.
+ * Says on the screen that the module has no backend yet.
  *
- * Its own component because "the dropdown is empty" is the fault this whole
- * pass exists to fix, and a single source for it is how that stays fixed.
- */
-export function BranchFilter({
-  id,
-  value,
-  onValueChange,
-}: {
-  id: string;
-  value: string;
-  onValueChange: (next: string) => void;
-}) {
-  return (
-    <Filter label="Branch" htmlFor={id}>
-      <Select id={id} value={value} onChange={(e) => onValueChange(e.target.value)}>
-        <option value={ALL}>All branches</option>
-        {LEGACY_BRANCHES.map((b) => (
-          <option key={b} value={b}>
-            {b}
-          </option>
-        ))}
-      </Select>
-    </Filter>
-  );
-}
-
-/** A filter over any list of string options. */
-export function ChoiceFilter({
-  id,
-  label,
-  value,
-  onValueChange,
-  options,
-  allLabel = "All",
-}: {
-  id: string;
-  label: string;
-  value: string;
-  onValueChange: (next: string) => void;
-  options: readonly string[];
-  allLabel?: string;
-}) {
-  return (
-    <Filter label={label} htmlFor={id}>
-      <Select id={id} value={value} onChange={(e) => onValueChange(e.target.value)}>
-        <option value={ALL}>{allLabel}</option>
-        {options.map((o) => (
-          <option key={o} value={o}>
-            {o}
-          </option>
-        ))}
-      </Select>
-    </Filter>
-  );
-}
-
-export { FilterBar };
-
-const TONES: Record<string, StatusTone> = {
-  active: "active",
-  confirmed: "active",
-  deposit: "active",
-  pending: "warning",
-  withdrawal: "warning",
-  blocked: "danger",
-  expired: "inactive",
-};
-
-/** Status badge with a tone chosen from the value, so the four modules agree. */
-export function Status({ value }: { value: string }) {
-  return <StatusBadge tone={TONES[value] ?? "neutral"}>{titleCase(value)}</StatusBadge>;
-}
-
-function titleCase(value: string) {
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
-/**
- * Says on the screen that the layout is a guess, not a reproduction.
+ * Agent, Insurance and VISA were built from screenshots of the old system while
+ * the API for them did not exist — and still does not: none of the routes the
+ * backend serves touches an agent, a savings account or a card. Their tables
+ * are therefore hardcoded to `[]`, and every toolbar button on them used to be
+ * rendered permanently `disabled`.
  *
- * These four modules have never been screenshotted. Everything else in this
- * rebuild can be held against the old system column by column; these cannot,
- * and a reviewer has no way to tell the difference by looking. So the screen
- * says so itself.
+ * A greyed-out Export button is a promise the software cannot keep. Someone
+ * evaluating this system sees a toolbar and reads "this works, just not for
+ * me" — the wrong conclusion, and one they only discover is wrong after
+ * committing to it. So the buttons are gone and this stands in their place: the
+ * columns still show what the screen will be, and the screen says why it is
+ * empty.
+ *
+ * Delete this, restore the toolbar and wire the table the day the endpoints
+ * ship.
  */
-export function InferredLayoutNote({ module: moduleName }: { module: string }) {
+export function AwaitingBackendNote({ module: moduleName }: { module: string }) {
   return (
     <div
       role="note"
       className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[var(--st-radius-sm)] border border-dashed border-[var(--st-line-strong)] bg-[var(--st-subtle)] px-4 py-3 text-[13px] text-[var(--st-ink-soft)]"
     >
-      <span className="font-medium text-[var(--st-ink)]">Inferred layout.</span>
+      <span className="font-medium text-[var(--st-ink)]">Awaiting backend.</span>
       <span>
-        The legacy {moduleName} screen has never been captured, so these columns are reasoned from the
-        menu label and the shape every other legacy list follows — not copied from the old system.
-        Expect them to move once a screenshot arrives.
+        The {moduleName} module has no API yet, so this screen can show its layout but cannot load,
+        record, filter or export anything. The columns below are the old system&rsquo;s.
       </span>
     </div>
   );

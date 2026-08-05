@@ -6,6 +6,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
+import { requiredText } from "@/lib/forms/required-text";
 import { Pencil, Plus } from "lucide-react";
 import { SettingsDialog } from "@/components/settings/dialog";
 import { Button, Field, FieldGrid, IconButton, Select, TextArea, TextInput, Toggle } from "@/components/settings/form";
@@ -20,6 +21,9 @@ const FormSchema = NotificationTemplateSchema.pick({
   subject: true,
   body: true,
   active: true,
+}).extend({
+  name: requiredText("Name"),
+  body: requiredText("Message body"),
 });
 type FormValues = z.infer<typeof FormSchema>;
 

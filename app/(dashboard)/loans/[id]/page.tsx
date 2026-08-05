@@ -9,6 +9,8 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { EmptyState } from "@/components/feedback/empty-state";
 import {
   getLoan,
+  getEarlySettlementQuote,
+  getLoanApproval,
   getLoanHistory,
   getLoanProduct,
   getRepaymentSchedules,
@@ -29,7 +31,15 @@ import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
 import { LoanActionsPanel } from "@/features/loans/loan-actions-panel";
 import { LoanSchedulePanel } from "@/features/loans/loan-schedule-panel";
 import { LoanTimelinePanel } from "@/features/loans/loan-timeline-panel";
+import { EarlySettlementRecordPanel } from "@/features/loans/early-settlement-record";
 import { AuditTrailPanel } from "@/features/customers/profile/audit-trail-panel";
+import {
+  LoanBadDebtPanel,
+  RecordRecoveryAction,
+  WriteOffLoanAction,
+} from "@/features/loans/loan-bad-debt";
+import { getLoanRecoveries, getWriteOffs } from "@/lib/api/accounting";
+import { getBankAccounts } from "@/lib/api/bank";
 import type { LoanStatus } from "@/types/enums";
 
 /** The §10 transitions each tab reports on, since neither has an endpoint of its own. */
@@ -52,7 +62,7 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
   const user = await getCurrentUser();
   if (!user) return <AccessDeniedState />;
 
-  const [history, product, schedules, topup] = await Promise.all([
+  const [history, product, schedules, topup, approval, settlement] = await Promise.all([
     getLoanHistory(id),
     getLoanProduct(loan.loanProductId),
     getRepaymentSchedules(),
@@ -60,6 +70,26 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
     // making once it is there.
     loan.status === "active" || loan.status === "arrears"
       ? getTopupEligibility(id).catch(() => null)
+      : Promise.resolve(null),
+
+    /*
+     * Where the loan sits in the approval chain, and what this user may do
+     * about it — asked of the API rather than derived here, so the buttons the
+     * page offers and the decisions the server accepts cannot disagree.
+     *
+     * Fails soft: the panel is one card on a page that is mostly about the
+     * loan, and a page that refused to load because it could not describe the
+     * approval chain would be a broken one.
+     */
+    getLoanApproval(id).catch(() => null),
+
+    /*
+     * What settling today would cost — only worth asking for a loan that is
+     * actually on the book, and failing soft because the panel is one card on a
+     * page that is mostly about the loan.
+     */
+    loan.status === "active" || loan.status === "arrears"
+      ? getEarlySettlementQuote(id).catch(() => null)
       : Promise.resolve(null),
   ]);
 
@@ -94,10 +124,45 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
     (await getAllUsers().catch(() => [])).map((u) => [u.id, u.name])
   );
 
+  /*
+   * Bad debt — §5's Write-Off and Recovered Loans.
+   *
+   * Only asked for once a loan has actually reached one of those states. A
+   * performing loan has no write-off to fetch, and asking anyway would put two
+   * more requests on every loan page in the system.
+   *
+   * All three fail soft: the register needs `loans.view` (which this page
+   * already required) but bank accounts need a treasury grant the recovery
+   * roles may not hold, and a page that refused to load because it could not
+   * list bank accounts would be a broken one.
+   */
+  const isBadDebt = loan.status === "written_off" || loan.status === "recovered";
+
+  const [writeOffRegister, recoveries, recoveryAccounts] = await Promise.all([
+    isBadDebt ? getWriteOffs().catch(() => null) : Promise.resolve(null),
+    isBadDebt ? getLoanRecoveries(id).catch(() => []) : Promise.resolve([]),
+    isBadDebt
+      ? getBankAccounts({ status: "active" })
+          .then((r) => r.accounts)
+          .catch(() => [])
+      : Promise.resolve([]),
+  ]);
+
+  const writeOff = writeOffRegister?.writeOffs.find((w) => w.loanId === loan.id) ?? null;
+
+  /*
+   * The settlement that HAPPENED, not the `settlement` quote above — that one
+   * is what a loan would cost to close today, this one is what closing it
+   * actually cost. Undefined when the endpoint did not load it, null when the
+   * loan was never settled early; `?? null` collapses both to "nothing to
+   * show", which is the only distinction this page needs.
+   */
+  const settlementRecord = loan.earlySettlement ?? null;
+
   // Mandates, telco runs and disbursement batches have no list endpoint, so all
   // three tabs are projections of loan_status_history — which is the API's own
   // record of every one of those events.
-  const timeline = buildLoanTimeline(history, [], [], []);
+  const timeline = buildLoanTimeline(history, [], [], [], settlementRecord);
   const mandateEvents = history.filter((h) => MANDATE_STATUSES.includes(h.toStatus));
   const disbursementEvents = history.filter((h) => DISBURSEMENT_EVENT_STATUSES.includes(h.toStatus));
   const creditReviewEvents = history.filter(
@@ -108,8 +173,16 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
     canApprove: hasPermission(user, PERMISSIONS.LOANS_APPROVE),
     canCreditReview: hasPermission(user, PERMISSIONS.LOANS_CREDIT_REVIEW),
     canDisburse: hasPermission(user, PERMISSIONS.LOANS_DISBURSE),
+    // Its own grant: ending a live loan and cancelling its installments is a
+    // bigger act than approving one, and is granted separately.
+    canSettleEarly: hasPermission(user, PERMISSIONS.LOANS_SETTLE_EARLY),
     isOwnApplication: loan.createdBy === user.id,
   };
+
+  // Held apart from the origination grants above: the role that creates a loan
+  // must not be the role that can forgive it.
+  const canWriteOff = hasPermission(user, PERMISSIONS.LOANS_WRITE_OFF);
+  const canRecover = hasPermission(user, PERMISSIONS.LOANS_RECOVER);
 
   return (
     <div className="space-y-4">
@@ -168,7 +241,46 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
           <CardTitle className="text-base">Available Actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <LoanActionsPanel loanId={loan.id} status={loan.status} outstanding={loan.outstanding} permissions={permissions} />
+          <LoanActionsPanel
+            loanId={loan.id}
+            status={loan.status}
+            outstanding={loan.outstanding}
+            permissions={permissions}
+            approval={approval}
+            settlement={settlement}
+          />
+
+          {/*
+            Bad debt sits with the other loan actions rather than in a module of
+            its own — writing a loan off and recording a recovery are decisions
+            about this loan, and this is the panel that holds them.
+          */}
+          {loan.status === "defaulted" && (
+            <div className="mt-3">
+              <WriteOffLoanAction
+                loanId={loan.id}
+                loanNumber={loan.loanNumber}
+                outstanding={loan.outstanding}
+                status={loan.status}
+                canWriteOff={canWriteOff}
+              />
+            </div>
+          )}
+
+          {isBadDebt && writeOff && writeOff.outstanding > 0 && (
+            <div className="mt-3">
+              <RecordRecoveryAction
+                loanId={loan.id}
+                loanNumber={loan.loanNumber}
+                outstanding={writeOff.outstanding}
+                accounts={recoveryAccounts.map((a) => ({
+                  id: a.id,
+                  label: `${a.bankName} — ${a.accountNumber}`,
+                }))}
+                canRecover={canRecover}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -179,8 +291,37 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
           <TabsTrigger value="verification">Verification</TabsTrigger>
           <TabsTrigger value="disbursement">Disbursement ({disbursementEvents.length})</TabsTrigger>
+          {isBadDebt && <TabsTrigger value="bad-debt">Write-off & Recovery</TabsTrigger>}
+          {settlementRecord && <TabsTrigger value="settlement">Early Settlement</TabsTrigger>}
           <TabsTrigger value="audit">Audit Trail</TabsTrigger>
         </TabsList>
+
+        {isBadDebt && (
+          <TabsContent value="bad-debt">
+            <Card>
+              <CardContent className="pt-6">
+                <LoanBadDebtPanel writeOff={writeOff} recoveries={recoveries} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+
+        {settlementRecord && (
+          <TabsContent value="settlement">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Early Settlement</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <EarlySettlementRecordPanel record={settlementRecord} />
+                <p className="mt-4 text-xs text-muted-foreground">
+                  Installments after the settlement date were cancelled. Waived interest was never
+                  recognised as income, so the ledger did not move when it was forgiven.
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
         <TabsContent value="overview">
           <Card>
@@ -199,6 +340,18 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
               <Field label="Closed at">{loan.closedAt ? new Date(loan.closedAt).toLocaleDateString() : "—"}</Field>
               <Field label="Total payable">{loan.totalPayable > 0 ? formatMoney(loan.totalPayable) : "—"}</Field>
               <Field label="Cooldown until">{loan.frozenUntil ?? "—"}</Field>
+              {/*
+               * Shown on the summary only for a loan that was actually settled
+               * early. On one that ran its course these read "not settled" and
+               * "nothing waived", which is noise beside a closing date that
+               * already says the loan ended normally.
+               */}
+              {loan.earlySettledAt && (
+                <>
+                  <Field label="Settled early on">{new Date(loan.earlySettledAt).toLocaleDateString()}</Field>
+                  <Field label="Interest waived">{formatMoney(loan.interestWaived)}</Field>
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
