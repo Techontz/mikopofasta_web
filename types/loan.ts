@@ -12,6 +12,17 @@ import {
 export const LoanSchema = z.object({
   id: z.string(),
   loanNumber: z.string(),
+  /**
+   * The customer-facing reference — `MF-YYYY-BRANCHCODE-000001`, client
+   * decision D6. Null until Head Office Credit approves: until then there is
+   * nothing to pay towards, and a reference in a customer's hands before that
+   * invites payments against an application that may still be refused.
+   *
+   * Distinct from `loanNumber`, which identifies the application from the
+   * moment somebody applies.
+   */
+  paymentReference: z.string().nullable(),
+  paymentReferenceIssuedAt: z.string().nullable(),
   customerId: z.string(),
   loanProductId: z.string(),
   repaymentScheduleId: z.string(),

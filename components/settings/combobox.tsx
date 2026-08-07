@@ -229,7 +229,10 @@ export function Combobox({
         anchorRef={boxRef}
         open={open && !disabled}
         onDismiss={dismiss}
-        className="st-card py-1 shadow-lg"
+        /* Surface, border and shadow belong to FloatingPanel: `st-card` reads
+           `--st-card`, which only exists inside `.st-scope` and so resolved to
+           nothing once the list was portalled to the body. */
+        className="py-1"
       >
         <ul id={listId} ref={listRef} role="listbox">
           {/*

@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
 import {
+  getBranchApprovalRoute,
   getBranches,
   getCompanyProfile,
   getRegions,
@@ -31,6 +32,30 @@ export default async function OrganizationSetupPage() {
     getZones(),
     getZoneManagerCandidates(),
   ]);
+
+  /*
+   * D4 — each branch's approval routing, for the routing dialog.
+   *
+   * One request per branch, in parallel. Branches are inherently few (this
+   * institution has four) and this is the only screen that needs the detail, so
+   * widening the shared `GET /branches` lookup — which the branch switcher and
+   * the registration wizard also load — would put this weight on every page
+   * that merely needs a list of names.
+   *
+   * Fails soft per branch: routing is one dialog on a page that is mostly about
+   * the branches themselves, and a page that refused to load because one route
+   * could not be read would be a broken one.
+   */
+  const routes = Object.fromEntries(
+    await Promise.all(
+      branches.map(async (branch) => [
+        branch.id,
+        await getBranchApprovalRoute(branch.id)
+          .then((route) => route.stages)
+          .catch(() => []),
+      ] as const)
+    )
+  );
 
   return (
     <div className="space-y-6">
@@ -59,7 +84,7 @@ export default async function OrganizationSetupPage() {
           <ZonesTable zones={zones} managers={managers} branches={branches} />
         </TabsContent>
         <TabsContent value="branches">
-          <BranchesTable branches={branches} regions={regions} zones={zones} />
+          <BranchesTable branches={branches} regions={regions} zones={zones} routes={routes} />
         </TabsContent>
       </Tabs>
     </div>

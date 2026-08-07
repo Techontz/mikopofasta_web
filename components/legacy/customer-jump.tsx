@@ -248,8 +248,10 @@ export function CustomerJump() {
         anchorRef={boxRef}
         open={open}
         onDismiss={() => setOpen(false)}
-        className="rounded border shadow-lg"
-        style={{ borderColor: "var(--lg-ctrl-line)", background: "var(--lg-surface)" }}
+        /* No inline surface: `--lg-surface` and `--lg-ctrl-line` are declared
+           on `.lg-shell`, and this list is portalled to the body where neither
+           resolves — which painted it transparent. FloatingPanel supplies an
+           opaque surface from root-level tokens. */
       >
         <div>
           {showingRecents && (

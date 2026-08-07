@@ -18,6 +18,7 @@ export function toLoanRow(loan: LoanListItem, outstanding?: Map<string, number>)
   return {
     id: loan.id,
     loanNumber: loan.loanNumber,
+    paymentReference: loan.paymentReference,
     customerName: loan.customerName ?? "—",
     branchName: loan.branchName ?? "—",
     productName: loan.productName ?? "—",

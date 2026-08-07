@@ -10,7 +10,9 @@ import { SettingsTable } from "@/components/settings/table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { ConfirmDeleteDialog } from "@/components/data-table/confirm-delete-dialog";
 import { BranchFormDialog } from "@/features/admin/organization/branch-form-dialog";
+import { BranchRoutingDialog } from "@/features/admin/organization/branch-routing-dialog";
 import { deleteBranch, setHeadOffice } from "@/features/admin/organization/branches-actions";
+import type { BranchRouteStage } from "@/lib/api/organization";
 import type { Branch, Region, Zone } from "@/types/branch";
 
 function HeadOfficeAction({ branch }: { branch: Branch }) {
@@ -34,12 +36,28 @@ function HeadOfficeAction({ branch }: { branch: Branch }) {
   );
 }
 
-export function BranchesTable({ branches, regions, zones }: { branches: Branch[]; regions: Region[]; zones: Zone[] }) {
+export function BranchesTable({
+  branches,
+  regions,
+  zones,
+  routes,
+}: {
+  branches: Branch[];
+  regions: Region[];
+  zones: Zone[];
+  /** D4 — each branch's approval chain, keyed by branch id. */
+  routes: Record<string, BranchRouteStage[]>;
+}) {
   const regionName = (id: string | null) => regions.find((r) => r.id === id)?.name ?? "—";
   const zoneName = (id: string | null) => zones.find((z) => z.id === id)?.name ?? "—";
 
   const columns: ColumnDef<Branch>[] = [
     { accessorKey: "name", header: ({ column }) => <DataTableColumnHeader column={column} title="Name" /> },
+    {
+      accessorKey: "code",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Code" />,
+      cell: ({ row }) => <span className="font-mono text-xs">{row.original.code}</span>,
+    },
     { id: "region", header: "Region", cell: ({ row }) => regionName(row.original.regionId) },
     { id: "zone", header: "Zone", cell: ({ row }) => zoneName(row.original.zoneId) },
     {
@@ -63,6 +81,7 @@ export function BranchesTable({ branches, regions, zones }: { branches: Branch[]
       id: "actions",
       cell: ({ row }) => (
         <div className="flex justify-end gap-1">
+          <BranchRoutingDialog branch={row.original} stages={routes[row.original.id] ?? []} />
           <BranchFormDialog branch={row.original} regions={regions} zones={zones} branches={branches} />
           <ConfirmDeleteDialog
             trigger={

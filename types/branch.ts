@@ -45,6 +45,12 @@ export type Zone = z.infer<typeof ZoneSchema>;
 export const BranchSchema = z.object({
   id: z.string(),
   name: z.string(),
+  /**
+   * The segment that appears in every customer payment reference this branch
+   * issues — `MF-YYYY-BRANCHCODE-000001`. Short, uppercase and stable, because
+   * customers read it aloud when they pay.
+   */
+  code: z.string(),
   regionId: z.string().nullable(),
   zoneId: z.string().nullable(),
   phone: z.string(),

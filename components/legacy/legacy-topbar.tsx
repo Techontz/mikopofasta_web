@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Bell, LogOut, Moon, Sun } from "lucide-react";
+import { Bell, LogOut, Moon, Sun, UserRound } from "lucide-react";
 import { logoutAction } from "@/lib/auth/actions";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { CustomerJump } from "@/components/legacy/customer-jump";
@@ -65,6 +65,17 @@ export function LegacyTopbar({ notifications }: { notifications: AppNotification
             </button>
           }
         />
+        {/* My profile — a link beside the controls that were already here.
+            The bar's structure is unchanged; this is one more icon in it. */}
+        <Link
+          href="/profile"
+          aria-label="My profile"
+          title="My profile"
+          className="block transition-opacity hover:opacity-60"
+          style={{ color: "var(--lg-icon-action)" }}
+        >
+          <UserRound className="size-[22px]" strokeWidth={1.5} aria-hidden />
+        </Link>
         <form action={logoutAction}>
           <button
             type="submit"
@@ -139,8 +150,9 @@ function NotificationBell({ notifications }: { notifications: AppNotification[] 
         matchWidth={false}
         align="end"
         offset={8}
-        className="w-80 rounded border shadow-lg"
-        style={{ borderColor: "var(--lg-ctrl-line)", background: "var(--lg-surface)" }}
+        /* Same reason as the customer picker: the `--lg-*` tokens live on
+           `.lg-shell` and do not reach a portalled node. */
+        className="w-80"
       >
         <div role="dialog" aria-label="Notifications">
           <p

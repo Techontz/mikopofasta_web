@@ -196,6 +196,17 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
               <h1 className="text-lg font-semibold">{loan.loanNumber}</h1>
               <LoanStatusBadge status={loan.status} />
               {loan.requiresMandateSnapshot && <Badge variant="outline">E-Mandate</Badge>}
+              {/*
+                * The reference the CUSTOMER quotes when paying, shown beside
+                * the application number rather than replacing it: staff work
+                * from one and customers from the other, and a screen that
+                * showed only one would leave whoever is on the phone unable to
+                * match what the other person is reading out.
+                *
+                * Absent until credit approves — there is nothing to pay
+                * towards before then.
+                */}
+              {loan.paymentReference && <Badge variant="secondary">Pay ref {loan.paymentReference}</Badge>}
             </div>
             <p className="text-sm text-muted-foreground">
               <Link href={`/customers/${loan.customerId}`} className="hover:underline">
@@ -335,6 +346,10 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
               <Field label="Officer">{userNames[loan.officerId] ?? "—"}</Field>
               <Field label="Approved by">{loan.approvedBy ? (userNames[loan.approvedBy] ?? "—") : "—"}</Field>
               <Field label="Approved at">{loan.approvedAt ? new Date(loan.approvedAt).toLocaleString() : "—"}</Field>
+              <Field label="Customer payment reference">{loan.paymentReference ?? "Not yet issued"}</Field>
+              <Field label="Reference issued at">
+                {loan.paymentReferenceIssuedAt ? new Date(loan.paymentReferenceIssuedAt).toLocaleString() : "—"}
+              </Field>
               <Field label="Disbursed on">{loan.disbursementDate ?? "—"}</Field>
               <Field label="Expected completion">{loan.expectedCompletionDate ?? "—"}</Field>
               <Field label="Closed at">{loan.closedAt ? new Date(loan.closedAt).toLocaleDateString() : "—"}</Field>

@@ -57,6 +57,8 @@ function toId(value: string | null | undefined): number | null {
 interface LoanWire {
   id: string;
   loanNumber: string;
+  paymentReference: string | null;
+  paymentReferenceIssuedAt: string | null;
   customerId: string;
   loanProductId: string;
   repaymentScheduleId: string;
@@ -175,6 +177,8 @@ function toLoan(wire: LoanWire): LoanListItem {
   return {
     id: wire.id,
     loanNumber: wire.loanNumber,
+    paymentReference: wire.paymentReference,
+    paymentReferenceIssuedAt: wire.paymentReferenceIssuedAt,
     customerId: wire.customerId,
     loanProductId: wire.loanProductId,
     repaymentScheduleId: wire.repaymentScheduleId,

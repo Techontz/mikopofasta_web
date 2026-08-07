@@ -93,6 +93,8 @@ export async function getBranchHierarchy(): Promise<BranchHierarchyNode[]> {
 
 export interface BranchInput {
   name: string;
+  /** Optional — the API derives one from the name when it is omitted. */
+  code?: string | null;
   regionId: string | null;
   zoneId: string | null;
   phone: string;
@@ -111,6 +113,45 @@ export async function updateBranchRequest(id: string, input: BranchInput): Promi
 
 export async function deleteBranchRequest(id: string): Promise<void> {
   await apiData(`/api/v1/branches/${id}`, { method: "DELETE", token: await token() });
+}
+
+/**
+ * D4 — which approval stages a branch's applications must clear.
+ *
+ * `included` is the answer; `override` says why. Null means the branch is
+ * following the default rule (zone review where the branch has a zone), true or
+ * false means an administrator pinned it.
+ */
+export interface BranchRouteStage {
+  stageId: string;
+  code: string;
+  name: string;
+  sequence: number;
+  requiresBranchZone: boolean;
+  included: boolean;
+  override: boolean | null;
+}
+
+export interface BranchApprovalRoute {
+  branchId: string;
+  branchName: string;
+  zoneId: string | null;
+  stages: BranchRouteStage[];
+}
+
+export async function getBranchApprovalRoute(id: string): Promise<BranchApprovalRoute> {
+  return apiData<BranchApprovalRoute>(`/api/v1/branches/${id}/approval-route`, { token: await token() });
+}
+
+export async function updateBranchApprovalRouteRequest(
+  id: string,
+  overrides: { stageId: string; required: boolean | null }[]
+): Promise<BranchApprovalRoute> {
+  return apiData<BranchApprovalRoute>(`/api/v1/branches/${id}/approval-route`, {
+    method: "PUT",
+    body: { overrides },
+    token: await token(),
+  });
 }
 
 /** POST /api/v1/branches/{branch}/head-office — §12's single-HQ move. */

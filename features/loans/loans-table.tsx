@@ -15,6 +15,8 @@ import { LOAN_STATUSES, type LoanStatus } from "@/types/enums";
 export interface LoanRow {
   id: string;
   loanNumber: string;
+  /** What the customer quotes when paying. Null until credit approves. */
+  paymentReference: string | null;
   customerName: string;
   branchName: string;
   productName: string;
@@ -72,7 +74,7 @@ export function LoansTable({ loans, canCreate }: { loans: LoanRow[]; canCreate: 
     <DataTable
       columns={columns}
       data={loans}
-      searchFields={["loanNumber", "customerName"]}
+      searchFields={["loanNumber", "paymentReference", "customerName"]}
       searchPlaceholder="Search by loan # or customer…"
       facetedFilters={[
         { columnId: "status", title: "Status", options: LOAN_STATUSES.map((s) => ({ label: LOAN_STATUS_LABELS[s], value: s })) },

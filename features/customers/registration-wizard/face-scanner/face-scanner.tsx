@@ -44,6 +44,14 @@ const WASM_PATH = "/mediapipe/wasm";
 const MODEL_PATH = "/mediapipe/models/face_landmarker.task";
 /** Frames a pose must hold before it counts — stops a wobble scoring a pass. */
 const HOLD_FRAMES = 6;
+/**
+ * Consecutive detectForVideo failures tolerated before the scan is declared
+ * broken. A single frame can fail transiently — the GPU context is lost, the
+ * element is mid-resize — and retrying costs 16ms. A sustained run means the
+ * pipeline is gone, and pretending otherwise leaves the officer watching a
+ * dead preview.
+ */
+const MAX_DETECT_FAILURES = 30;
 
 /**
  * A clock reading, at module scope.
@@ -117,7 +125,25 @@ export function FaceScanner({
     };
   }, [preview]);
 
+  /*
+   * Which scan is current.
+   *
+   * Bumped by every stop, and captured by the frame loop when it is built. The
+   * loop refuses to schedule another frame once its own generation is stale.
+   *
+   * Without it there is a use-after-free: the portrait is grabbed through
+   * `grab().then(...)`, and if the officer cancels — or the dialog unmounts —
+   * while that promise is in flight, the continuation still calls
+   * requestAnimationFrame. The next frame then reaches detectForVideo on a
+   * landmarker that stop() has already close()d, inside a promise chain with
+   * nothing to catch it.
+   */
+  const runRef = React.useRef(0);
+  /** Consecutive detectForVideo failures; reset by the first good frame. */
+  const detectFailuresRef = React.useRef(0);
+
   const stop = React.useCallback(() => {
+    runRef.current += 1;
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     rafRef.current = null;
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -194,6 +220,7 @@ export function FaceScanner({
     deviceRef.current = null;
     resolutionRef.current = null;
     startedAtRef.current = clock();
+    detectFailuresRef.current = 0;
 
     try {
       /*
@@ -261,15 +288,82 @@ export function FaceScanner({
    * rate far enough to make the preview feel broken.
    */
   function makeLoop() {
+    /* This loop belongs to this scan. Any stop() invalidates it. */
+    const run = runRef.current;
+    /** Schedules the next frame, unless this scan is over. */
+    const next = (fn: () => void) => {
+      if (runRef.current !== run) return;
+      rafRef.current = requestAnimationFrame(fn);
+    };
+
     const loop = () => {
+    if (runRef.current !== run) return;
+
     const video = videoRef.current;
     const landmarker = landmarkerRef.current;
-    if (!video || !landmarker || video.videoWidth === 0) {
-      rafRef.current = requestAnimationFrame(loop);
+    const track = streamRef.current?.getVideoTracks()[0];
+
+    /*
+     * Wait for the pipeline to be genuinely ready rather than calling into it
+     * and hoping.
+     *
+     * `videoWidth > 0` was the whole guard, and it is not enough: dimensions
+     * are known at HAVE_METADATA (readyState 1), while detectForVideo needs a
+     * decoded frame — HAVE_CURRENT_DATA (2) or better. The gap between the two
+     * is small and real, and it is exactly the window a scan starts in.
+     *
+     * `track.readyState` covers the other end: a camera unplugged or revoked
+     * mid-scan leaves the element's dimensions intact while frames stop
+     * arriving, so size alone would say everything is fine forever.
+     */
+    const ready =
+      video !== null &&
+      landmarker !== null &&
+      video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
+      video.videoWidth > 0 &&
+      video.videoHeight > 0 &&
+      track?.readyState === "live";
+
+    if (!ready) {
+      next(loop);
       return;
     }
 
-    const result = landmarker.detectForVideo(video, performance.now());
+    /*
+     * The one call that talks to WASM, and the only thing wrapped.
+     *
+     * A throw here used to end the scan silently: control left the function
+     * before the requestAnimationFrame at the bottom, so the loop simply
+     * stopped. The camera stayed on, the oval stayed grey, and the officer was
+     * left looking at "Position your face in the oval" forever with nothing
+     * reported. One bad frame is survivable and is retried; a run of them is
+     * not, and is surfaced rather than swallowed.
+     */
+    let result;
+    try {
+      result = landmarker.detectForVideo(video, performance.now());
+      detectFailuresRef.current = 0;
+    } catch (error) {
+      detectFailuresRef.current += 1;
+      // The real exception, unedited — never a summary of it.
+      console.error(
+        `Face scanner: detectForVideo failed (${detectFailuresRef.current}/${MAX_DETECT_FAILURES})`,
+        error
+      );
+
+      if (detectFailuresRef.current >= MAX_DETECT_FAILURES) {
+        stop();
+        setPhase({
+          kind: "failed",
+          reason:
+            "The face scanner stopped responding. Close this and try again; if it keeps happening, restart the browser.",
+        });
+        return;
+      }
+
+      next(loop);
+      return;
+    }
 
     const small = document.createElement("canvas");
     small.width = 160;
@@ -297,16 +391,18 @@ export function FaceScanner({
          * person and are not kept.
          */
         const isFirst = stepRef.current === 0;
-        const next = stepRef.current + 1;
+        const nextStep = stepRef.current + 1;
 
         const advance = () => {
-          if (next >= POSE_SEQUENCE.length) {
+          /* The scan may have been stopped while grab() was in flight. */
+          if (runRef.current !== run) return;
+          if (nextStep >= POSE_SEQUENCE.length) {
             finish();
             return;
           }
-          stepRef.current = next;
-          setStepIndex(next);
-          rafRef.current = requestAnimationFrame(loop);
+          stepRef.current = nextStep;
+          setStepIndex(nextStep);
+          next(loop);
         };
 
         if (isFirst) {
@@ -327,7 +423,7 @@ export function FaceScanner({
       holdRef.current = 0;
     }
 
-    rafRef.current = requestAnimationFrame(loop);
+    next(loop);
     };
     return loop;
   }

@@ -271,7 +271,28 @@ export function FloatingPanel({
         /* Hidden until measured, so it never paints once at 0,0 and jumps. */
         visibility: position ? "visible" : "hidden",
       }}
-      className={cn("overflow-y-auto overscroll-contain", className)}
+      /*
+       * The panel paints its OWN opaque surface.
+       *
+       * This is the whole reason the bug existed. Custom properties inherit
+       * through the DOM, and a portal severs that chain: the panel is a child
+       * of <body>, outside `.st-scope` and `.lg-shell`, which is where
+       * `--st-card` and `--lg-surface` are defined. `background: var(--st-card)`
+       * therefore resolved to nothing and every dropdown in the application
+       * painted transparent, with the form underneath showing through its
+       * options.
+       *
+       * `bg-popover` / `text-popover-foreground` are declared on `:root` and
+       * `.dark`, so they resolve wherever this element ends up — which is the
+       * property a floating layer has to have. `isolate` gives it its own
+       * stacking context so nothing inside can be interleaved with the page,
+       * and `overscroll-contain` keeps a scroll gesture in the list instead of
+       * chaining to the page behind it.
+       */
+      className={cn(
+        "isolate overflow-y-auto overscroll-contain rounded-md border bg-popover text-popover-foreground shadow-lg",
+        className
+      )}
       {...rest}
     >
       {children}

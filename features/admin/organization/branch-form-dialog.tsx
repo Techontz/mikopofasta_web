@@ -16,6 +16,7 @@ import { createBranch, updateBranch } from "@/features/admin/organization/branch
 
 const FormSchema = BranchSchema.pick({
   name: true,
+  code: true,
   regionId: true,
   zoneId: true,
   phone: true,
@@ -24,6 +25,8 @@ const FormSchema = BranchSchema.pick({
   status: true,
 }).extend({
   name: requiredText("Name"),
+  // Blank is allowed: the API derives one from the name.
+  code: z.string().optional().nullable(),
 });
 type FormValues = z.infer<typeof FormSchema>;
 const NONE = "__none__";
@@ -42,6 +45,7 @@ export function BranchFormDialog({ branch, regions, zones, branches }: BranchFor
 
   const defaults: FormValues = {
     name: branch?.name ?? "",
+    code: branch?.code ?? "",
     regionId: branch?.regionId ?? null,
     zoneId: branch?.zoneId ?? null,
     phone: branch?.phone ?? "",
@@ -111,6 +115,20 @@ export function BranchFormDialog({ branch, regions, zones, branches }: BranchFor
       </Field>
 
       <FieldGrid>
+        <Field
+          label="Branch code"
+          htmlFor="branch-code"
+          error={errors.code?.message}
+          help="Appears in every customer payment reference, e.g. MF-2026-KKO-000001. Leave blank to derive it from the name."
+        >
+          <TextInput
+            id="branch-code"
+            placeholder="e.g. KKO"
+            className="uppercase"
+            invalid={!!errors.code}
+            {...register("code")}
+          />
+        </Field>
         <Field label="Phone" htmlFor="branch-phone" error={errors.phone?.message}>
           <TextInput id="branch-phone" type="tel" inputMode="tel" invalid={!!errors.phone} {...register("phone")} />
         </Field>
