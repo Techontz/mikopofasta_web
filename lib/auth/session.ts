@@ -21,23 +21,75 @@ export interface SessionData {
   token?: string;
 }
 
-const sessionSecret = process.env.SESSION_SECRET;
-if (!sessionSecret || sessionSecret.length < 32) {
-  throw new Error(
-    "SESSION_SECRET is missing or too short (needs 32+ chars). See .env.example."
-  );
+/**
+ * The cookie's name — safe at module scope because it is not a secret.
+ *
+ * Split out from the options below so proxy.ts can look the cookie up without
+ * resolving the encryption key: a request that carries no session does not need
+ * the key to be told it is not signed in.
+ */
+export const SESSION_COOKIE_NAME = "mikopofasta_session";
+
+/** Thrown when the deployment has no usable SESSION_SECRET. */
+export class SessionConfigurationError extends Error {
+  constructor() {
+    super("SESSION_SECRET is missing or too short (needs 32+ chars). See .env.example.");
+    this.name = "SessionConfigurationError";
+  }
 }
 
-export const sessionOptions: SessionOptions = {
-  password: sessionSecret,
-  cookieName: "mikopofasta_session",
-  cookieOptions: {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-  },
-};
+/**
+ * The encryption key, resolved per call.
+ *
+ * ## Why this is not a module-level check
+ *
+ * It used to be: a `const` read of `process.env.SESSION_SECRET` and a bare
+ * `throw` in the module body. That turns importing this file into a
+ * side-effecting operation, and `next build` imports it — the "Collecting page
+ * data" pass loads every route module to read its exports, and any route whose
+ * import graph reaches this one (proxy.ts does, and so does every page calling
+ * `getCurrentUser`) executed the throw. A machine that builds without runtime
+ * secrets, which is the normal case on Vercel, therefore could not build at
+ * all, and the failure named whichever route happened to be collected first
+ * rather than the real cause.
+ *
+ * Reading it inside a function keeps import free of side effects. The check
+ * itself is unchanged — same threshold, same message — it simply now runs when
+ * a session is actually opened, which is the only moment the answer matters.
+ *
+ * It still FAILS CLOSED. A missing secret throws; nothing falls back to an
+ * unencrypted cookie, a generated key, or an unauthenticated pass. A
+ * deployment without the secret serves errors, never unprotected pages.
+ */
+function requireSessionSecret(): string {
+  const secret = process.env.SESSION_SECRET;
+
+  if (!secret || secret.length < 32) {
+    throw new SessionConfigurationError();
+  }
+
+  return secret;
+}
+
+/**
+ * iron-session's configuration, built per call.
+ *
+ * Cheap — an object literal and one env read — and deliberately not memoised:
+ * caching it would reintroduce a module-level value whose first construction
+ * could land during a build.
+ */
+export function getSessionOptions(): SessionOptions {
+  return {
+    password: requireSessionSecret(),
+    cookieName: SESSION_COOKIE_NAME,
+    cookieOptions: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+    },
+  };
+}
 
 /**
  * Read-only in Server Components (safe: proxy.ts and pages only ever read).
@@ -46,7 +98,7 @@ export const sessionOptions: SessionOptions = {
  */
 export async function getSession(): Promise<IronSession<SessionData>> {
   const cookieStore = await cookies();
-  return getIronSession<SessionData>(cookieStore, sessionOptions);
+  return getIronSession<SessionData>(cookieStore, getSessionOptions());
 }
 
 /**
