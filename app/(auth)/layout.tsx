@@ -53,7 +53,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
      */
     <div className="min-h-svh lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
       <section
-        aria-label="About Mikopofasta"
+        aria-label="About M-Kopa"
         className="relative hidden overflow-hidden px-10 py-12 lg:flex lg:flex-col xl:px-14"
         style={{ background: PANEL.base, color: PANEL.ink }}
       >
@@ -67,7 +67,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           >
             <Landmark className="size-[22px]" strokeWidth={1.6} aria-hidden />
           </span>
-          <span className="text-[15px] font-semibold tracking-[0.16em] uppercase">Mikopofasta</span>
+          <span className="text-[15px] font-semibold tracking-[0.16em] uppercase">M-Kopa</span>
         </div>
 
         <div className="relative mt-auto pt-16">
@@ -123,7 +123,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         >
           {/* Real values: the year is computed, the version is package.json's,
               the environment is the build's own. None is written down twice. */}
-          <span>&copy; {new Date().getFullYear()} Mikopofasta</span>
+          <span>&copy; {new Date().getFullYear()} M-Kopa</span>
           <span aria-hidden>&middot;</span>
           <span>v{pkg.version}</span>
           <span aria-hidden>&middot;</span>

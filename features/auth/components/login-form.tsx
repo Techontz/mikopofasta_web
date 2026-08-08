@@ -111,7 +111,7 @@ export function LoginForm() {
           <Landmark className="size-[18px]" strokeWidth={1.7} aria-hidden />
         </span>
         <span className="text-[13px] font-semibold tracking-[0.16em] text-foreground uppercase">
-          Mikopofasta
+          M-Kopa
         </span>
       </div>
 
@@ -288,7 +288,7 @@ export function LoginFormSkeleton() {
           <Landmark className="size-[18px]" strokeWidth={1.7} aria-hidden />
         </span>
         <span className="text-[13px] font-semibold tracking-[0.16em] text-foreground uppercase">
-          Mikopofasta
+          M-Kopa
         </span>
       </div>
 

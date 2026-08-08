@@ -36,7 +36,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <LegacyTopbar notifications={notifications} />
         <MobileNavBackdrop />
         <div className="flex min-h-0 flex-1">
-          <LegacySidebar user={user} tenantName={profile?.tradingName ?? "Mikopofasta"} />
+          <LegacySidebar user={user} tenantName={profile?.tradingName ?? "M-Kopa"} />
           {/* min-w-0 lets the pane shrink below its content's intrinsic width —
               without it a wide table forces the whole page past the viewport
               instead of scrolling inside its own container. */}

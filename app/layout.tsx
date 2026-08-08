@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mikopofasta | Microfinance OS",
+  title: "M-Kopa | Microfinance OS",
   description: "Enterprise microfinance operating system",
 };
 

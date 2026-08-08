@@ -41,7 +41,7 @@ export function LegacyTopbar({ notifications }: { notifications: AppNotification
         href="/dashboard"
         className="hidden w-[calc(var(--lg-sidebar-w)-16px)] shrink-0 text-[13px] font-bold leading-none tracking-tight lg:block"
       >
-        <span style={{ color: "var(--lg-brand-a)" }}>mikopofasta</span>
+        <span style={{ color: "var(--lg-brand-a)" }}>m-kopa</span>
         <span style={{ color: "var(--lg-brand-b)" }}>software</span>
       </Link>
 
