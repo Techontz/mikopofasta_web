@@ -56,8 +56,15 @@ export function OverviewPanel({
           </Field>
           <Field label="Region">{region?.name ?? "—"}</Field>
           <Field label="District">{district?.name ?? "—"}</Field>
-          <Field label="Ward">{ward?.name ?? "—"}</Field>
-          <Field label="Street">{street?.name ?? "—"}</Field>
+          {/*
+            The typed name first, the reference row as a fallback.
+            Registrations before the 2026_08_26 migration hold only an id, and
+            that migration copied the names down — so this reads the column for
+            everybody and falls back only if a record somehow has one without
+            the other.
+          */}
+          <Field label="Ward">{customer.wardName ?? ward?.name ?? "—"}</Field>
+          <Field label="Street">{customer.streetName ?? street?.name ?? "—"}</Field>
         </div>
       </section>
 

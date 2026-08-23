@@ -59,6 +59,17 @@ export const PERMISSIONS = {
   CUSTOMERS_VIEW: "customers.view",
   CUSTOMERS_MANAGE: "customers.manage",
   CUSTOMERS_APPROVE: "customers.approve",
+  /*
+   * Register a customer against an officer other than yourself.
+   *
+   * Its own grant rather than an implication of seniority, following the same
+   * rule as `loans.review_cross_branch`. The registration form's "Employee"
+   * field decides whose book the customer sits on, and therefore whose
+   * portfolio and commission they count towards — filling it in for somebody
+   * else is a supervisory act. Without this the field is fixed to the
+   * signed-in user.
+   */
+  CUSTOMERS_ASSIGN_OFFICER: "customers.assign_officer",
   LOANS_VIEW: "loans.view",
   LOANS_CREATE: "loans.create",
   LOANS_APPROVE: "loans.approve",

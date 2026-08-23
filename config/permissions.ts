@@ -20,6 +20,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     PERMISSIONS.CUSTOMERS_VIEW,
     PERMISSIONS.CUSTOMERS_MANAGE,
     PERMISSIONS.CUSTOMERS_APPROVE,
+    PERMISSIONS.CUSTOMERS_ASSIGN_OFFICER,
     PERMISSIONS.LOANS_VIEW,
     PERMISSIONS.LOANS_CREATE,
     PERMISSIONS.LOANS_APPROVE,
@@ -69,6 +70,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     PERMISSIONS.CUSTOMERS_VIEW,
     PERMISSIONS.CUSTOMERS_MANAGE,
     PERMISSIONS.CUSTOMERS_APPROVE,
+    PERMISSIONS.CUSTOMERS_ASSIGN_OFFICER,
     PERMISSIONS.LOANS_VIEW,
     PERMISSIONS.LOANS_CREATE,
     PERMISSIONS.LOANS_APPROVE,
@@ -128,6 +130,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     PERMISSIONS.CUSTOMERS_VIEW,
     PERMISSIONS.CUSTOMERS_MANAGE,
     PERMISSIONS.CUSTOMERS_APPROVE,
+    PERMISSIONS.CUSTOMERS_ASSIGN_OFFICER,
     PERMISSIONS.LOANS_VIEW,
     PERMISSIONS.LOANS_CREATE,
     PERMISSIONS.LOANS_APPROVE,
@@ -217,7 +220,15 @@ export function setRolePermissions(role: Role, permissions: Permission[]): { ok:
 
 /** Groups the flat permission list for the Permission Matrix UI. */
 export const PERMISSION_GROUPS: { label: string; permissions: Permission[] }[] = [
-  { label: "Customers", permissions: [PERMISSIONS.CUSTOMERS_VIEW, PERMISSIONS.CUSTOMERS_MANAGE, PERMISSIONS.CUSTOMERS_APPROVE] },
+  {
+    label: "Customers",
+    permissions: [
+      PERMISSIONS.CUSTOMERS_VIEW,
+      PERMISSIONS.CUSTOMERS_MANAGE,
+      PERMISSIONS.CUSTOMERS_APPROVE,
+      PERMISSIONS.CUSTOMERS_ASSIGN_OFFICER,
+    ],
+  },
   {
     label: "Loans",
     permissions: [
@@ -268,6 +279,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   [PERMISSIONS.CUSTOMERS_VIEW]: "View customers",
   [PERMISSIONS.CUSTOMERS_MANAGE]: "Create/edit customers",
   [PERMISSIONS.CUSTOMERS_APPROVE]: "Approve/reject customer registrations",
+  [PERMISSIONS.CUSTOMERS_ASSIGN_OFFICER]: "Register a customer for another officer",
   [PERMISSIONS.LOANS_VIEW]: "View loans",
   [PERMISSIONS.LOANS_CREATE]: "Create loan applications",
   [PERMISSIONS.LOANS_APPROVE]: "Approve loans",

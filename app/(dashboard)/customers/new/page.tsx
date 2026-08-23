@@ -4,6 +4,7 @@ import { getBranches } from "@/lib/api/organization";
 import { getUsers } from "@/lib/api/users";
 import { getRegistrationLookups } from "@/lib/api/master-data";
 import { getCustomerCategories } from "@/lib/api/customers";
+import { getRegistrationDrafts, getRegistrationRequirements } from "@/lib/api/registration";
 import { getCurrentUser } from "@/lib/auth/session";
 import { hasAnyPermission, hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
@@ -16,14 +17,24 @@ import { RegistrationWizard } from "@/features/customers/registration-wizard/reg
 /**
  * Customer → Register Customer.
  *
- * Six API calls fed this wizard's dropdowns, awaited with no catch, so a
- * stopped API took the route down with an unhandled "Unauthenticated." — the
- * crash reported at `NewCustomerPage`. They are now loaded together behind
- * withDesignFallback.
+ * Everything the wizard needs is loaded here, in one round of parallel
+ * requests, and NOTHING falls back to fixtures. A registration screen showing
+ * live branches beside invented loan types would be lying in a way that is
+ * very hard to spot, so a failure reaches the error boundary instead.
  *
- * All six fall back together rather than one at a time. A form showing live
- * branches beside fixture regions would be lying in a way that is very hard to
- * spot, and the banner could not be worded truthfully either way.
+ * Two of these are new and load-bearing:
+ *
+ *   requirements  what each account type demands, and whether this deployment
+ *                 can perform a NIDA or SMS check at all. The wizard shows and
+ *                 requires what these rows say — the same rows the API
+ *                 validates against.
+ *
+ *   drafts        unfinished registrations. Held on the server, so one begun
+ *                 at another desk can be finished here.
+ *
+ * Districts, wards and streets are not read here. The address step asks for
+ * districts one region at a time as the officer opens the control (see
+ * geography-actions.ts), and ward and street are typed rather than chosen.
  */
 export default async function NewCustomerPage() {
   const user = await getCurrentUser();
@@ -31,34 +42,26 @@ export default async function NewCustomerPage() {
   if (!hasAnyPermission(user, [PERMISSIONS.CUSTOMERS_MANAGE])) return <AccessDeniedState />;
 
   const canPickAnyBranch = hasPermission(user, PERMISSIONS.BRANCHES_VIEW_ALL);
+  /*
+   * Whether the Employee field is a dropdown or the signed-in user's name.
+   * Assigning a customer to another officer moves the portfolio and the
+   * commission with them, so it is a supervisory act with its own grant.
+   */
+  const canAssignOfficer = hasPermission(user, PERMISSIONS.CUSTOMERS_ASSIGN_OFFICER);
 
-  // The address cascade filters client-side as the officer picks, so every
-  // level is loaded up front.
-  /*
-   * No fallback. These lookups used to fall back to fixture branches and
-   * categories when the API was unreachable — which meant the form could be
-   * filled in against branches that do not exist. A registration screen is the
-   * last place to guess, so a failure reaches the error boundary.
-   */
-  /*
-   * Districts, wards and streets are NOT read here any more.
-   *
-   * They used to be, in full, so the address step could filter them in the
-   * browser — three whole-table reads on every visit to this page, the largest
-   * of them the street table. The step now asks for one level at a time as the
-   * officer opens each control (see geography-actions.ts), so the page loads
-   * three fewer queries and the officer waits for one small list instead of
-   * every address in the country.
-   *
-   * Regions stay: it is a short list, and the review step names the chosen one.
-   */
-  const [branches, categories, users, lookups] = await Promise.all([
+  const [branches, categories, users, lookups, requirements, drafts] = await Promise.all([
     getBranches(),
     getCustomerCategories(),
-    /* The "Employee" dropdown — staff, not customers. Fails soft: a missing
-       officer list should leave one dropdown empty, not block registration. */
-    getUsers().catch(() => ({ users: [] })),
+    /* The staff list, needed only when delegation is allowed. Fails soft: a
+       missing officer list should leave one dropdown short, not block
+       registration. */
+    canAssignOfficer ? getUsers().catch(() => ({ users: [] })) : Promise.resolve({ users: [] }),
     getRegistrationLookups(),
+    getRegistrationRequirements(),
+    /* Fails soft. Save-and-resume is a convenience layered over a form that
+       works without it; a draft listing being unavailable must not take the
+       registration screen down. */
+    getRegistrationDrafts().catch(() => []),
   ]);
 
   const activeBranches = branches.filter((b) => b.status === "active" && !b.isHeadOffice);
@@ -76,7 +79,7 @@ export default async function NewCustomerPage() {
       <PageHeader
         icon={UserPlus}
         title="Register Customer"
-        description="Bring a customer through KYC in three steps and make them loan-eligible."
+        description="Capture the customer's details and KYC, save, then verify their face — here or from any device."
         breadcrumb={[
           { label: "Customer", href: "/customers" },
           { label: "Customer Registration Form" },
@@ -89,8 +92,13 @@ export default async function NewCustomerPage() {
         branchLocked={!canPickAnyBranch}
         homeBranchId={user.branchId ?? selectableBranches[0]?.id ?? null}
         categories={activeCategories}
+        currentUser={{ id: user.id, name: user.name }}
         employees={users.users.map((u) => ({ id: u.id, name: u.name }))}
+        canAssignOfficer={canAssignOfficer}
         lookups={lookups}
+        profiles={requirements.profiles}
+        externalVerification={requirements.externalVerification}
+        openDrafts={drafts}
       />
     </>
   );

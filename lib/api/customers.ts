@@ -7,6 +7,9 @@ import type {
   CustomerCategory,
   CustomerDocument,
   KycChecklist,
+  KycRequirement,
+  RegistrationProgress,
+  ExternalVerificationState,
   NidaLookupResult,
   RegisterCustomerInput,
 } from "@/types/customer";
@@ -200,14 +203,27 @@ export async function getCustomer(id: string): Promise<Customer> {
   return apiData<Customer>(`/api/v1/customers/${id}`, { token: await token() });
 }
 
-/** GET /api/v1/customers/{customer}/kyc-status — the five-item checklist and what it implies. */
+/**
+ * GET /api/v1/customers/{customer}/kyc-status.
+ *
+ * `checklist` is the original five-key map, kept because the contract
+ * published it. `requirements` is what the UI should read: one line per
+ * requirement, each knowing whether it applies to this customer's account
+ * type and whether the check is even possible in this deployment.
+ */
 export interface KycStatusResult {
   customerId: string;
   checklist: KycChecklist;
+  requirements: KycRequirement[];
   kycStatus: string;
   isComplete: boolean;
   missingDocuments: string[];
   isLoanEligible: boolean;
+  progress: RegistrationProgress;
+  externalVerification: {
+    nida: ExternalVerificationState;
+    otp: ExternalVerificationState;
+  };
 }
 
 export async function getKycStatus(customerId: string): Promise<KycStatusResult> {
@@ -245,6 +261,9 @@ export async function registerCustomerRequest(input: RegisterCustomerInput): Pro
       districtId: toId(input.districtId),
       wardId: toId(input.wardId),
       streetId: toId(input.streetId),
+      /* Typed, not chosen. See the API's 2026_08_26 migration. */
+      wardName: blank(input.wardName),
+      streetName: blank(input.streetName),
       residenceType: input.residenceType,
       branchId: toId(input.branchId),
       customerCategoryId: toId(input.customerCategoryId),
@@ -304,6 +323,10 @@ export async function registerCustomerRequest(input: RegisterCustomerInput): Pro
       landmark: blank(input.landmark),
       occupation: blank(input.occupation),
       employer: blank(input.employer),
+      /* Both free text now — the master-data ids above stay for records that
+         already reference a list entry. */
+      employmentType: blank(input.employmentType),
+      workType: blank(input.workType),
       monthlyIncome: input.monthlyIncome ?? undefined,
       businessName: blank(input.businessName),
       businessType: blank(input.businessType),

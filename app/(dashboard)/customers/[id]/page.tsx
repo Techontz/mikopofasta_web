@@ -29,6 +29,7 @@ import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
 import { OverviewPanel } from "@/features/customers/profile/overview-panel";
 import { TimelinePanel } from "@/features/customers/profile/timeline-panel";
 import { KycChecklistPanel } from "@/features/customers/profile/kyc-checklist-panel";
+import { RegistrationStageBanner } from "@/features/customers/profile/registration-stage-banner";
 import { DocumentsPanel } from "@/features/customers/profile/documents-panel";
 import { NotesPanel } from "@/features/customers/profile/notes-panel";
 import { GuarantorsPanel } from "@/features/customers/profile/guarantors-panel";
@@ -40,8 +41,40 @@ import { FaceVerificationPanel } from "@/features/customers/profile/face-verific
 import { getRegistrationLookups } from "@/lib/api/master-data";
 import { getUsers } from "@/lib/api/users";
 
-export default async function CustomerProfilePage({ params }: { params: Promise<{ id: string }> }) {
+/** Valid `?tab=` values. An unknown one falls back rather than showing nothing. */
+const TABS = [
+  "overview",
+  "details",
+  "kyc",
+  "face",
+  "timeline",
+  "documents",
+  "notes",
+  "guarantors",
+  "next-of-kin",
+  "group",
+  "audit",
+];
+
+export default async function CustomerProfilePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  /*
+   * `?tab=face` opens straight on Face KYC.
+   *
+   * The link that uses it is on the KYC panel of a customer whose only
+   * outstanding item is the liveness check — and, more importantly, it is a
+   * plain URL. Somebody handed a customer number on a phone reaches the scan
+   * in one step, from a session that has nothing to do with the one that
+   * registered them. That is the whole cross-device requirement, and it needs
+   * no state beyond being signed in.
+   */
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const { id } = await params;
+  const { tab } = await searchParams;
 
   // A customer outside this officer's branch scope comes back 403, a missing
   // one 404. Both mean "no such profile, for you" and belong on the not-found
@@ -144,12 +177,24 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
       <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/customers"><ArrowLeft className="size-4" />Back to Customers</Link>} />
 
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="space-y-4 pt-6">
           <CustomerHeader customer={customer} canManage={canManage} canApprove={canApprove} />
+
+          {/*
+            Where this registration stands, on the first screen rather than
+            three tabs in.
+
+            The header already carries `kycStatus`, which says `incomplete` for
+            a customer missing an address and for one who has only the face
+            scan left — two situations needing entirely different actions from
+            entirely different people. This says which, and what to do, and it
+            is the same derived stage the KYC tab and the wizard read.
+          */}
+          <RegistrationStageBanner progress={kyc.progress} customerId={customer.id} />
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="overview">
+      <Tabs defaultValue={TABS.includes(tab ?? "") ? (tab as string) : "overview"}>
         <TabsList className="max-w-full justify-start overflow-x-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="details">Details</TabsTrigger>
@@ -192,7 +237,7 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
         <TabsContent value="kyc">
           <Card>
             <CardContent className="pt-6">
-              <KycChecklistPanel kyc={kyc} />
+              <KycChecklistPanel kyc={kyc} customerId={customer.id} />
             </CardContent>
           </Card>
         </TabsContent>

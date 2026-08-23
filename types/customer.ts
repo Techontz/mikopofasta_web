@@ -114,8 +114,16 @@ export const CustomerSchema = z.object({
   maritalStatus: z.enum(MARITAL_STATUSES).nullable(),
   regionId: z.string().nullable(),
   districtId: z.string().nullable(),
-  wardId: z.string().nullable(),
-  streetId: z.string().nullable(),
+  /*
+   * Ward and street are typed, not chosen — the reference tables do not cover
+   * the country and a cascade that dead-ends forces a wrong answer. The ids
+   * stay in the contract for records that already hold one; the wizard sends
+   * the names. See the API's 2026_08_26 migration.
+   */
+  wardId: z.string().nullable().optional(),
+  streetId: z.string().nullable().optional(),
+  wardName: z.string().nullable().optional(),
+  streetName: z.string().nullable().optional(),
   residenceType: z.enum(RESIDENCE_TYPES).nullable(),
 
   /*
@@ -138,6 +146,8 @@ export const CustomerSchema = z.object({
   employer: z.string().nullable().optional(),
   monthlyIncome: z.number().nullable().optional(),
   employmentType: z.string().nullable().optional(),
+  /* Free text, like employmentType. No list of occupations is complete. */
+  workType: z.string().nullable().optional(),
   businessName: z.string().nullable().optional(),
   businessType: z.string().nullable().optional(),
   businessAddress: z.string().nullable().optional(),
@@ -207,6 +217,46 @@ export function customerFullName(c: Pick<Customer, "firstName" | "middleName" | 
  * record exists, and the API accepts bank details on write without ever
  * returning them.
  */
+/**
+ * One line of the checklist the API now returns.
+ *
+ * The flat `KycChecklist` below is the original five-key map and is kept
+ * because the contract published it, but it cannot express what the officer
+ * needs to know: whether a line is required for THIS customer's account type,
+ * and — for NIDA and SMS — whether it is required but impossible here.
+ */
+export interface KycRequirement {
+  key: string;
+  label: string;
+  satisfied: boolean;
+  required: boolean;
+  /** Demanded by policy, but the integration does not exist in this deployment. */
+  blocked: boolean;
+  detail: string | null;
+}
+
+/** How far a registration has got. Derived by the API, never stored. */
+export type RegistrationStage =
+  | "draft"
+  | "information_incomplete"
+  | "awaiting_face_verification"
+  | "not_eligible"
+  | "loan_eligible";
+
+export interface RegistrationProgress {
+  stage: RegistrationStage;
+  label: string;
+  outstanding: string[];
+  nextAction: string | null;
+  isLoanEligible: boolean;
+}
+
+/** Whether this deployment can perform an external check at all. */
+export interface ExternalVerificationState {
+  available: boolean;
+  note: string;
+}
+
 export interface KycChecklist {
   nidaVerified: boolean;
   otpVerified: boolean;
@@ -287,8 +337,16 @@ export const RegisterCustomerInputSchema = z.object({
   maritalStatus: z.enum(MARITAL_STATUSES).nullable(),
   regionId: z.string().nullable(),
   districtId: z.string().nullable(),
-  wardId: z.string().nullable(),
-  streetId: z.string().nullable(),
+  /*
+   * Ward and street are typed, not chosen — the reference tables do not cover
+   * the country and a cascade that dead-ends forces a wrong answer. The ids
+   * stay in the contract for records that already hold one; the wizard sends
+   * the names. See the API's 2026_08_26 migration.
+   */
+  wardId: z.string().nullable().optional(),
+  streetId: z.string().nullable().optional(),
+  wardName: z.string().nullable().optional(),
+  streetName: z.string().nullable().optional(),
   residenceType: z.enum(RESIDENCE_TYPES).nullable(),
 
   /*
@@ -311,6 +369,8 @@ export const RegisterCustomerInputSchema = z.object({
   employer: z.string().nullable().optional(),
   monthlyIncome: z.number().nullable().optional(),
   employmentType: z.string().nullable().optional(),
+  /* Free text, like employmentType. No list of occupations is complete. */
+  workType: z.string().nullable().optional(),
   businessName: z.string().nullable().optional(),
   businessType: z.string().nullable().optional(),
   businessAddress: z.string().nullable().optional(),

@@ -2,51 +2,74 @@
 
 import * as React from "react";
 import { useFormContext } from "react-hook-form";
+import { Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Combobox } from "@/components/settings/combobox";
 import { GENDERS } from "@/types/enums";
 import type { WizardValues } from "@/features/customers/registration-wizard/wizard-schema";
 import type { MasterDataOption } from "@/lib/api/master-data";
+import type { AccountTypeRequirementProfile } from "@/lib/api/registration";
 import type { Branch } from "@/types/branch";
-import {
-  loadDistricts,
-  loadRegions,
-  loadStreets,
-  loadWards,
-} from "@/features/customers/geography-actions";
+import { loadDistricts, loadRegions } from "@/features/customers/geography-actions";
 
 /**
- * Step 1 — Basic Information, in the legacy form's exact order.
+ * Step 1 — Basic Information.
  *
- * The layout is the old screen's, row for row:
+ * The legacy screen's layout, row for row, because the officers reading it
+ * recognise it:
  *
  *   First Name        | Middle name       | Last name
  *   Branch            | Employee          | Gender
  *   Date of Birth | Year | Phone Number | Loan Type | Types of customer
+ *   Account Type
  *   Region            | District          | Ward        | Street
  *
- * Field order, grouping and the single `next →` are fixed by the screenshots.
- * What is modern is underneath: every dropdown reads the database rather than a
- * constant, and the four address levels cascade instead of being free text.
+ * Three things underneath it changed.
+ *
+ * EMPLOYEE IS NO LONGER A LIST OF EVERYONE. It was a dropdown of every member
+ * of staff, defaulting to nobody — so the field that records whose book the
+ * customer sits on was routinely left blank, and the officer sitting with the
+ * customer had to find their own name among all of them. It now shows the
+ * signed-in user and is read-only. A supervisor holding
+ * `customers.assign_officer` gets the dropdown back, because assigning a
+ * customer to another officer moves the portfolio and the commission with them
+ * and is a supervisory act.
+ *
+ * WARD AND STREET ARE TYPED. They were the bottom two levels of a cascade over
+ * reference tables that do not cover the country. With no ward row there was no
+ * street list, and the officer's only options were to pick a neighbouring ward
+ * — a wrong address recorded as if verified — or abandon the registration.
+ * Region and district stay dropdowns: those lists are complete, and picking
+ * from them is what keeps an address searchable.
+ *
+ * ACCOUNT TYPE IS HERE, NOT ON STEP 2. It decides what the rest of the wizard
+ * asks for, so it has to be answered before the officer reaches the steps it
+ * governs. See `wizard-schema.ts`.
  *
  * "Year" is the legacy form's read-only age box — it shows 0 until a date of
- * birth is entered and is derived, never typed. It is reproduced because the
- * officers reading this screen expect it, and computing it from `dob` is the
- * only honest way to fill it.
+ * birth is entered and is derived, never typed.
  */
-export function LegacyBasicStep({
+export function BasicInformationStep({
   branches,
   branchLocked,
+  currentUser,
   employees,
+  canAssignOfficer,
   loanTypes,
   customerTypes,
+  accountTypes,
+  profile,
 }: {
   branches: Branch[];
   branchLocked: boolean;
+  currentUser: { id: string; name: string };
   employees: { id: string; name: string }[];
+  canAssignOfficer: boolean;
   loanTypes: MasterDataOption[];
   customerTypes: MasterDataOption[];
+  accountTypes: MasterDataOption[];
+  profile: AccountTypeRequirementProfile;
 }) {
   const {
     register,
@@ -57,8 +80,7 @@ export function LegacyBasicStep({
 
   const dob = watch("dob");
   const regionId = watch("regionId");
-  const districtId = watch("districtId");
-  const wardId = watch("wardId");
+  const employeeId = watch("employeeId");
 
   /** The legacy "Year" box: age in whole years, or 0 before a date is set. */
   const age = React.useMemo(() => {
@@ -72,13 +94,17 @@ export function LegacyBasicStep({
     return Math.max(0, years);
   }, [dob]);
 
-  const districtLoader = React.useCallback(() => loadDistricts(regionId ?? ""), [regionId]);
-  const wardLoader = React.useCallback(() => loadWards(districtId ?? ""), [districtId]);
-  const streetLoader = React.useCallback(() => loadStreets(wardId ?? ""), [wardId]);
   const regionLoader = React.useCallback(() => loadRegions(), []);
+  const districtLoader = React.useCallback(() => loadDistricts(regionId ?? ""), [regionId]);
 
   const asOptions = (rows: MasterDataOption[]) =>
     rows.map((r) => ({ value: r.id, label: r.name, hint: r.description ?? undefined }));
+
+  /* Whoever the record is currently assigned to, named. Falls back to the
+     signed-in user, which is what the form is initialised with. */
+  const assignedName =
+    employees.find((e) => e.id === employeeId)?.name ??
+    (employeeId === currentUser.id ? currentUser.name : currentUser.name);
 
   return (
     <div className="space-y-5">
@@ -112,16 +138,49 @@ export function LegacyBasicStep({
             invalid={!!errors.branchId}
           />
         </Field>
-        <Field label="Employee" error={errors.employeeId?.message}>
-          <Combobox
-            id="employeeId"
-            value={watch("employeeId") || null}
-            onChange={(v) => setValue("employeeId", v ?? "")}
-            options={employees.map((e) => ({ value: e.id, label: e.name }))}
-            placeholder="Select Employee"
-            emptyMessage="No staff are registered."
-          />
+
+        <Field
+          label="Employee"
+          error={errors.employeeId?.message}
+          help={
+            canAssignOfficer
+              ? "Defaults to you. Change it only to register on another officer's behalf."
+              : undefined
+          }
+        >
+          {canAssignOfficer ? (
+            <Combobox
+              id="employeeId"
+              value={employeeId || null}
+              onChange={(v) => setValue("employeeId", v ?? currentUser.id)}
+              options={
+                /* The signed-in user is guaranteed to be offered even if the
+                   staff list failed to load — otherwise a supervisor could be
+                   left unable to select themselves. */
+                employees.some((e) => e.id === currentUser.id)
+                  ? employees.map((e) => ({ value: e.id, label: e.name }))
+                  : [{ value: currentUser.id, label: currentUser.name }, ...employees.map((e) => ({ value: e.id, label: e.name }))]
+              }
+              placeholder="Select Employee"
+              emptyMessage="No staff are registered."
+            />
+          ) : (
+            /*
+             * Read-only, and shown as text rather than a disabled select: a
+             * disabled control invites the officer to look for a way to enable
+             * it. The value still reaches the payload — it is registered in the
+             * form, not rendered from it.
+             */
+            <div className="flex h-9 items-center gap-2 rounded-md border bg-muted px-3 text-sm">
+              <Lock className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+              <span className="truncate font-medium">{assignedName}</span>
+              <span className="sr-only">
+                Registering as {assignedName}. You may only register customers under your own name.
+              </span>
+            </div>
+          )}
         </Field>
+
         <Field label="Gender" required error={errors.gender?.message}>
           <Combobox
             id="gender"
@@ -153,7 +212,7 @@ export function LegacyBasicStep({
             onChange={(v) => setValue("loanTypeId", v ?? "")}
             options={asOptions(loanTypes)}
             placeholder="Select loan type"
-            emptyMessage="No loan types are configured."
+            emptyMessage="No loan types are configured. Add them under Administration → Master Data."
           />
         </Field>
         <Field label="Types of customer" error={errors.customerTypeId?.message}>
@@ -163,14 +222,37 @@ export function LegacyBasicStep({
             onChange={(v) => setValue("customerTypeId", v ?? "")}
             options={asOptions(customerTypes)}
             placeholder="Select"
-            emptyMessage="No customer types are configured."
+            emptyMessage="No customer types are configured. Add them under Administration → Master Data."
           />
         </Field>
       </div>
 
-      {/* Row 4 — Region | District | Ward | Street (cascading) */}
+      {/* Row 4 — Account Type, which decides the rest of the wizard */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field
+          label="Account Type"
+          error={errors.accountTypeId?.message}
+          help="Decides what the remaining steps ask for."
+        >
+          <Combobox
+            id="accountTypeId"
+            value={watch("accountTypeId") || null}
+            onChange={(v) => setValue("accountTypeId", v ?? "")}
+            options={asOptions(accountTypes)}
+            placeholder="Select account type"
+            emptyMessage="No account types are configured. Add them under Administration → Master Data."
+          />
+        </Field>
+        {profile.guidance && (
+          <div className="flex items-end">
+            <p className="pb-2 text-xs text-muted-foreground">{profile.guidance}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Row 5 — Region | District (chosen) | Ward | Street (typed) */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Field label="Region" error={errors.regionId?.message}>
+        <Field label="Region" required={profile.requiresAddress} error={errors.regionId?.message}>
           <Combobox
             id="addr-region"
             value={regionId ?? null}
@@ -181,58 +263,35 @@ export function LegacyBasicStep({
             invalid={!!errors.regionId}
             onChange={(v) => {
               setValue("regionId", v, { shouldValidate: true });
-              // Everything below now belongs to a different place.
+              // The district below now belongs to a different place.
               setValue("districtId", null);
-              setValue("wardId", null);
-              setValue("streetId", null);
             }}
           />
         </Field>
-        <Field label="District">
+
+        <Field label="District" required={profile.requiresAddress} error={errors.districtId?.message}>
           <Combobox
             id="addr-district"
-            value={districtId ?? null}
+            value={watch("districtId") ?? null}
             loadOptions={districtLoader}
             loadKey={regionId ?? null}
             disabled={!regionId}
             disabledMessage="Select a region first"
-            placeholder="district"
+            placeholder="Select district"
             emptyMessage="No districts in this region."
-            onChange={(v) => {
-              setValue("districtId", v);
-              setValue("wardId", null);
-              setValue("streetId", null);
-            }}
+            invalid={!!errors.districtId}
+            onChange={(v) => setValue("districtId", v, { shouldValidate: true })}
           />
         </Field>
-        <Field label="Ward">
-          <Combobox
-            id="addr-ward"
-            value={wardId ?? null}
-            loadOptions={wardLoader}
-            loadKey={districtId ?? null}
-            disabled={!districtId}
-            disabledMessage="Select a district first"
-            placeholder="Ward"
-            emptyMessage="No wards in this district."
-            onChange={(v) => {
-              setValue("wardId", v);
-              setValue("streetId", null);
-            }}
-          />
+
+        <Field label="Ward" error={errors.wardName?.message}>
+          {/* Typed. Our ward table does not cover the country, and a dropdown
+              that cannot offer the right answer produces a wrong one. */}
+          <Input id="wardName" placeholder="Type the ward" {...register("wardName")} />
         </Field>
-        <Field label="Street">
-          <Combobox
-            id="addr-street"
-            value={watch("streetId") ?? null}
-            loadOptions={streetLoader}
-            loadKey={wardId ?? null}
-            disabled={!wardId}
-            disabledMessage="Select a ward first"
-            placeholder="street"
-            emptyMessage="No streets in this ward."
-            onChange={(v) => setValue("streetId", v)}
-          />
+
+        <Field label="Street" error={errors.streetName?.message}>
+          <Input id="streetName" placeholder="Type the street" {...register("streetName")} />
         </Field>
       </div>
     </div>
@@ -244,11 +303,13 @@ function Field({
   label,
   required,
   error,
+  help,
   children,
 }: {
   label: string;
   required?: boolean;
   error?: string;
+  help?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -257,6 +318,7 @@ function Field({
         {label}:{required && <span className="ml-0.5 text-destructive">*</span>}
       </Label>
       {children}
+      {help && !error && <p className="text-[11px] text-muted-foreground">{help}</p>}
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );

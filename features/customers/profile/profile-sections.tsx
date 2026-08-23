@@ -75,7 +75,10 @@ export function ProfileSections({
         fields={[
           { name: "maritalStatusId", label: "Martial Status", kind: "select", options: opts(lookups["marital-statuses"]) },
           { name: "accountTypeId", label: "Account Type", kind: "select", options: opts(lookups["account-types"]) },
-          { name: "workTypeId", label: "Work Type", kind: "select", options: opts(lookups["work-types"]) },
+          /* Typed, not chosen — see the API's 2026_08_26 migration. The list
+             version is gone from the form; records that reference a list entry
+             still read correctly because the migration copied the name across. */
+          { name: "workType", label: "Work Type" },
           { name: "loanTypeId", label: "Loan Type", kind: "select", options: opts(lookups["loan-types"]) },
           { name: "customerTypeId", label: "Types of customer", kind: "select", options: opts(lookups["customer-types"]) },
           { name: "dependentsCount", label: "Number of Dependents", kind: "number" },
@@ -88,7 +91,7 @@ export function ProfileSections({
         canEdit={canEdit}
         values={v}
         fields={[
-          { name: "employmentTypeId", label: "Type of employment", kind: "select", options: opts(lookups["employment-types"]) },
+          { name: "employmentType", label: "Type of employment" },
           { name: "occupationId", label: "Occupation", kind: "select", options: opts(lookups.occupations) },
           { name: "employer", label: "Name of employer" },
           { name: "department", label: "Department" },
@@ -119,6 +122,10 @@ export function ProfileSections({
         canEdit={canEdit}
         values={v}
         fields={[
+          /* Region and district remain chosen from reference data; ward and
+             street are typed, because those tables do not cover the country. */
+          { name: "wardName", label: "Ward" },
+          { name: "streetName", label: "Street" },
           { name: "village", label: "Village" },
           { name: "houseNumber", label: "House Number" },
           { name: "postalCode", label: "Postal Code" },
