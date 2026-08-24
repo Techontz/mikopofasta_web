@@ -74,6 +74,15 @@ export interface CustomerFilters {
   kycStatus?: string[];
   status?: string[];
   approvalStatus?: string[];
+  /*
+   * The whole eligibility rule, asked of the API rather than reassembled here.
+   *
+   * `kycStatus: ["completed"] + approvalStatus: ["approved"]` is a second copy
+   * of `Customer::isLoanEligible()` living in the frontend, free to drift from
+   * it the moment the rule changes — and it did: registration approval was not
+   * part of it until now. One flag, one definition, server-side.
+   */
+  loanEligible?: boolean;
   branchId?: string;
   customerCategoryId?: string;
   includeDeleted?: boolean;
@@ -102,6 +111,7 @@ function repeatedParams(filters: CustomerFilters): string {
   for (const value of filters.kycStatus ?? []) parts.push(`kyc_status[]=${encodeURIComponent(value)}`);
   for (const value of filters.status ?? []) parts.push(`status[]=${encodeURIComponent(value)}`);
   for (const value of filters.approvalStatus ?? []) parts.push(`approval_status[]=${encodeURIComponent(value)}`);
+  if (filters.loanEligible) parts.push("loan_eligible=1");
   return parts.join("&");
 }
 
@@ -197,6 +207,54 @@ export async function getCustomerFreezes(customerId: string): Promise<AccountFre
   });
 
   return rows.map((row) => AccountFreezeSchema.parse(row));
+}
+
+/**
+ * A row on the manager's registration-approval queue.
+ *
+ * Its own endpoint rather than the customer index, because deciding needs
+ * facts the index does not carry — whether the face scan passed, who
+ * registered the customer, and what is still outstanding. Deriving
+ * `outstanding` in the browser would mean one kyc-status request per row.
+ */
+export interface PendingRegistration {
+  id: string;
+  customerNumber: string;
+  fullName: string;
+  phone: string;
+  branchName: string | null;
+  categoryName: string | null;
+  accountTypeName: string | null;
+  registeredById: string | null;
+  registeredByName: string | null;
+  registeredAt: string | null;
+  kycStatus: string;
+  faceVerified: boolean;
+  /** Empty means approvable. The same list the API checks before deciding. */
+  outstanding: string[];
+  requiresExtraApproval: boolean;
+}
+
+/** GET /api/v1/customers/pending-approval — branch-scoped by the API. */
+export async function getPendingRegistrations(): Promise<PendingRegistration[]> {
+  return apiData<PendingRegistration[]>("/api/v1/customers/pending-approval", {
+    token: await token(),
+  });
+}
+
+/**
+ * POST /api/v1/customers/{id}/resubmit — a returned registration, corrected.
+ *
+ * `customers.manage`, not `customers.approve`: the officer fixes the record,
+ * the manager decides on it. Without this a rejection is terminal and a
+ * customer returned over a mistyped ward could never be registered at all —
+ * their phone and National ID are already taken by the refused record.
+ */
+export async function resubmitRegistrationRequest(id: string): Promise<Customer> {
+  return apiData<Customer>(`/api/v1/customers/${id}/resubmit`, {
+    method: "POST",
+    token: await token(),
+  });
 }
 
 export async function getCustomer(id: string): Promise<Customer> {

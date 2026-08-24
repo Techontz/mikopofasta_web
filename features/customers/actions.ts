@@ -20,6 +20,7 @@ import {
   nidaLookupRequest,
   nidaOtpVerifyRequest,
   registerCustomerRequest,
+  resubmitRegistrationRequest,
   rejectCustomerRequest,
   setCustomerStatusRequest,
   unfreezeCustomerRequest,
@@ -81,6 +82,26 @@ export async function verifyNidaOtp(input: unknown): Promise<ActionResult & { ve
   } catch (error) {
     return { ok: false, message: describeError(error) };
   }
+}
+
+/**
+ * Send a returned registration back to the approver.
+ *
+ * Reached from the customer profile once a manager has returned the file with
+ * a reason. The API clears that reason on success — it described a record that
+ * has since been corrected — and the audit trail keeps it.
+ */
+export async function resubmitCustomerRegistration(customerId: string): Promise<ActionResult> {
+  try {
+    await resubmitRegistrationRequest(customerId);
+  } catch (error) {
+    return { ok: false, message: describeError(error) };
+  }
+
+  revalidatePath(`/customers/${customerId}`);
+  revalidatePath("/customers/approvals");
+
+  return { ok: true, message: "Registration re-submitted for approval." };
 }
 
 export async function registerCustomer(

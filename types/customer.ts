@@ -240,6 +240,9 @@ export type RegistrationStage =
   | "draft"
   | "information_incomplete"
   | "awaiting_face_verification"
+  /* KYC finished; a Branch Manager must now approve the registration. */
+  | "awaiting_registration_approval"
+  | "registration_rejected"
   | "not_eligible"
   | "loan_eligible";
 

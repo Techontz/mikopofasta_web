@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { loanNavFor } from "@/features/ledger/nav-items";
 import { getAllCustomers } from "@/lib/api/customers";
+import { LoanApplicantSelector } from "@/features/loans/loan-applicant-selector";
 import { LoanApplicantPicker } from "@/features/loans/loan-applicant-picker";
 
 /**
@@ -23,14 +24,23 @@ export default async function Page() {
   if (!hasPermission(user, PERMISSIONS.LOANS_CREATE)) return <AccessDeniedState />;
 
   /*
-   * Only customers who can actually borrow. §9 makes KYC the gate, so listing
-   * somebody who would be refused at the next step wastes the officer's walk.
-   * Branch scoping is the API's — the list arrives already narrowed.
+   * Only customers who can actually borrow — and the rule is the API's.
+   *
+   * This used to send `kycStatus: completed` + `approvalStatus: approved`,
+   * which was a hand-assembled copy of `Customer::isLoanEligible()`. One flag
+   * now asks the server to apply its own definition, so the selector and the
+   * loan gate cannot disagree about who may borrow. Branch scoping is the
+   * API's too — the list arrives already narrowed.
+   *
+   * The two counts beside it are what makes an empty selector explainable
+   * rather than merely empty: they say which stage the branch's customers are
+   * actually stuck at, and who can move them.
    */
-  const customers = await getAllCustomers({
-    kycStatus: ["completed"],
-    approvalStatus: ["approved"],
-  });
+  const [customers, pendingApproval, awaitingKyc] = await Promise.all([
+    getAllCustomers({ loanEligible: true }),
+    getAllCustomers({ kycStatus: ["completed"], approvalStatus: ["pending"] }),
+    getAllCustomers({ kycStatus: ["incomplete"] }),
+  ]);
 
   return (
     <>
@@ -41,7 +51,17 @@ export default async function Page() {
         breadcrumb={[{ label: "Loan", href: "/loans" }, { label: "Loan Application" }]}
       />
       <SectionNav items={loanNavFor(user)} />
-      <LoanApplicantPicker customers={customers} />
+
+      {/* The question this screen exists to answer: which customer. */}
+      <LoanApplicantSelector
+        customers={customers}
+        pendingApprovalCount={pendingApproval.length}
+        awaitingKycCount={awaitingKyc.length}
+      />
+
+      {/* And the book underneath, for when browsing is what you actually want.
+          Same list, same eligibility — one source, two ways in. */}
+      {customers.length > 0 && <LoanApplicantPicker customers={customers} />}
     </>
   );
 }

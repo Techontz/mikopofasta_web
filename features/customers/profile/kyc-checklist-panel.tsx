@@ -28,6 +28,9 @@ const STAGE_TONE: Record<RegistrationStage, string> = {
   draft: "border-muted-foreground/30 bg-muted",
   information_incomplete: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
   awaiting_face_verification: "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-400",
+  awaiting_registration_approval:
+    "border-indigo-500/30 bg-indigo-500/10 text-indigo-700 dark:text-indigo-400",
+  registration_rejected: "border-destructive/40 bg-destructive/10 text-destructive",
   not_eligible: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
   loan_eligible: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
 };

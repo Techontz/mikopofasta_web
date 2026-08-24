@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BadgeCheck, CircleAlert, ScanFace, ShieldQuestion } from "lucide-react";
+import { BadgeCheck, CircleAlert, ScanFace, ShieldQuestion, Stamp, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { RegistrationProgress, RegistrationStage } from "@/types/customer";
 
@@ -29,6 +29,16 @@ const PRESENTATION: Record<
   awaiting_face_verification: {
     tone: "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-400",
     icon: ScanFace,
+  },
+  /* Waiting on a person, not on the officer — indigo rather than amber, so it
+     does not read as something the branch has failed to do. */
+  awaiting_registration_approval: {
+    tone: "border-indigo-500/30 bg-indigo-500/10 text-indigo-700 dark:text-indigo-400",
+    icon: Stamp,
+  },
+  registration_rejected: {
+    tone: "border-destructive/40 bg-destructive/10 text-destructive",
+    icon: Undo2,
   },
   not_eligible: {
     tone: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",

@@ -29,13 +29,31 @@ interface Props {
   schedules: RepaymentSchedule[];
   formulas: InterestFormula[];
   eligibility: CategoryProductEligibility[];
+  /**
+   * The customer chosen on the previous screen.
+   *
+   * The selector used to link here carrying nothing, so the officer picked a
+   * customer and was immediately asked to pick one again. Ignored if it names
+   * somebody not in `customers` — that list is already filtered to those who
+   * may borrow, so an id that is not in it is one that must not be preselected.
+   */
+  initialCustomerId?: string;
 }
 
-export function LoanApplicationForm({ customers, products, schedules, formulas, eligibility }: Props) {
+export function LoanApplicationForm({
+  customers,
+  products,
+  schedules,
+  formulas,
+  eligibility,
+  initialCustomerId,
+}: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  const [customerId, setCustomerId] = React.useState("");
+  const [customerId, setCustomerId] = React.useState(
+    initialCustomerId && customers.some((c) => c.id === initialCustomerId) ? initialCustomerId : ""
+  );
   const [productId, setProductId] = React.useState("");
   const [scheduleId, setScheduleId] = React.useState("");
   const [principal, setPrincipal] = React.useState("");

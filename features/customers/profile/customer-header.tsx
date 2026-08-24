@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { toast } from "sonner";
-import { Snowflake, ThumbsDown, ThumbsUp, UserRoundCheck, UserRoundX } from "lucide-react";
+import { Snowflake, ThumbsDown, ThumbsUp, Undo2, UserRoundCheck, UserRoundX } from "lucide-react";
 import { CustomerAvatar } from "@/components/customer-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import {
   approveCustomer,
   freezeCustomer,
   rejectCustomer,
+  resubmitCustomerRegistration,
   setCustomerActiveStatus,
   unfreezeCustomer,
 } from "@/features/customers/actions";
@@ -91,6 +92,22 @@ export function CustomerHeader({
               onConfirm={(reason) => rejectCustomer(customer.id, reason)}
             />
           </>
+        )}
+
+        {/*
+          A returned registration, corrected and sent back. Offered to the
+          officer who can edit the record rather than to the approver — and
+          only once a manager has actually returned it.
+        */}
+        {canManage && customer.approvalStatus === "rejected" && (
+          <Button
+            size="sm"
+            disabled={pending}
+            onClick={() => runSimple(() => resubmitCustomerRegistration(customer.id))}
+          >
+            <Undo2 className="size-4" />
+            Re-submit for approval
+          </Button>
         )}
 
         {canManage && customer.status !== "frozen" && (

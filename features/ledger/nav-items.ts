@@ -145,6 +145,13 @@ const CUSTOMER: SectionNavItem[] = [
    * be read as somebody's id.
    */
   { href: "/customers/new", label: "Register Customer" },
+  /*
+   * The manager-approval stage of registration. Filed under Customer, not
+   * under Loan: it decides whether a CUSTOMER is sound, which is a different
+   * question from whether a loan is, and the two are decided by different
+   * permissions. Gated on `customers.approve` below.
+   */
+  { href: "/customers/approvals", label: "Registration Approval" },
   { href: "/customers", label: "All Customer" },
   { href: "/customers/profile", label: "Customer Profile" },
 ];
@@ -204,7 +211,22 @@ export const expensesNavFor = gate(EXPENSES, TREASURY_OPS);
 export const hqExpensesNavFor = gate(HQ_EXPENSES, TREASURY_OPS);
 export const hqTransactionsNavFor = gate(HQ_TRANSACTIONS, TREASURY_OPS);
 export const loanNavFor = gate(LOAN, [PERMISSIONS.LOANS_VIEW]);
-export const customerNavFor = gate(CUSTOMER, [PERMISSIONS.CUSTOMERS_VIEW]);
+/**
+ * The Customer rail.
+ *
+ * Everything on it needs `customers.view`, except Registration Approval, which
+ * needs `customers.approve` — a Loan Officer registers customers and does not
+ * decide them, so offering them a link to the manager's queue would be an
+ * invitation to a 403. The API refuses either way; this keeps the rail honest.
+ */
+export function customerNavFor(user: AuthenticatedUser | null | undefined): SectionNavItem[] {
+  if (!user || !hasPermission(user, PERMISSIONS.CUSTOMERS_VIEW)) return [];
+
+  return CUSTOMER.filter(
+    (item) =>
+      item.href !== "/customers/approvals" || hasPermission(user, PERMISSIONS.CUSTOMERS_APPROVE)
+  );
+}
 export const groupNavFor = gate(GROUP, [PERMISSIONS.CUSTOMERS_VIEW]);
 export const reportNavFor = gate(REPORT, [PERMISSIONS.REPORTS_VIEW]);
 export const agentNavFor = gate(AGENT, TREASURY_OPS);

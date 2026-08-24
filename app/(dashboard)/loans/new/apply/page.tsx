@@ -9,16 +9,29 @@ import { getAllCustomers, getCustomerCategories } from "@/lib/api/customers";
 import { getEligibilityMatrix, getInterestFormulas, getLoanProducts, getRepaymentSchedules } from "@/lib/api/loans";
 import { LoanApplicationForm } from "@/features/loans/loan-application-form";
 
-export default async function NewLoanPage() {
+export default async function NewLoanPage({
+  searchParams,
+}: {
+  /* `?customerId=` — the choice made on /loans/new, carried through. */
+  searchParams: Promise<{ customerId?: string }>;
+}) {
+  const { customerId } = await searchParams;
+
   const user = await getCurrentUser();
   if (!user || !hasPermission(user, PERMISSIONS.LOANS_CREATE)) {
     return <AccessDeniedState />;
   }
 
-  // Branch scoping is the API's (§13), so the customer list arrives already
-  // narrowed — this asks only for the KYC gate the form itself cares about.
+  /*
+   * Branch scoping is the API's (§13), so the list arrives already narrowed.
+   *
+   * `loanEligible` rather than `kycStatus: completed`: KYC alone stopped being
+   * the gate when registration approval became mandatory, and a form offering
+   * an unapproved customer would only collect a full application before the
+   * API refused it.
+   */
   const [customers, products, schedules, formulas, categories] = await Promise.all([
-    getAllCustomers({ kycStatus: ["completed"] }),
+    getAllCustomers({ loanEligible: true }),
     getLoanProducts(),
     getRepaymentSchedules(),
     getInterestFormulas(),
@@ -40,6 +53,7 @@ export default async function NewLoanPage() {
         </p>
       </div>
       <LoanApplicationForm
+        initialCustomerId={customerId}
         customers={customers}
         products={products.filter((p) => p.deletedAt === null)}
         schedules={schedules.filter((s) => s.deletedAt === null)}
