@@ -5,7 +5,8 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { getCurrentUser } from "@/lib/auth/session";
 import { hasPermission } from "@/config/permissions";
 import { PERMISSIONS } from "@/types/auth";
-import { getAllCustomers, getCustomerCategories } from "@/lib/api/customers";
+import { getCustomer, getCustomerCategories, getKycStatus, type CustomerListItem } from "@/lib/api/customers";
+import { customerFullName } from "@/types/customer";
 import { getEligibilityMatrix, getInterestFormulas, getLoanProducts, getRepaymentSchedules } from "@/lib/api/loans";
 import { LoanApplicationForm } from "@/features/loans/loan-application-form";
 
@@ -23,15 +24,25 @@ export default async function NewLoanPage({
   }
 
   /*
-   * Branch scoping is the API's (§13), so the list arrives already narrowed.
+   * NO CUSTOMER LIST. The form searches for one; it is not handed all of them.
    *
-   * `loanEligible` rather than `kycStatus: completed`: KYC alone stopped being
-   * the gate when registration approval became mandatory, and a form offering
-   * an unapproved customer would only collect a full application before the
-   * API refused it.
+   * This used to call `getAllCustomers({loanEligible:true})` — every eligible
+   * customer in the branch, paged until exhausted, to populate a `<Select>`.
+   * The form now uses the same server-searched combobox as the previous screen,
+   * so the only customer this page fetches is the one that was chosen.
+   *
+   * ELIGIBILITY IS ASKED, NOT INFERRED. The record is fetched by id, and then
+   * `GET /customers/{id}/kyc-status` is asked whether they may borrow —
+   * `isLoanEligible` is the backend's own verdict, the same one `POST /loans`
+   * acts on. A hand-edited `?customerId=` naming somebody pending approval,
+   * mid-KYC or suspended therefore opens the form unselected rather than
+   * preselected with a customer the submit would refuse. Both calls fail soft
+   * for the same reason: a bad query string should cost the officer a
+   * selection, not the whole screen.
    */
-  const [customers, products, schedules, formulas, categories] = await Promise.all([
-    getAllCustomers({ loanEligible: true }),
+  const preselected = customerId ? await resolveApplicant(customerId) : null;
+
+  const [products, schedules, formulas, categories] = await Promise.all([
     getLoanProducts(),
     getRepaymentSchedules(),
     getInterestFormulas(),
@@ -53,8 +64,7 @@ export default async function NewLoanPage({
         </p>
       </div>
       <LoanApplicationForm
-        initialCustomerId={customerId}
-        customers={customers}
+        initialCustomer={preselected}
         products={products.filter((p) => p.deletedAt === null)}
         schedules={schedules.filter((s) => s.deletedAt === null)}
         formulas={formulas}
@@ -62,4 +72,36 @@ export default async function NewLoanPage({
       />
     </div>
   );
+}
+
+/**
+ * The customer named in `?customerId=`, but only if the API says they may
+ * borrow.
+ *
+ * Deliberately two requests rather than one lookup plus a local rule: the
+ * second asks the backend for `isLoanEligible`, so this page holds no copy of
+ * the eligibility chain. Returns null on anything unexpected — an unknown id, a
+ * customer outside this officer's branch scope (the API answers 403), or one
+ * who is simply not eligible.
+ */
+async function resolveApplicant(customerId: string): Promise<CustomerListItem | null> {
+  try {
+    const [customer, kyc] = await Promise.all([
+      getCustomer(customerId),
+      getKycStatus(customerId),
+    ]);
+
+    if (!kyc.isLoanEligible) return null;
+
+    return {
+      ...customer,
+      fullName: customerFullName(customer),
+      /* The list endpoint supplies these by eager-loading; the single-customer
+         one does not, and the combobox renders them only when present. */
+      branchName: null,
+      categoryName: null,
+    };
+  } catch {
+    return null;
+  }
 }

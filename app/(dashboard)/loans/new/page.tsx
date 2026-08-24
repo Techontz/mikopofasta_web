@@ -7,9 +7,8 @@ import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { PageHeader } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { loanNavFor } from "@/features/ledger/nav-items";
-import { getAllCustomers } from "@/lib/api/customers";
+import { getCustomers } from "@/lib/api/customers";
 import { LoanApplicantSelector } from "@/features/loans/loan-applicant-selector";
-import { LoanApplicantPicker } from "@/features/loans/loan-applicant-picker";
 
 /**
  * Loan → Loan Application.
@@ -24,23 +23,25 @@ export default async function Page() {
   if (!hasPermission(user, PERMISSIONS.LOANS_CREATE)) return <AccessDeniedState />;
 
   /*
-   * Only customers who can actually borrow — and the rule is the API's.
+   * COUNTS ONLY. The screen no longer downloads the customer book.
    *
-   * This used to send `kycStatus: completed` + `approvalStatus: approved`,
-   * which was a hand-assembled copy of `Customer::isLoanEligible()`. One flag
-   * now asks the server to apply its own definition, so the selector and the
-   * loan gate cannot disagree about who may borrow. Branch scoping is the
-   * API's too — the list arrives already narrowed.
+   * It used to call `getAllCustomers({loanEligible:true})`, which pages until
+   * it has every eligible customer, purely to fill one dropdown — the whole
+   * branch's records shipped to the browser on every visit. The selector now
+   * queries `?loan_eligible=1&search=` as the officer types, so all this page
+   * needs is the totals that decide the empty state and explain it.
    *
-   * The two counts beside it are what makes an empty selector explainable
-   * rather than merely empty: they say which stage the branch's customers are
-   * actually stuck at, and who can move them.
+   * `perPage: 1` because only `pagination.total` is wanted. The eligibility
+   * rule itself is the API's — `Customer::scopeLoanEligible()` — and is not
+   * restated here.
    */
-  const [customers, pendingApproval, awaitingKyc] = await Promise.all([
-    getAllCustomers({ loanEligible: true }),
-    getAllCustomers({ kycStatus: ["completed"], approvalStatus: ["pending"] }),
-    getAllCustomers({ kycStatus: ["incomplete"] }),
+  const [eligible, pendingApproval, awaitingKyc] = await Promise.all([
+    getCustomers({ loanEligible: true, perPage: 1, page: 1 }),
+    getCustomers({ kycStatus: ["completed"], approvalStatus: ["pending"], perPage: 1, page: 1 }),
+    getCustomers({ kycStatus: ["incomplete"], perPage: 1, page: 1 }),
   ]);
+
+  const eligibleCount = eligible.pagination?.total ?? 0;
 
   return (
     <>
@@ -54,14 +55,10 @@ export default async function Page() {
 
       {/* The question this screen exists to answer: which customer. */}
       <LoanApplicantSelector
-        customers={customers}
-        pendingApprovalCount={pendingApproval.length}
-        awaitingKycCount={awaitingKyc.length}
+        eligibleCount={eligibleCount}
+        pendingApprovalCount={pendingApproval.pagination?.total ?? 0}
+        awaitingKycCount={awaitingKyc.pagination?.total ?? 0}
       />
-
-      {/* And the book underneath, for when browsing is what you actually want.
-          Same list, same eligibility — one source, two ways in. */}
-      {customers.length > 0 && <LoanApplicantPicker customers={customers} />}
     </>
   );
 }

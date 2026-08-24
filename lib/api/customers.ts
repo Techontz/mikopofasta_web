@@ -21,7 +21,7 @@ import {
 } from "@/types/face-scan";
 import { AccountFreezeSchema, type AccountFreeze } from "@/types/audit";
 import type { CustomerNote } from "@/types/customer-note";
-import type { Guarantor } from "@/types/guarantor";
+import type { Guarantor, ImportableGuarantor } from "@/types/guarantor";
 import type { NextOfKin } from "@/types/next-of-kin";
 
 /**
@@ -613,20 +613,74 @@ export async function getGuarantors(customerId: string): Promise<Guarantor[]> {
   return apiData<Guarantor[]>(`/api/v1/customers/${customerId}/guarantors`, { token: await token() });
 }
 
+/**
+ * GET /api/v1/guarantors — every guarantor on record, branch-scoped by the API.
+ *
+ * Backs the loan application's "Import Guarantors" step. Server-side search, so
+ * the browser never downloads the whole guarantor book to filter it locally.
+ */
+export async function searchGuarantorsRequest(
+  search: string,
+  limit = 50
+): Promise<ImportableGuarantor[]> {
+  return apiData<ImportableGuarantor[]>("/api/v1/guarantors", {
+    token: await token(),
+    query: search.trim() === "" ? { limit } : { search: search.trim(), limit },
+  });
+}
+
 export interface GuarantorInput {
   name: string;
   phone: string;
   nidaNumber: string | null;
+  gender?: string | null;
+  maritalStatus?: string | null;
   relationship: string;
   address: string | null;
   occupation: string | null;
+  /** The passport photograph or scan, when one was taken. */
+  passport?: File | null;
+  /** An import: copy this guarantor's passport onto the new record. */
+  copyPassportFromGuarantorId?: string | null;
 }
 
+/**
+ * POST /api/v1/customers/{id}/guarantors.
+ *
+ * Sent as multipart, because the passport is a file — the same shape
+ * `uploadCustomerDocumentRequest` uses, so it goes to the same private KYC
+ * disk through the same storage service. Laravel validates a multipart field
+ * exactly as it validates a JSON one, so no rule changed to allow this.
+ *
+ * Null and undefined are omitted rather than sent: `FormData` stringifies
+ * everything, and a literal "null" would fail `Rule::in(...)` on gender.
+ */
 export async function createGuarantorRequest(customerId: string, input: GuarantorInput): Promise<Guarantor> {
+  const form = new FormData();
+
+  form.append("name", input.name);
+  form.append("phone", input.phone);
+  form.append("relationship", input.relationship);
+
+  const optional: Record<string, string | null | undefined> = {
+    nidaNumber: input.nidaNumber,
+    gender: input.gender,
+    maritalStatus: input.maritalStatus,
+    address: input.address,
+    occupation: input.occupation,
+    copyPassportFromGuarantorId: input.copyPassportFromGuarantorId,
+  };
+
+  for (const [key, value] of Object.entries(optional)) {
+    if (value !== null && value !== undefined && value !== "") form.append(key, value);
+  }
+
+  if (input.passport) form.append("passport", input.passport);
+
   return apiData<Guarantor>(`/api/v1/customers/${customerId}/guarantors`, {
     method: "POST",
     token: await token(),
-    body: input,
+    formData: form,
   });
 }
 

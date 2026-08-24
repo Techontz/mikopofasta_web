@@ -19,41 +19,43 @@ import type { SchedulePreview } from "@/lib/api/loans";
 import type { EligibilityViolation } from "@/lib/api/loans";
 import type { LoanProductWithConfig } from "@/lib/api/loans";
 import type { CustomerListItem } from "@/lib/api/customers";
+import { ApplicantCombobox } from "@/features/loans/applicant-combobox";
+import { LoanGuarantorsSection } from "@/features/loans/loan-guarantors-section";
 import type { CategoryProductEligibility, InterestFormula, RepaymentSchedule } from "@/types/loan-product";
 
 const NONE = "__none__";
 
 interface Props {
-  customers: CustomerListItem[];
   products: LoanProductWithConfig[];
   schedules: RepaymentSchedule[];
   formulas: InterestFormula[];
   eligibility: CategoryProductEligibility[];
   /**
-   * The customer chosen on the previous screen.
+   * The customer chosen on the previous screen, already confirmed
+   * loan-eligible by the API — see `resolveApplicant` on the page.
    *
    * The selector used to link here carrying nothing, so the officer picked a
-   * customer and was immediately asked to pick one again. Ignored if it names
-   * somebody not in `customers` — that list is already filtered to those who
-   * may borrow, so an id that is not in it is one that must not be preselected.
+   * customer and was immediately asked to pick one again. There is no
+   * `customers` array any more: the combobox searches the API, so this form is
+   * never handed the branch's book.
    */
-  initialCustomerId?: string;
+  initialCustomer?: CustomerListItem | null;
 }
 
 export function LoanApplicationForm({
-  customers,
   products,
   schedules,
   formulas,
   eligibility,
-  initialCustomerId,
+  initialCustomer,
 }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  const [customerId, setCustomerId] = React.useState(
-    initialCustomerId && customers.some((c) => c.id === initialCustomerId) ? initialCustomerId : ""
-  );
+  /* The whole record, not an id resolved against a preloaded list. */
+  const [customer, setCustomer] = React.useState<CustomerListItem | null>(initialCustomer ?? null);
+  const customerId = customer?.id ?? "";
+  const [guarantorCount, setGuarantorCount] = React.useState(0);
   const [productId, setProductId] = React.useState("");
   const [scheduleId, setScheduleId] = React.useState("");
   const [principal, setPrincipal] = React.useState("");
@@ -61,7 +63,6 @@ export function LoanApplicationForm({
   const [violations, setViolations] = React.useState<EligibilityViolation[]>([]);
   const [checking, setChecking] = React.useState(false);
 
-  const customer = customers.find((c) => c.id === customerId);
   const product = products.find((p) => p.id === productId);
   const schedule = schedules.find((s) => s.id === scheduleId);
 
@@ -135,7 +136,7 @@ export function LoanApplicationForm({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [complete, customerId, productId, scheduleId, principalNumber, tenureNumber]);
+  }, [complete, customerId, productId, scheduleId, principalNumber, tenureNumber, guarantorCount]);
 
   /*
    * The preview comes from the ENGINE, not from the browser.
@@ -223,37 +224,26 @@ export function LoanApplicationForm({
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
-            <Label>Customer</Label>
-            <Select
-              value={customerId || NONE}
-              onValueChange={(v) => {
-                setCustomerId(v === NONE ? "" : (v ?? ""));
+            <Label htmlFor="application-customer">Customer</Label>
+            {/*
+              The same server-searched combobox the previous screen uses, over
+              `?loan_eligible=1`. It replaced a `<Select>` listing every
+              customer this page had downloaded — and one whose placeholder
+              said "KYC-completed", which stopped being the rule when
+              registration approval became mandatory.
+            */}
+            <ApplicantCombobox
+              id="application-customer"
+              value={customerId || null}
+              initialCustomer={initialCustomer}
+              onChange={(next) => {
+                setCustomer(next);
+                /* A different borrower has a different category, so the
+                   product and cadence chosen for the last one no longer apply. */
                 setProductId("");
                 setScheduleId("");
               }}
-            >
-              <SelectTrigger aria-label="Customer" className="w-full">
-                <SelectValue placeholder="Select a KYC-completed customer">
-                  {(v: string) => {
-                    const c = customers.find((x) => x.id === v);
-                    return c ? `${c.firstName} ${c.lastName} — ${c.customerNumber}` : "Select a KYC-completed customer";
-                  }}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE} className="text-muted-foreground">
-                  Select a KYC-completed customer
-                </SelectItem>
-                {customers.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.firstName} {c.lastName} — {c.customerNumber}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {customers.length === 0 && (
-              <p className="text-xs text-muted-foreground">No eligible customers in your branch — complete a customer&apos;s KYC first.</p>
-            )}
+            />
           </div>
 
           <div className="space-y-1.5">
@@ -410,6 +400,24 @@ export function LoanApplicationForm({
           )}
         </CardContent>
       </Card>
+
+      {/*
+        The guarantor step, between the terms and the submit — where the
+        existing paper flow puts it, and where the officer can act on the
+        refusal instead of meeting it at the end with nowhere to go.
+
+        `guarantorCount` re-runs the eligibility check when it changes: adding a
+        guarantor is one of the things that can clear GUARANTORS_REQUIRED, and
+        the button must not stay disabled on a stale answer.
+      */}
+      <LoanGuarantorsSection
+        customerId={customerId}
+        customerName={customer?.fullName ?? ""}
+        requirementMessage={
+          violations.find((v) => v.code === "GUARANTORS_REQUIRED")?.message ?? null
+        }
+        onCountChange={setGuarantorCount}
+      />
 
       <div className="flex justify-end">
         <Button onClick={handleSubmit} disabled={!canSubmit || pending}>

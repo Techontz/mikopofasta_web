@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ChevronRight, Info, UserSearch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Combobox } from "@/components/settings/combobox";
+import { ApplicantCombobox } from "@/features/loans/applicant-combobox";
 import { SettingsCard } from "@/components/settings";
 import type { CustomerListItem } from "@/lib/api/customers";
 
@@ -38,39 +38,32 @@ import type { CustomerListItem } from "@/lib/api/customers";
  * branch's customers have not yet reached.
  */
 export function LoanApplicantSelector({
-  customers,
+  eligibleCount,
   pendingApprovalCount,
   awaitingKycCount,
 }: {
-  /** Already narrowed by the API to those who may borrow. */
-  customers: CustomerListItem[];
+  /** The API's total for `loan_eligible=1`, used only to decide the empty state. */
+  eligibleCount: number;
   /** Registrations finished and waiting on a manager — the usual reason this list is short. */
   pendingApprovalCount: number;
   /** Registrations not yet finished, so not yet anybody's to approve. */
   awaitingKycCount: number;
 }) {
   const router = useRouter();
-  const [selected, setSelected] = React.useState<string | null>(null);
-
-  const chosen = customers.find((c) => c.id === selected) ?? null;
-  const none = customers.length === 0;
 
   /*
-   * Name, number and phone all in the label, because the combobox filters on
-   * the label text and those are the three things an officer is handed. A
-   * customer known only by the number on a repayment slip is found by typing
-   * it, exactly as one known by name is.
+   * The chosen customer is held whole, not as an id looked up in a preloaded
+   * array. Nothing is preloaded any more: the combobox searches the API on each
+   * query, so the only record this screen holds is the one that was picked.
    */
-  const options = customers.map((c) => ({
-    value: c.id,
-    label: `${c.fullName} · ${c.customerNumber} · ${c.phone}`,
-    hint: [c.branchName, c.categoryName].filter(Boolean).join(" · ") || undefined,
-  }));
+  const [chosen, setChosen] = React.useState<CustomerListItem | null>(null);
+  const none = eligibleCount === 0;
 
   function start() {
     if (!chosen) return;
-    /* The choice travels. The old Start button linked to the form and carried
-       nothing, so the officer picked a customer and then picked them again. */
+    /* The choice travels, as the real id from the API. The old Start button
+       linked to the form and carried nothing, so the officer picked a customer
+       and then picked them again. */
     router.push(`/loans/new/apply?customerId=${encodeURIComponent(chosen.id)}`);
   }
 
@@ -83,15 +76,12 @@ export function LoanApplicantSelector({
         <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
           <div className="space-y-1.5">
             <Label htmlFor="loan-applicant">Customer</Label>
-            <Combobox
+            <ApplicantCombobox
               id="loan-applicant"
-              value={selected}
-              onChange={setSelected}
-              options={options}
+              value={chosen?.id ?? null}
+              onChange={setChosen}
+              awaitingApprovalCount={pendingApprovalCount}
               disabled={none}
-              disabledMessage="No customer is eligible to borrow yet"
-              placeholder="Search name, customer number or phone…"
-              emptyMessage="No eligible customer matches that search."
             />
           </div>
 

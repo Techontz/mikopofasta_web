@@ -210,12 +210,24 @@ export async function getFaceScanAuditReport(
   }
 }
 
-export async function addGuarantor(customerId: string, input: unknown): Promise<ActionResult> {
+/**
+ * @param passport The guarantor's photograph or scan, when one was taken.
+ *
+ * Passed separately rather than inside `input`, because the schema validates
+ * the scalar fields and a `File` is not something zod should be asked to
+ * describe. The API rules — type, size, optionality — are the authority, and
+ * they are the same ones every other KYC upload obeys.
+ */
+export async function addGuarantor(
+  customerId: string,
+  input: unknown,
+  passport?: File | null
+): Promise<ActionResult> {
   const parsed = CreateGuarantorInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid input." };
 
   try {
-    await createGuarantorRequest(customerId, parsed.data);
+    await createGuarantorRequest(customerId, { ...parsed.data, passport });
   } catch (error) {
     return { ok: false, message: describeError(error) };
   }
