@@ -71,8 +71,16 @@ export type WizardValues = z.infer<typeof WizardSchema>;
  */
 export const WIZARD_STEPS = [
   { id: "basic", label: "Basic Information" },
-  { id: "personal", label: "Additional Details" },
-  { id: "identity", label: "Identity & Documents" },
+  { id: "personal", label: "Category & Details" },
+  { id: "identity", label: "Identity" },
+  /*
+   * The documents the CATEGORY requires, one slot each. Its own step because
+   * a public servant produces five of them and the identity step had room for
+   * one, labelled "Optional" — so the requirement was unmeetable by
+   * construction. Placed after identity and before the bank details, which is
+   * the order the paper file is assembled in.
+   */
+  { id: "documents", label: "Required Documents" },
   { id: "bank", label: "Bank & Account" },
   { id: "review", label: "Review & Save" },
   { id: "face", label: "Face Verification" },
@@ -95,6 +103,10 @@ export const STEP_FIELDS: Record<WizardStepId, (keyof WizardValues)[]> = {
   basic: ["firstName", "lastName", "dob", "gender", "branchId", "phone"],
   personal: ["guarantors", "nextOfKin"],
   identity: [],
+  /* Nothing validated by the form: whether the documents are mandatory is the
+     account type's answer, given by the API, and enforcing it here would let
+     the two disagree. */
+  documents: [],
   bank: [],
   review: [],
   face: [],

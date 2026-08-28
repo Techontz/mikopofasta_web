@@ -32,6 +32,7 @@ export function RegistrationReviewStep({
   branches,
   categories,
   lookups,
+  documents,
   externalVerification,
   onEditStep,
 }: {
@@ -44,7 +45,17 @@ export function RegistrationReviewStep({
     accountTypes: MasterDataOption[];
     maritalStatuses: MasterDataOption[];
     banks: MasterDataOption[];
+    idTypes: MasterDataOption[];
+    sectors: MasterDataOption[];
+    employers: MasterDataOption[];
+    /* The cadres of the chosen sector only — the list is per-sector and has no
+       flat form. Empty until a sector is picked. */
+    sectorCategories: MasterDataOption[];
+    contractTypes: MasterDataOption[];
   };
+  /* One entry per file chosen on the documents step, so the review shows what
+     will actually be uploaded rather than only what was asked for. */
+  documents: { code: string; name: string }[];
   externalVerification: { nida: ExternalVerificationState; otp: ExternalVerificationState };
   onEditStep: (step: WizardStepId) => void;
 }) {
@@ -146,13 +157,44 @@ export function RegistrationReviewStep({
         <Row label="Loan type" value={name(lookups.loanTypes, v.loanTypeId)} />
         <Row label="Customer type" value={name(lookups.customerTypes, v.customerTypeId)} />
         <Row label="Account type" value={name(lookups.accountTypes, v.accountTypeId)} />
-        <Row label="Ward" value={v.wardName || "—"} />
-        <Row label="Street" value={v.streetName || "—"} />
+        <Row label="ID type" value={name(lookups.idTypes, v.idTypeId)} />
+        <Row label="ID number" value={v.idNumber || "—"} />
       </Group>
 
       <Group title="Additional Details" step="personal" onEdit={onEditStep}>
         <Row label="Nickname" value={v.nickname || "—"} />
         <Row label="Marital status" value={name(lookups.maritalStatuses, v.maritalStatusId)} />
+        {/* Only what this category actually asked for — the same three
+            booleans the form showed the fields off. */}
+        {category?.requiresSector && (
+          <>
+            <Row label="Sector" value={name(lookups.sectors, v.sectorId)} />
+            <Row label="Sector category" value={name(lookups.sectorCategories, v.sectorCategoryId)} />
+          </>
+        )}
+        {category?.requiresEmployer && (
+          <Row label="Employer" value={name(lookups.employers, v.employerId)} />
+        )}
+        {category?.requiresContract && (
+          <>
+            <Row label="Contract type" value={name(lookups.contractTypes, v.contractTypeId)} />
+            {v.contractExpiryDate && <Row label="Contract expiry" value={v.contractExpiryDate} />}
+          </>
+        )}
+        {category?.requiresSalary && (
+          <Row
+            label="Take-home salary"
+            value={v.takeHome === null || v.takeHome === undefined ? "—" : String(v.takeHome)}
+          />
+        )}
+        <Row
+          label="Documents attached"
+          value={
+            documents.length === 0
+              ? "None"
+              : `${documents.length} — ${documents.map((d) => d.name).join(", ")}`
+          }
+        />
         <Row label="Work type" value={v.workType || "—"} />
         <Row label="Type of employment" value={v.employmentType || "—"} />
         <Row label="Employer" value={v.employer || "—"} />

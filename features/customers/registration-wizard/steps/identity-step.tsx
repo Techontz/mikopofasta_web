@@ -2,11 +2,9 @@
 
 import * as React from "react";
 import { useFormContext } from "react-hook-form";
-import { FileText, IdCard, Info, ShieldAlert } from "lucide-react";
+import { IdCard, Info, ShieldAlert } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Combobox } from "@/components/settings/combobox";
-import type { MasterDataOption } from "@/lib/api/master-data";
 import type { WizardValues } from "@/features/customers/registration-wizard/wizard-schema";
 import type { AccountTypeRequirementProfile } from "@/lib/api/registration";
 import type { ExternalVerificationState } from "@/types/customer";
@@ -39,20 +37,9 @@ import type { ExternalVerificationState } from "@/types/customer";
 export function IdentityStep({
   profile,
   externalVerification,
-  documentTypes,
-  attachment,
-  attachmentType,
-  onAttachment,
-  onAttachmentType,
 }: {
   profile: AccountTypeRequirementProfile;
   externalVerification: { nida: ExternalVerificationState; otp: ExternalVerificationState };
-  /** The admin-managed list; `code` is what the API files the document under. */
-  documentTypes: MasterDataOption[];
-  attachment: File | null;
-  attachmentType: string;
-  onAttachment: (file: File | null) => void;
-  onAttachmentType: (code: string) => void;
 }) {
   const {
     register,
@@ -137,55 +124,9 @@ export function IdentityStep({
         )}
       </section>
 
-      {/* ------------------------------------------------------- attachment */}
-      <section className="space-y-3 rounded-lg border p-4">
-        <h3 className="flex items-center gap-2 text-sm font-semibold">
-          <FileText className="size-4 text-muted-foreground" aria-hidden />
-          Supporting document
-        </h3>
-        <p className="text-xs text-muted-foreground">
-          Optional. Filed against the customer&apos;s documents once the record is saved. More can
-          be added from their profile at any time.
-        </p>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Document type">
-            {/*
-              Chosen from the admin-managed list, not typed. A category's
-              `required_documents` names these exact codes, so a document filed
-              under anything else satisfies nothing — which is why the API
-              stopped accepting free text here.
-            */}
-            <Combobox
-              id="attachmentType"
-              value={attachmentType || null}
-              onChange={(v) => onAttachmentType(v ?? "")}
-              options={documentTypes.map((d) => ({ value: d.code, label: d.name }))}
-              placeholder="Select document type"
-              emptyMessage="No document types are configured."
-            />
-          </Field>
-
-          <Field label="File (PDF or image, max 10 MB)">
-            <div className="flex items-center gap-2 rounded-md border px-2 py-1.5">
-              <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-              <Input
-                id="attachmentFile"
-                type="file"
-                accept="application/pdf,image/jpeg,image/png,image/webp"
-                className="border-0 p-0 shadow-none focus-visible:ring-0"
-                onChange={(e) => onAttachment(e.target.files?.[0] ?? null)}
-              />
-            </div>
-            {attachment && <p className="text-[11px] text-muted-foreground">{attachment.name}</p>}
-            {attachment && !attachmentType && (
-              <p className="text-xs text-destructive">
-                Choose a document type, or the file cannot be filed.
-              </p>
-            )}
-          </Field>
-        </div>
-      </section>
+      {/* The documents themselves are collected on their own step: a
+          category may require five of them, and one box labelled "Optional"
+          could never satisfy that. See RequiredDocumentsStep. */}
     </div>
   );
 }

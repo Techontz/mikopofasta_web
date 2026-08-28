@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Combobox } from "@/components/settings/combobox";
 import { RESIDENCE_TYPES } from "@/types/enums";
 import { CategoryDataStep } from "@/features/customers/registration-wizard/steps/category-data-step";
+import { CategoryEmploymentStep } from "@/features/customers/registration-wizard/steps/category-employment-step";
 import { GuarantorsStep } from "@/features/customers/registration-wizard/steps/guarantors-step";
 import { NextOfKinStep } from "@/features/customers/registration-wizard/steps/next-of-kin-step";
 import type { WizardValues } from "@/features/customers/registration-wizard/wizard-schema";
@@ -52,11 +53,19 @@ export function AdditionalDetailsStep({
   maritalStatuses,
   occupations,
   categories,
+  sectors,
+  employers,
+  contractTypes,
   profile,
 }: {
   maritalStatuses: MasterDataOption[];
   occupations: MasterDataOption[];
   categories: CustomerCategory[];
+  /** Employing bodies. Admin-managed; never a literal in this file. */
+  sectors: MasterDataOption[];
+  /** Private companies — a separate list from sectors. */
+  employers: MasterDataOption[];
+  contractTypes: MasterDataOption[];
   profile: AccountTypeRequirementProfile;
 }) {
   const {
@@ -272,8 +281,15 @@ export function AdditionalDetailsStep({
                 setValue("customerCategoryId", v ?? "", { shouldValidate: true });
                 /* A different category asks different questions; keeping the
                    old answers would submit values against fields that no
-                   longer exist. */
+                   longer exist — and a sector or contract left behind by the
+                   previous category would be sent for a customer the new one
+                   never asks it of. */
                 setValue("dynamicFormData", {});
+                setValue("sectorId", null);
+                setValue("sectorCategoryId", null);
+                setValue("contractTypeId", null);
+                setValue("contractExpiryDate", null);
+                setValue("employerId", null);
               }}
               options={categories.map((c) => ({
                 value: c.id,
@@ -288,7 +304,17 @@ export function AdditionalDetailsStep({
         </div>
 
         {category && (
-          <div className="pt-2">
+          <div className="space-y-4 pt-2">
+            {/* The first-class blocks this category asks for — sector, cadre,
+                contract, salary. Shown off the category's own booleans, never
+                off its code. */}
+            <CategoryEmploymentStep
+              category={category}
+              sectors={sectors}
+              employers={employers}
+              contractTypes={contractTypes}
+            />
+            {/* Then the questions peculiar to this category. */}
             <CategoryDataStep category={category} />
           </div>
         )}

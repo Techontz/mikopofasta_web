@@ -11,7 +11,7 @@ import type { WizardValues } from "@/features/customers/registration-wizard/wiza
 import type { MasterDataOption } from "@/lib/api/master-data";
 import type { AccountTypeRequirementProfile } from "@/lib/api/registration";
 import type { Branch } from "@/types/branch";
-import { loadDistricts, loadRegions } from "@/features/customers/geography-actions";
+import { loadDistricts, loadRegions, loadStreets, loadWards } from "@/features/customers/geography-actions";
 
 /**
  * Step 1 — Basic Information.
@@ -36,12 +36,19 @@ import { loadDistricts, loadRegions } from "@/features/customers/geography-actio
  * customer to another officer moves the portfolio and the commission with them
  * and is a supervisory act.
  *
- * WARD AND STREET ARE TYPED. They were the bottom two levels of a cascade over
- * reference tables that do not cover the country. With no ward row there was no
- * street list, and the officer's only options were to pick a neighbouring ward
- * — a wrong address recorded as if verified — or abandon the registration.
- * Region and district stay dropdowns: those lists are complete, and picking
- * from them is what keeps an address searchable.
+ * THE ADDRESS IS CHOSEN AT ALL FOUR LEVELS. Region → District → Ward → Street,
+ * each loading from the reference tables once its parent is picked. Ward and
+ * street were briefly typed, because the tables do not yet cover the country
+ * and a cascade that dead-ends forces a wrong answer — but a typed ward is not
+ * searchable, cannot be reported on, and produces four spellings of the same
+ * place. The answer is to import the missing reference data, not to let the
+ * officer invent it: where a ward is missing the control says so and names
+ * where it is added, and no free-text box offers to record it anyway.
+ *
+ * IDENTITY IS A TYPE AND A NUMBER. Six separate ID-number boxes asked the
+ * officer to find the right one; across the customers on file, two of the six
+ * were ever used. One list of accepted documents and one number says the same
+ * thing and makes "which document did we see?" answerable.
  *
  * ACCOUNT TYPE IS HERE, NOT ON STEP 2. It decides what the rest of the wizard
  * asks for, so it has to be answered before the officer reaches the steps it
@@ -59,6 +66,7 @@ export function BasicInformationStep({
   loanTypes,
   customerTypes,
   accountTypes,
+  idTypes,
   profile,
 }: {
   branches: Branch[];
@@ -69,6 +77,8 @@ export function BasicInformationStep({
   loanTypes: MasterDataOption[];
   customerTypes: MasterDataOption[];
   accountTypes: MasterDataOption[];
+  /** Which identity documents the institution accepts. Admin-managed. */
+  idTypes: MasterDataOption[];
   profile: AccountTypeRequirementProfile;
 }) {
   const {
@@ -94,8 +104,13 @@ export function BasicInformationStep({
     return Math.max(0, years);
   }, [dob]);
 
+  const districtId = watch("districtId");
+  const wardId = watch("wardId");
+
   const regionLoader = React.useCallback(() => loadRegions(), []);
   const districtLoader = React.useCallback(() => loadDistricts(regionId ?? ""), [regionId]);
+  const wardLoader = React.useCallback(() => loadWards(districtId ?? ""), [districtId]);
+  const streetLoader = React.useCallback(() => loadStreets(wardId ?? ""), [wardId]);
 
   const asOptions = (rows: MasterDataOption[]) =>
     rows.map((r) => ({ value: r.id, label: r.name, hint: r.description ?? undefined }));
@@ -227,7 +242,25 @@ export function BasicInformationStep({
         </Field>
       </div>
 
-      {/* Row 4 — Account Type, which decides the rest of the wizard */}
+      {/* Row 4 — identity: which document, and what it says */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="ID Type" required={profile.requiresIdentityDocument} error={errors.idTypeId?.message}>
+          <Combobox
+            id="idTypeId"
+            value={watch("idTypeId") ?? null}
+            onChange={(v) => setValue("idTypeId", v ?? "", { shouldValidate: true })}
+            options={asOptions(idTypes)}
+            placeholder="Select ID type"
+            emptyMessage="No ID types are configured. Add them under Administration → Master Data."
+            invalid={!!errors.idTypeId}
+          />
+        </Field>
+        <Field label="ID Number" required={profile.requiresIdentityDocument} error={errors.idNumber?.message}>
+          <Input id="idNumber" placeholder="Number shown on the document" {...register("idNumber")} />
+        </Field>
+      </div>
+
+      {/* Row 5 — Account Type, which decides the rest of the wizard */}
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
           label="Account Type"
@@ -250,7 +283,7 @@ export function BasicInformationStep({
         )}
       </div>
 
-      {/* Row 5 — Region | District (chosen) | Ward | Street (typed) */}
+      {/* Row 6 — Region → District → Ward → Street, all four chosen */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Field label="Region" required={profile.requiresAddress} error={errors.regionId?.message}>
           <Combobox
@@ -284,14 +317,40 @@ export function BasicInformationStep({
           />
         </Field>
 
-        <Field label="Ward" error={errors.wardName?.message}>
-          {/* Typed. Our ward table does not cover the country, and a dropdown
-              that cannot offer the right answer produces a wrong one. */}
-          <Input id="wardName" placeholder="Type the ward" {...register("wardName")} />
+        <Field label="Ward" required={profile.requiresAddress} error={errors.wardId?.message}>
+          <Combobox
+            id="addr-ward"
+            value={wardId ?? null}
+            loadOptions={wardLoader}
+            loadKey={districtId ?? null}
+            disabled={!districtId}
+            disabledMessage="Select a district first"
+            placeholder="Select ward"
+            /* Not an invitation to type one instead: a ward missing from the
+               reference data is imported, never invented on a customer. */
+            emptyMessage="No wards are on file for this district yet. They are imported under Administration → Master Data."
+            invalid={!!errors.wardId}
+            onChange={(v) => {
+              setValue("wardId", v, { shouldValidate: true });
+              // The street below now belongs to a different ward.
+              setValue("streetId", null);
+            }}
+          />
         </Field>
 
-        <Field label="Street" error={errors.streetName?.message}>
-          <Input id="streetName" placeholder="Type the street" {...register("streetName")} />
+        <Field label="Street" required={profile.requiresAddress} error={errors.streetId?.message}>
+          <Combobox
+            id="addr-street"
+            value={watch("streetId") ?? null}
+            loadOptions={streetLoader}
+            loadKey={wardId ?? null}
+            disabled={!wardId}
+            disabledMessage="Select a ward first"
+            placeholder="Select street"
+            emptyMessage="No streets are on file for this ward yet. They are imported under Administration → Master Data."
+            invalid={!!errors.streetId}
+            onChange={(v) => setValue("streetId", v, { shouldValidate: true })}
+          />
         </Field>
       </div>
     </div>

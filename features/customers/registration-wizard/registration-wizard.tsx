@@ -24,6 +24,8 @@ import {
 } from "@/features/customers/registration-wizard/wizard-schema";
 import { BasicInformationStep } from "@/features/customers/registration-wizard/steps/basic-information-step";
 import { AdditionalDetailsStep } from "@/features/customers/registration-wizard/steps/additional-details-step";
+import { loadSectorCategories } from "@/features/customers/geography-actions";
+import { RequiredDocumentsStep, type PendingDocument } from "@/features/customers/registration-wizard/steps/required-documents-step";
 import { IdentityStep } from "@/features/customers/registration-wizard/steps/identity-step";
 import { BankAccountStep } from "@/features/customers/registration-wizard/steps/bank-account-step";
 import { RegistrationReviewStep } from "@/features/customers/registration-wizard/steps/registration-review-step";
@@ -105,10 +107,17 @@ export function RegistrationWizard({
   const [step, setStep] = React.useState(0);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isSavingDraft, setIsSavingDraft] = React.useState(false);
-  const [attachment, setAttachment] = React.useState<File | null>(null);
-  /* Which document type the attachment is filed under. Empty until chosen; an
-     attachment with no type is not uploaded rather than being guessed at. */
-  const [attachmentType, setAttachmentType] = React.useState("");
+  /*
+   * The documents chosen for this registration, each already paired with the
+   * type code it will be filed under. One slot per code the category requires,
+   * plus anything extra the branch attached — see RequiredDocumentsStep.
+   *
+   * Held here rather than in the form because a File is not serialisable and
+   * must never reach the draft that is saved to the server.
+   */
+  const [documents, setDocuments] = React.useState<PendingDocument[]>([]);
+
+
 
   /* Set once the record exists. From this point the wizard is operating on a
      real customer and the Save button is gone. */
@@ -124,6 +133,39 @@ export function RegistrationWizard({
     defaultValues: defaultWizardValues(homeBranchId, currentUser.id),
     mode: "onChange",
   });
+
+  /* The category drives the document slots. Read from the form each render
+     rather than mirrored into state — an effect syncing it would be a
+     setState in an effect body, and the value is already here. */
+  const selectedCategory = categories.find((c) => c.id === methods.watch("customerCategoryId"));
+
+  /*
+   * The cadres of the chosen sector, held only so the REVIEW step can name the
+   * one that was picked. The form itself does not need them — its combobox
+   * loads them on open — but a review that showed a sector and not the cadre
+   * would ask the officer to confirm half an answer.
+   *
+   * Loaded inside the async callback, never synchronously in the effect body,
+   * which would cascade a second render on every sector change.
+   */
+  const chosenSectorId = methods.watch("sectorId");
+  const [sectorCategories, setSectorCategories] = React.useState<MasterDataOption[]>([]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      const rows = await loadSectorCategories(chosenSectorId ?? "");
+      if (!cancelled) {
+        setSectorCategories(rows.map((r) => ({ id: r.value, code: r.value, name: r.label, description: null, sortOrder: null, isActive: true })));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [chosenSectorId]);
+
 
   const { watch, reset, trigger, getValues, setError, clearErrors } = methods;
 
@@ -412,21 +454,32 @@ export function RegistrationWizard({
       if (draftId) await markRegistrationDraftSubmitted(draftId, customerId);
 
       /*
-       * The attachment, if one was chosen. Uploaded after the customer exists
-       * because the endpoint is keyed on their id. A failure here is reported
-       * and does not undo the registration: the customer is created, and the
-       * document can be added from their profile.
+       * The documents, uploaded after the customer exists because the endpoint
+       * is keyed on their id. Sequentially rather than in parallel: a branch
+       * on a thin connection uploading five files at once is how all five time
+       * out together.
+       *
+       * A failure here is REPORTED AND NAMED, and does not undo the
+       * registration. The customer is created either way, and a document that
+       * did not land can be added from their profile — but the officer has to
+       * be told which one, or they will believe the file is on record.
        */
-      if (attachment && attachmentType) {
+      const failed: string[] = [];
+
+      for (const doc of documents) {
         const form = new FormData();
-        form.append("file", attachment);
-        form.append("documentType", attachmentType);
+        form.append("file", doc.file);
+        form.append("documentType", doc.code);
+
         const upload = await uploadCustomerDocument(customerId, form);
-        if (!upload.ok) {
-          toast.error(`Customer saved, but the attachment did not upload: ${upload.message}`);
-        }
-      } else if (attachment) {
-        toast.warning("Customer saved. The attachment was not filed — no document type was chosen.");
+
+        if (!upload.ok) failed.push(doc.file.name);
+      }
+
+      if (failed.length > 0) {
+        toast.error(
+          `Customer saved, but ${failed.length} document${failed.length === 1 ? "" : "s"} did not upload: ${failed.join(", ")}. Add ${failed.length === 1 ? "it" : "them"} from the customer's profile.`,
+        );
       }
     }
 
@@ -537,6 +590,7 @@ export function RegistrationWizard({
                 loanTypes={lookups["loan-types"]}
                 customerTypes={lookups["customer-types"]}
                 accountTypes={lookups["account-types"]}
+                idTypes={lookups["id-types"]}
                 profile={profile}
               />
             )}
@@ -545,20 +599,28 @@ export function RegistrationWizard({
               <AdditionalDetailsStep
                 maritalStatuses={lookups["marital-statuses"]}
                 occupations={lookups.occupations}
+                sectors={lookups.sectors}
+                employers={lookups.employers}
+                contractTypes={lookups["contract-types"]}
                 categories={categories}
                 profile={profile}
               />
             )}
 
             {currentStepId === "identity" && (
-              <IdentityStep
-                profile={profile}
-                externalVerification={externalVerification}
+              <IdentityStep profile={profile} externalVerification={externalVerification} />
+            )}
+
+            {currentStepId === "documents" && (
+              <RequiredDocumentsStep
+                category={selectedCategory}
                 documentTypes={lookups["document-types"]}
-                attachment={attachment}
-                attachmentType={attachmentType}
-                onAttachment={setAttachment}
-                onAttachmentType={setAttachmentType}
+                documents={documents}
+                onChange={setDocuments}
+                /* The API's answer, not a rule decided here. False everywhere
+                   today, which makes this step a checklist rather than a
+                   gate. */
+                blocking={profile.requiresCategoryDocuments}
               />
             )}
 
@@ -575,12 +637,21 @@ export function RegistrationWizard({
                 profile={profile}
                 branches={branches}
                 categories={categories}
+                documents={documents.map((d) => ({
+                  code: d.code,
+                  name: lookups["document-types"].find((t) => t.code === d.code)?.name ?? d.code,
+                }))}
                 lookups={{
                   loanTypes: lookups["loan-types"],
                   customerTypes: lookups["customer-types"],
                   accountTypes: lookups["account-types"],
                   maritalStatuses: lookups["marital-statuses"],
                   banks: lookups.banks,
+                  idTypes: lookups["id-types"],
+                  sectors: lookups.sectors,
+                  employers: lookups.employers,
+                  sectorCategories,
+                  contractTypes: lookups["contract-types"],
                 }}
                 externalVerification={externalVerification}
                 onEditStep={goToStep}
@@ -670,6 +741,8 @@ const EMPTY_PROFILE: AccountTypeRequirementProfile = {
   requiresCustomerCategory: false,
   requiresMaritalStatus: false,
   requiresAddress: false,
+  requiresCategoryDocuments: false,
+  categoryDocumentsEnforcedFrom: null,
   requiresIdentityDocument: false,
   requiresFaceVerification: false,
   requiresNidaVerification: false,

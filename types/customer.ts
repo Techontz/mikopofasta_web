@@ -34,6 +34,21 @@ export const CustomerCategorySchema = z.object({
   sector: z.enum(CUSTOMER_CATEGORY_SECTORS),
   requiredDocuments: z.array(z.string()),
   dynamicFormSchema: z.array(DynamicFormFieldSchema),
+  /*
+   * Which of the FIRST-CLASS registration blocks this category asks for.
+   *
+   * Sector, contract and salary are real columns on the customer, so they are
+   * not repeated inside `dynamicFormSchema` — that would describe the same
+   * fact twice, in two shapes. These three booleans say which blocks to show,
+   * and the wizard shows them off these rather than off a list of category
+   * codes it would otherwise have to know by heart.
+   */
+  requiresSector: z.boolean(),
+  /* A private-sector employee names a COMPANY, not a ministry — a separate
+     list, and never both. */
+  requiresEmployer: z.boolean(),
+  requiresContract: z.boolean(),
+  requiresSalary: z.boolean(),
   requiresExtraApproval: z.boolean(),
   createdBy: z.string().nullable(),
   deletedAt: z.string().nullable(),
@@ -115,16 +130,44 @@ export const CustomerSchema = z.object({
   regionId: z.string().nullable(),
   districtId: z.string().nullable(),
   /*
-   * Ward and street are typed, not chosen — the reference tables do not cover
-   * the country and a cascade that dead-ends forces a wrong answer. The ids
-   * stay in the contract for records that already hold one; the wizard sends
-   * the names. See the API's 2026_08_26 migration.
+   * Region → District → Ward → Street, all four CHOSEN from the reference
+   * tables, per the documented design. The `*_name` fields stay in the
+   * contract because records registered while ward and street were typed
+   * still hold them, and dropping the fields would make those records
+   * unreadable — but the wizard now sends ids.
+   *
+   * The reference tables are seeded with a demonstration subset, not the
+   * whole country. Where a ward is missing it is imported through
+   * Administration, never typed into a customer record.
    */
   wardId: z.string().nullable().optional(),
   streetId: z.string().nullable().optional(),
   wardName: z.string().nullable().optional(),
   streetName: z.string().nullable().optional(),
   residenceType: z.enum(RESIDENCE_TYPES).nullable(),
+
+  /*
+   * Identity as ONE type plus ONE number — see the API's 2026_08_30
+   * migration. The named columns further down stay in the contract for
+   * records captured before this pair existed; the wizard writes this pair.
+   */
+  idTypeId: z.string().nullable().optional(),
+  idNumber: z.string().nullable().optional(),
+
+  /*
+   * Where the customer serves, and on what terms. Shown only for a category
+   * whose `requiresSector` / `requiresContract` says so — the wizard never
+   * decides that from a category code.
+   */
+  sectorId: z.string().nullable().optional(),
+  sectorCategoryId: z.string().nullable().optional(),
+  contractTypeId: z.string().nullable().optional(),
+  /* Required by the API when the contract type is TEMPORARY, refused when it
+     is not. The rule is the server's; the form mirrors it. */
+  contractExpiryDate: z.string().nullable().optional(),
+  /** The private employer, from its own admin-managed list. */
+  employerId: z.string().nullable().optional(),
+
 
   /*
    * The KYC detail block — real columns on the API, not `dynamicFormData`.
@@ -341,16 +384,44 @@ export const RegisterCustomerInputSchema = z.object({
   regionId: z.string().nullable(),
   districtId: z.string().nullable(),
   /*
-   * Ward and street are typed, not chosen — the reference tables do not cover
-   * the country and a cascade that dead-ends forces a wrong answer. The ids
-   * stay in the contract for records that already hold one; the wizard sends
-   * the names. See the API's 2026_08_26 migration.
+   * Region → District → Ward → Street, all four CHOSEN from the reference
+   * tables, per the documented design. The `*_name` fields stay in the
+   * contract because records registered while ward and street were typed
+   * still hold them, and dropping the fields would make those records
+   * unreadable — but the wizard now sends ids.
+   *
+   * The reference tables are seeded with a demonstration subset, not the
+   * whole country. Where a ward is missing it is imported through
+   * Administration, never typed into a customer record.
    */
   wardId: z.string().nullable().optional(),
   streetId: z.string().nullable().optional(),
   wardName: z.string().nullable().optional(),
   streetName: z.string().nullable().optional(),
   residenceType: z.enum(RESIDENCE_TYPES).nullable(),
+
+  /*
+   * Identity as ONE type plus ONE number — see the API's 2026_08_30
+   * migration. The named columns further down stay in the contract for
+   * records captured before this pair existed; the wizard writes this pair.
+   */
+  idTypeId: z.string().nullable().optional(),
+  idNumber: z.string().nullable().optional(),
+
+  /*
+   * Where the customer serves, and on what terms. Shown only for a category
+   * whose `requiresSector` / `requiresContract` says so — the wizard never
+   * decides that from a category code.
+   */
+  sectorId: z.string().nullable().optional(),
+  sectorCategoryId: z.string().nullable().optional(),
+  contractTypeId: z.string().nullable().optional(),
+  /* Required by the API when the contract type is TEMPORARY, refused when it
+     is not. The rule is the server's; the form mirrors it. */
+  contractExpiryDate: z.string().nullable().optional(),
+  /** The private employer, from its own admin-managed list. */
+  employerId: z.string().nullable().optional(),
+
 
   /*
    * The KYC detail block — real columns on the API, not `dynamicFormData`.

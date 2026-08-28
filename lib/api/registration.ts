@@ -31,6 +31,15 @@ export interface AccountTypeRequirementProfile {
   requiresMaritalStatus: boolean;
   requiresAddress: boolean;
   requiresIdentityDocument: boolean;
+  /* Whether the category's own document list BLOCKS, as opposed to merely
+     being listed. False everywhere today — see the 2026_08_30_000005
+     migration. The documents step reads it to decide whether it is a
+     requirement or a checklist. */
+  requiresCategoryDocuments: boolean;
+  /* Null means the flag applies to every customer; a date means it applies
+     only to registrations on or after it, so the existing book keeps what it
+     has. See the API's 2026_08_31 migration. */
+  categoryDocumentsEnforcedFrom: string | null;
   requiresFaceVerification: boolean;
   requiresNidaVerification: boolean;
   requiresOtpVerification: boolean;

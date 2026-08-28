@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Building2, HandCoins, Percent, Receipt, Scale, Tags, Vault } from "lucide-react";
+import { Building2, HandCoins, MapPinned, Percent, Receipt, Scale, Tags, Vault } from "lucide-react";
 import { PERMISSIONS, type AuthenticatedUser, type Permission } from "@/types/auth";
 import { hasAnyPermission, hasPermission } from "@/config/permissions";
 
@@ -73,6 +73,19 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     description: "Reserve percentage held against the portfolio.",
     icon: Vault,
     href: "/admin/reserve-setting",
+    permission: PERMISSIONS.ADMIN_ORG_SETTINGS,
+  },
+  /*
+   * APPENDED, not inserted. Everything above reproduces the legacy Settings
+   * menu in its original order, and reordering it would change how people
+   * work. Geography is a capability the old system did not have — it let an
+   * officer type a ward — so it has no legacy position to take. It goes last.
+   */
+  {
+    title: "Geography",
+    description: "Region → District → Ward → Street. Imported from a CSV; registration can only offer what these tables hold.",
+    icon: MapPinned,
+    href: "/admin/geography",
     permission: PERMISSIONS.ADMIN_ORG_SETTINGS,
   },
 ];

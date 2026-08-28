@@ -1,6 +1,7 @@
 "use server";
 
 import { getDistricts, getRegions, getStreets, getWards } from "@/lib/api/organization";
+import { getSectorCategories } from "@/lib/api/master-data";
 
 /**
  * The address cascade, fetched a level at a time.
@@ -56,6 +57,21 @@ export async function loadStreets(wardId: string): Promise<GeoOption[]> {
   if (!wardId) return [];
   try {
     return (await getStreets(wardId)).map((s) => ({ value: s.id, label: s.name }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * The cadres inside one sector — the same one-level-at-a-time shape as the
+ * address cascade above, and for the same reason: the list belongs to its
+ * parent, and loading every cadre of every employing body to fill one dropdown
+ * is a full-table read for a form that will touch one branch of it.
+ */
+export async function loadSectorCategories(sectorId: string): Promise<GeoOption[]> {
+  if (!sectorId) return [];
+  try {
+    return (await getSectorCategories(sectorId)).map((c) => ({ value: c.id, label: c.name }));
   } catch {
     return [];
   }

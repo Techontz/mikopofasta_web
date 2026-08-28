@@ -23,7 +23,19 @@ export type MasterDataList =
   | "mobile-money-providers"
   | "marital-statuses"
   /* KYC document types — what a category's required documents name. */
-  | "document-types";
+  | "document-types"
+  /* Which identity document was seen, and on what terms somebody is employed
+     — see the 2026_08_30 migrations. */
+  | "id-types"
+  | "contract-types"
+  /* The employing body. Its cadres are NOT a flat list: they belong to a
+     sector, and getSectorCategories() below loads them one sector at a time,
+     exactly as the address step loads districts one region at a time. */
+  | "sectors"
+  /* Private companies. A SEPARATE list from `sectors`: a ministry has cadres
+     inside it and a company does not, and one list would offer a public
+     servant a sugar mill to serve in. */
+  | "employers";
 
 export interface MasterDataOption {
   id: string;
@@ -74,6 +86,10 @@ export async function getRegistrationLookups() {
     "mobile-money-providers",
     "marital-statuses",
     "document-types",
+    "id-types",
+    "contract-types",
+    "sectors",
+    "employers",
   ];
 
   const results = await Promise.all(
@@ -84,4 +100,24 @@ export async function getRegistrationLookups() {
     MasterDataList,
     MasterDataOption[]
   >;
+}
+
+/**
+ * The cadres inside one sector — Teachers and Nurses inside TAMISEMI.
+ *
+ * Separate from getMasterData() because this list has a parent. Returning
+ * every cadre of every employing body to a form that has already chosen one
+ * would be the same mistake the address lookups avoid, and the answer would
+ * grow with every sector an administrator adds.
+ *
+ * An empty list when no sector is chosen, rather than the whole table: an
+ * unfiltered request here has no meaningful answer.
+ */
+export async function getSectorCategories(sectorId: string | null): Promise<MasterDataOption[]> {
+  if (!sectorId) return [];
+
+  return apiData<MasterDataOption[]>("/api/v1/master-data/sector-categories", {
+    token: await token(),
+    query: { sector_id: sectorId, active: 1 },
+  });
 }
