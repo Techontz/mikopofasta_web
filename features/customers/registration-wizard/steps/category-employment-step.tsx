@@ -110,7 +110,7 @@ export function CategoryEmploymentStep({
                 disabled={!sectorId}
                 disabledMessage="Select a sector first"
                 placeholder="Select sector category"
-                emptyMessage="No categories are configured for this sector."
+                emptyMessage="This sector has no categories yet. Add them under Administration → Master Data → Sectors."
                 invalid={!!errors.sectorCategoryId}
                 onChange={(v) => setValue("sectorCategoryId", v, { shouldValidate: true })}
               />

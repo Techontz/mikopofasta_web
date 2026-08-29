@@ -373,7 +373,7 @@ function CreateGuarantorCard({
               loadOptions={regionLoader}
               loadKey="regions"
               placeholder="Select region"
-              emptyMessage="No regions are configured."
+              emptyMessage="No regions are on file yet. They are imported under Administration → Geography."
               onChange={(v) => {
                 setRegionId(v);
                 // The district below now belongs to a different place.
@@ -392,7 +392,7 @@ function CreateGuarantorCard({
               disabled={!regionId}
               disabledMessage="Select a region first"
               placeholder="Select district"
-              emptyMessage="No districts in this region."
+              emptyMessage="No districts are on file for this region yet. They are imported under Administration → Geography."
               onChange={setDistrictId}
             />
           </Field>

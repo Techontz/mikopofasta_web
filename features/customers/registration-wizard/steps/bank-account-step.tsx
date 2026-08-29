@@ -119,7 +119,7 @@ export function BankAccountStep({
               }}
               options={asOptions(banks)}
               placeholder="Select bank"
-              emptyMessage="No banks are configured."
+              emptyMessage="No banks are configured. Add them under Administration → Master Data."
             />
           </Field>
 
@@ -175,7 +175,7 @@ export function BankAccountStep({
               }}
               options={asOptions(mobileMoneyProviders)}
               placeholder="Select provider"
-              emptyMessage="No providers are configured."
+              emptyMessage="No mobile money providers are configured. Add them under Administration → Master Data."
             />
           </Field>
           <Field label="Wallet number" error={errors.walletNumber?.message}>

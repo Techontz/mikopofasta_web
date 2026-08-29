@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Building2, HandCoins, MapPinned, Percent, Receipt, Scale, Tags, Vault } from "lucide-react";
+import { Building2, Database, GitBranch, HandCoins, MapPinned, Percent, Receipt, Scale, SlidersHorizontal, Tags, Vault } from "lucide-react";
 import { PERMISSIONS, type AuthenticatedUser, type Permission } from "@/types/auth";
 import { hasAnyPermission, hasPermission } from "@/config/permissions";
 
@@ -81,6 +81,27 @@ export const ADMIN_SECTIONS: AdminSection[] = [
    * work. Geography is a capability the old system did not have — it let an
    * officer type a ward — so it has no legacy position to take. It goes last.
    */
+  {
+    title: "Master Data",
+    description: "Customer and account types, banks, ID and document types, sectors and cadres, employers. The institution's own reference data — this application ships none of it.",
+    icon: Database,
+    href: "/admin/master-data",
+    permission: PERMISSIONS.ADMIN_ORG_SETTINGS,
+  },
+  {
+    title: "Registration & Eligibility",
+    description: "What registration demands of a customer, and which loan products each category may borrow.",
+    icon: SlidersHorizontal,
+    href: "/admin/registration-rules",
+    permission: PERMISSIONS.ADMIN_ORG_SETTINGS,
+  },
+  {
+    title: "Loan Approval Chain",
+    description: "Who signs a loan off, and in what order. Configuration, not code.",
+    icon: GitBranch,
+    href: "/admin/approval-stages",
+    permission: PERMISSIONS.ADMIN_ORG_SETTINGS,
+  },
   {
     title: "Geography",
     description: "Region → District → Ward → Street. Imported from a CSV; registration can only offer what these tables hold.",

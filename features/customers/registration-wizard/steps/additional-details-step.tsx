@@ -101,7 +101,7 @@ export function AdditionalDetailsStep({
             onChange={(v) => setValue("maritalStatusId", v ?? "", { shouldValidate: true })}
             options={asOptions(maritalStatuses)}
             placeholder="Select"
-            emptyMessage="No marital statuses are configured."
+            emptyMessage="No marital statuses are configured. Add them under Administration → Master Data."
             invalid={!!errors.maritalStatusId}
           />
         </Field>
@@ -148,7 +148,7 @@ export function AdditionalDetailsStep({
             onChange={(v) => setValue("occupationId", v ?? "")}
             options={asOptions(occupations)}
             placeholder="Select"
-            emptyMessage="No occupations are configured."
+            emptyMessage="No occupations are configured. Add them under Administration → Master Data."
           />
         </Field>
       </div>
@@ -297,7 +297,7 @@ export function AdditionalDetailsStep({
                 hint: c.requiresExtraApproval ? "Needs extra approval" : undefined,
               }))}
               placeholder="Select category"
-              emptyMessage="No categories are configured."
+              emptyMessage="No customer categories are configured. Add them under Administration → Customer Categories."
               invalid={!!errors.customerCategoryId}
             />
           </Field>

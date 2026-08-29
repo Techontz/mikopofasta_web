@@ -243,7 +243,7 @@ function ExtraDocument({
             onChange={(v) => setCode(v ?? "")}
             options={documentTypes.map((d) => ({ value: d.code, label: d.name }))}
             placeholder="Select document type"
-            emptyMessage="No document types are configured."
+            emptyMessage="No document types are configured. Add them under Administration → Master Data."
           />
         </div>
         <div className="space-y-1.5">

@@ -121,7 +121,7 @@ export function DocumentsPanel({
               /* No screen creates these yet — the list is API-only — so the
                  message says what is true rather than pointing at a page
                  that does not exist. */
-              emptyMessage="No document types are configured."
+              emptyMessage="No document types are configured. Add them under Administration → Master Data."
             />
           </div>
           <div className="space-y-1.5">

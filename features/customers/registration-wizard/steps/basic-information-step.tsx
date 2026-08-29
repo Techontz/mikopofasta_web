@@ -292,7 +292,7 @@ export function BasicInformationStep({
             loadOptions={regionLoader}
             loadKey="regions"
             placeholder="Select region"
-            emptyMessage="No regions are configured."
+            emptyMessage="No regions are on file yet. They are imported under Administration → Geography."
             invalid={!!errors.regionId}
             onChange={(v) => {
               setValue("regionId", v, { shouldValidate: true });
@@ -311,7 +311,7 @@ export function BasicInformationStep({
             disabled={!regionId}
             disabledMessage="Select a region first"
             placeholder="Select district"
-            emptyMessage="No districts in this region."
+            emptyMessage="No districts are on file for this region yet. They are imported under Administration → Geography."
             invalid={!!errors.districtId}
             onChange={(v) => setValue("districtId", v, { shouldValidate: true })}
           />
