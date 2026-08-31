@@ -19,6 +19,12 @@ import {
   type FaceScan,
   type FaceScanAudit,
 } from "@/types/face-scan";
+import {
+  STRUCTURED_TARGETS,
+  isIdTarget,
+  type StructuredTarget,
+} from "@/types/customer";
+import { toRecord } from "@/features/customers/registration-wizard/wizard-schema";
 import { AccountFreezeSchema, type AccountFreeze } from "@/types/audit";
 import type { CustomerNote } from "@/types/customer-note";
 import type { Guarantor, ImportableGuarantor } from "@/types/guarantor";
@@ -299,11 +305,55 @@ function blank(value: string | null | undefined): string | undefined {
   return trimmed === "" ? undefined : trimmed;
 }
 
+/**
+ * The half of the registration body a customer type's configuration decides.
+ *
+ * Built by walking STRUCTURED_TARGETS — the single list shared with the form
+ * renderer and mirrored by the API — so this block cannot fall behind the form
+ * the way its hand-written predecessor did.
+ *
+ * Empty is sent as `undefined`, not `""`: the API reads an absent key as "not
+ * provided" and an empty string as a value, and an id column given "" is a
+ * validation failure on a field the officer deliberately left blank.
+ */
+function structuredFields(input: RegisterCustomerInput): Record<StructuredTarget, unknown> {
+  const body = {} as Record<StructuredTarget, unknown>;
+
+  for (const target of Object.keys(STRUCTURED_TARGETS) as StructuredTarget[]) {
+    const value = (input as Record<string, unknown>)[target];
+
+    if (value === undefined || value === null || value === "") {
+      body[target] = undefined;
+      continue;
+    }
+
+    body[target] = isIdTarget(target) ? toId(String(value)) : value;
+  }
+
+  return body;
+}
+
+/**
+ * EVERY field of the registration contract must be mentioned below.
+ *
+ * This annotation is the guard, and it exists because its absence cost a day.
+ * The body was a hand-written allowlist; seven fields the officer filled in —
+ * the ID type, its number, the sector, the cadre, the employer, the contract
+ * type and its expiry — were simply not in it, and were dropped on the way to
+ * the API. Nothing failed. The form validated them, the wizard held them, and
+ * they evaporated at this line, so the server rejected the registration for
+ * having no identity document and the officer was sent back to a step where
+ * everything already looked correct.
+ *
+ * With this type, a field added to RegisterCustomerInput and not mentioned here
+ * fails the build and the error names it. A field deliberately NOT sent —
+ * server-decided, or derived — is written as `undefined`, which is a decision
+ * somebody made rather than a line nobody wrote.
+ */
+type RegistrationBody = Record<keyof RegisterCustomerInput, unknown>;
+
 export async function registerCustomerRequest(input: RegisterCustomerInput): Promise<Customer> {
-  return apiData<Customer>("/api/v1/customers", {
-    method: "POST",
-    token: await token(),
-    body: {
+  const body: RegistrationBody = {
       nidaNumber: input.nidaNumber,
       nidaVerifiedAt: input.nidaVerifiedAt,
       otpVerifiedAt: input.otpVerifiedAt,
@@ -322,43 +372,38 @@ export async function registerCustomerRequest(input: RegisterCustomerInput): Pro
       /* Typed, not chosen. See the API's 2026_08_26 migration. */
       wardName: blank(input.wardName),
       streetName: blank(input.streetName),
-      residenceType: input.residenceType,
       branchId: toId(input.branchId),
       customerCategoryId: toId(input.customerCategoryId),
-      dynamicFormData: input.dynamicFormData,
+      /* A record, guaranteed. The last gate before the API, so a shape that
+         slipped through the form cannot reach the server as an array. */
+      dynamicFormData: toRecord(input.dynamicFormData),
       bankDetails: input.bankDetails,
       guarantors: input.guarantors,
       nextOfKin: input.nextOfKin,
 
       /*
-       * The legacy registration form's own fields.
+       * The identity pair — WHICH document was seen, and what it says.
        *
-       * This body is an explicit allowlist rather than a spread, so that only
-       * what the API accepts is sent — but that also means a field absent from
-       * this list is silently dropped on the way out. Every one of these was
-       * typed by the officer, validated by the form and then discarded here,
-       * which is exactly the "nothing should silently disappear" failure.
+       * These were missing from this allowlist, and that was the whole bug.
+       * The officer chose an ID type and typed its number, step one validated
+       * both, the wizard held both, and this function dropped them on the way
+       * out. The API then correctly refused the registration for carrying no
+       * identity document, the error came back keyed `idTypeId`, and the wizard
+       * dutifully sent the officer back to step one to fix a field that was
+       * already filled in.
+       */
+      idTypeId: toId(input.idTypeId),
+      idNumber: blank(input.idNumber),
+
+      /*
+       * The legacy registration form's master-data references.
+       *
+       * `loanTypeId` is deliberately absent: registration no longer asks what
+       * a customer will borrow.
        */
       employeeId: toId(input.employeeId),
-      loanTypeId: toId(input.loanTypeId),
       customerTypeId: toId(input.customerTypeId),
       accountTypeId: toId(input.accountTypeId),
-      workTypeId: toId(input.workTypeId),
-      employmentTypeId: toId(input.employmentTypeId),
-      occupationId: toId(input.occupationId),
-      maritalStatusId: toId(input.maritalStatusId),
-      bankId: toId(input.bankId),
-      mobileMoneyProviderId: toId(input.mobileMoneyProviderId),
-
-      nickname: blank(input.nickname),
-      department: blank(input.department),
-      councilNumber: blank(input.councilNumber),
-      placeOfEmployment: blank(input.placeOfEmployment),
-      retirementDate: blank(input.retirementDate),
-      dependentsCount: input.dependentsCount ?? undefined,
-      basicSalary: input.basicSalary ?? undefined,
-      takeHome: input.takeHome ?? undefined,
-      checkNumber: blank(input.checkNumber),
 
       accountName: blank(input.accountName),
       nationalIdNumber: blank(input.nationalIdNumber),
@@ -370,29 +415,61 @@ export async function registerCustomerRequest(input: RegisterCustomerInput): Pro
       cardExpiryMonth: input.cardExpiryMonth ?? undefined,
       cardExpiryYear: input.cardExpiryYear ?? undefined,
 
-      email: blank(input.email),
-      alternativePhone: blank(input.alternativePhone),
-      nationality: blank(input.nationality),
-      tinNumber: blank(input.tinNumber),
+      /*
+       * Everything a customer type's configured form may write to, forwarded
+       * from ONE shared list — the same list the field renderer binds controls
+       * to and the same one the API validates against.
+       *
+       * Derived rather than typed out, because the hand-written version of this
+       * block is what broke: it fell behind the form, and nothing failed loudly
+       * when it did. A field an administrator configures tomorrow travels
+       * without anybody remembering to add a line here.
+       */
+      ...structuredFields(input),
+
+      /* Free text beside the provider id above, and genuinely sent — the API
+         stores both, and this one is what a record captured before the list
+         existed carries. */
+      mobileMoneyProvider: blank(input.mobileMoneyProvider),
+
+      /*
+       * DELIBERATELY NOT SENT. Each of these is derived by the API from
+       * something else in this body, and sending a second copy would let the
+       * two disagree about one fact.
+       *
+       *   bankName, accountNumber   mirrored from `bankDetails`, which is the
+       *                             record of account.
+       *   cardLastFour              cut from `cardNumber`. The full number dies
+       *                             with the request; nothing here may claim to
+       *                             know the stored remainder.
+       *   registrationSource        the API's judgement about how this record
+       *                             came to exist. A client that could set it
+       *                             could claim a hand-typed customer came from
+       *                             the NIDA registry.
+       */
+      bankName: undefined,
+      accountNumber: undefined,
+      cardLastFour: undefined,
+      registrationSource: undefined,
+
+      /*
+       * ALSO DELIBERATELY NOT SENT, for a different reason: registration no
+       * longer asks what a customer will borrow. The field stays in the
+       * contract because other clients and older records carry it; this form
+       * has nothing to put in it. Written out rather than omitted so that
+       * removing a question from the form is a visible decision here too.
+       */
+      loanTypeId: undefined,
+
       passportNumber: blank(input.passportNumber),
-      village: blank(input.village),
-      houseNumber: blank(input.houseNumber),
-      postalCode: blank(input.postalCode),
-      landmark: blank(input.landmark),
-      occupation: blank(input.occupation),
-      employer: blank(input.employer),
       /* Both free text now — the master-data ids above stay for records that
          already reference a list entry. */
-      employmentType: blank(input.employmentType),
-      workType: blank(input.workType),
-      monthlyIncome: input.monthlyIncome ?? undefined,
-      businessName: blank(input.businessName),
-      businessType: blank(input.businessType),
-      businessAddress: blank(input.businessAddress),
-      bankBranch: blank(input.bankBranch),
-      mobileMoneyProvider: blank(input.mobileMoneyProvider),
-      walletNumber: blank(input.walletNumber),
-    },
+  };
+
+  return apiData<Customer>("/api/v1/customers", {
+    method: "POST",
+    token: await token(),
+    body,
   });
 }
 
@@ -739,18 +816,38 @@ export async function createCustomerNoteRequest(customerId: string, note: string
  * own permission has already been checked. Writes require `admin.org_settings`,
  * enforced by the API.
  */
-export async function getCustomerCategories(): Promise<CustomerCategory[]> {
-  return apiData<CustomerCategory[]>("/api/v1/customer-categories", { token: await token() });
+/**
+ * Customer Types.
+ *
+ * `activeOnly` is what registration asks for — a type the institution has
+ * retired must not be offered to a new customer. The administration screen
+ * passes nothing, so it still lists the retired ones and can switch them back
+ * on.
+ */
+export async function getCustomerCategories(activeOnly = false): Promise<CustomerCategory[]> {
+  const query = activeOnly ? "?activeOnly=1" : "";
+  return apiData<CustomerCategory[]>(`/api/v1/customer-categories${query}`, { token: await token() });
 }
 
+/**
+ * A Customer Type save.
+ *
+ * The NAME is the only thing an administrator supplies. The API derives the
+ * code from it, defaults the rest on create, and on update leaves every field
+ * the payload omits exactly as it was — so an absent key means "change
+ * nothing", never "set it to empty".
+ */
 export interface CustomerCategoryInput {
   name: string;
-  code: string;
-  riskTier: string;
-  sector: string;
-  requiredDocuments: string[];
-  dynamicFormSchema: unknown[];
-  requiresExtraApproval: boolean;
+  code?: string;
+  description?: string | null;
+  isActive?: boolean;
+  sortOrder?: number;
+  riskTier?: string;
+  sector?: string;
+  requiredDocuments?: string[];
+  dynamicFormSchema?: unknown[];
+  requiresExtraApproval?: boolean;
 }
 
 export async function createCustomerCategoryRequest(input: CustomerCategoryInput): Promise<CustomerCategory> {

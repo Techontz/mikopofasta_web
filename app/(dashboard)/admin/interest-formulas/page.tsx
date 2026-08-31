@@ -23,7 +23,7 @@ export default async function InterestFormulasPage() {
         icon={Percent}
         title="Interest Formula"
         description="Simple, flat rate, and reducing balance calculation methods."
-        breadcrumb={[{ label: "Settings", href: "/admin" }, { label: "Interest Formula" }]}
+        breadcrumb={[{ label: "Administration", href: "/admin" }, { label: "Interest Formula" }]}
       />
 
       {/*

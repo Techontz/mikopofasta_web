@@ -1,5 +1,6 @@
 import type { Customer, CustomerBankDetails, CustomerCategory } from "@/types/customer";
 import type { Branch, District, Region, Street, Ward } from "@/types/branch";
+import type { MasterDataOption } from "@/types/master-data";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -19,6 +20,8 @@ export function OverviewPanel({
   ward,
   street,
   bankDetails,
+  maritalStatuses,
+  idTypes,
 }: {
   customer: Customer;
   branch: Branch | undefined;
@@ -28,19 +31,60 @@ export function OverviewPanel({
   ward: Ward | undefined;
   street: Street | undefined;
   bankDetails: CustomerBankDetails | undefined;
+  /**
+   * The admin-managed list, so a status this record's enum column cannot hold
+   * can still be read out. See `maritalStatus` below.
+   */
+  maritalStatuses: MasterDataOption[];
+  /** Named so the identity document reads as a document, not as a row id. */
+  idTypes: MasterDataOption[];
 }) {
+  /*
+   * WHAT THE CUSTOMER ACTUALLY ANSWERED.
+   *
+   * Marital status is one fact in two columns: the enum the profile has always
+   * read, and the foreign key to the admin-managed list the registration form
+   * writes. The write paths now keep them in step — see MaritalStatusMirror —
+   * but the enum has four fixed values and the list may grow, so an
+   * institution that adds "Separated" gets a null enum and a real answer.
+   * Naming the chosen list entry covers that, and covers every customer
+   * registered before the two columns were connected.
+   */
+  const maritalStatus =
+    customer.maritalStatus ??
+    maritalStatuses.find((m) => m.id === customer.maritalStatusId)?.name ??
+    null;
+
+  /*
+   * WHICH DOCUMENT WAS SEEN, AND WHAT IT SAID.
+   *
+   * This panel showed one field, "NIDA Number", reading a column registration
+   * stopped filling when identity became a TYPE plus a NUMBER — so a customer
+   * registered today showed a blank where their identity should be, while the
+   * document they actually produced was on the record and displayed nowhere.
+   *
+   * The pair first, named by the ID type's own label. The NIDA column is the
+   * fallback, because records captured before the pair existed hold it and
+   * must stay readable.
+   */
+  const idTypeName = idTypes.find((t) => t.id === customer.idTypeId)?.name;
+
+  const identityDocument =
+    idTypeName && customer.idNumber
+      ? `${idTypeName} · ${customer.idNumber}`
+      : (customer.nidaNumber ?? null);
   return (
     <div className="space-y-6">
       <section className="space-y-3">
         <h3 className="text-sm font-semibold">Personal Details</h3>
         <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="NIDA Number">{customer.nidaNumber}</Field>
+          <Field label="Identity Document">{identityDocument ?? "—"}</Field>
           <Field label="Date of Birth">{customer.dob}</Field>
           <Field label="Gender">
             <span className="capitalize">{customer.gender}</span>
           </Field>
           <Field label="Marital Status">
-            <span className="capitalize">{customer.maritalStatus ?? "—"}</span>
+            <span className="capitalize">{maritalStatus ?? "—"}</span>
           </Field>
           <Field label="Branch">{branch?.name ?? "—"}</Field>
           <Field label="Category">{category?.name ?? "Uncategorized"}</Field>

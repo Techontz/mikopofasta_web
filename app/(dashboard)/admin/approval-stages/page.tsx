@@ -30,7 +30,7 @@ export default async function ApprovalStagesPage() {
         icon={GitBranch}
         title="Loan Approval Chain"
         description="Who signs a loan off, in what order. Configuration, not code — an institution with two tiers or five sets them here."
-        breadcrumb={[{ label: "Settings", href: "/admin" }, { label: "Loan Approval Chain" }]}
+        breadcrumb={[{ label: "Administration", href: "/admin" }, { label: "Loan Approval Chain" }]}
       />
       <ApprovalChainPanel
         stages={stages}

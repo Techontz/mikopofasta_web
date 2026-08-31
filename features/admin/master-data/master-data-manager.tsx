@@ -30,6 +30,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ConfirmDeleteDialog } from "@/components/data-table/confirm-delete-dialog";
+import { Combobox } from "@/components/settings/combobox";
 import { cn } from "@/lib/utils";
 import {
   loadCadres,
@@ -66,7 +67,7 @@ import type { MasterDataList, MasterDataOption } from "@/lib/api/master-data";
  *
  * DELETION IS THE EXCEPTION, deactivation the rule. An entry customers already
  * reference cannot be removed — the API refuses, the foreign keys are
- * `restrictOnDelete`, and a customer whose loan type vanished is a record
+ * `restrictOnDelete`, and a customer whose customer type vanished is a record
  * nobody can read. Turning it off keeps every existing record readable and
  * stops it being offered to anyone new.
  */
@@ -79,7 +80,7 @@ export interface ListDefinition {
   emptyHint: string;
   /**
    * A list this screen shows but does not edit, because it is not a flat
-   * lookup — Customer Categories carries a dynamic form schema, a document
+   * lookup — Customer Types carries a dynamic form schema, a document
    * list and eligibility rules, and needs its own editor. It stays in this
    * navigation so Master Data reads as one area rather than sending an
    * administrator hunting through the settings index for the half of the
@@ -313,6 +314,10 @@ export function MasterDataManager({
         open={creating || editing !== null}
         entry={editing}
         listLabel={definition.label}
+        /* Only ID Types carry a link to a document. The choices come from the
+           Document Types list on this same screen, so an administrator never
+           has to leave to find out what is on offer. */
+        documentTypes={active === "id-types" ? (rows["document-types"] ?? []) : undefined}
         onClose={() => {
           setCreating(false);
           setEditing(null);
@@ -335,7 +340,7 @@ export interface SpecialisedRow {
 /**
  * A list that belongs to Master Data but is edited elsewhere.
  *
- * Customer Categories is the case this exists for. It is reference data in
+ * Customer Types is the case this exists for. It is reference data in
  * every sense an administrator cares about — it decides which customers can be
  * registered and what they must produce — but it is not a flat code/name
  * lookup: it carries a dynamic form schema, a required-document list and
@@ -569,12 +574,20 @@ function EntryDialog({
   open,
   entry,
   listLabel,
+  documentTypes,
   onClose,
   onSubmit,
 }: {
   open: boolean;
   entry: MasterDataOption | null;
   listLabel: string;
+  /**
+   * Given only for ID Types, and its presence is what makes the extra control
+   * appear. Passing the choices rather than a flag keeps the branch to one
+   * question — "is there a document list to offer?" — instead of this dialog
+   * having to know which list it is editing.
+   */
+  documentTypes?: MasterDataOption[];
   onClose: () => void;
   onSubmit: (input: {
     code: string;
@@ -582,6 +595,7 @@ function EntryDialog({
     description: string | null;
     sortOrder: number | null;
     isActive: boolean;
+    documentTypeId?: string | null;
   }) => Promise<void>;
 }) {
   /*
@@ -598,6 +612,7 @@ function EntryDialog({
     entry?.sortOrder === null || entry?.sortOrder === undefined ? "" : String(entry.sortOrder),
   );
   const [isActive, setIsActive] = React.useState(entry?.isActive ?? true);
+  const [documentTypeId, setDocumentTypeId] = React.useState(entry?.documentTypeId ?? "");
   const [pending, setPending] = React.useState(false);
 
   async function submit() {
@@ -608,6 +623,7 @@ function EntryDialog({
       description: description.trim() === "" ? null : description.trim(),
       sortOrder: sortOrder.trim() === "" ? null : Number(sortOrder),
       isActive,
+      ...(documentTypes ? { documentTypeId: documentTypeId || null } : {}),
     });
     setPending(false);
   }
@@ -661,6 +677,26 @@ function EntryDialog({
               placeholder="Optional. Shown as a hint beside the option."
             />
           </div>
+
+          {documentTypes && (
+            <div className="space-y-1.5">
+              <Label htmlFor="md-document-type">Document that proves it</Label>
+              <Combobox
+                id="md-document-type"
+                value={documentTypeId || null}
+                onChange={(v) => setDocumentTypeId(v ?? "")}
+                options={documentTypes.map((d) => ({ value: d.id, label: d.name }))}
+                placeholder="No document is collected"
+                emptyMessage="No document types are configured yet. Add them under Document Types on this page."
+              />
+              {/* The reason this control exists, said plainly — otherwise it
+                  reads as one more optional box. */}
+              <p className="text-[11px] text-muted-foreground">
+                When an officer picks this ID type during registration, the documents step asks them
+                to upload this document. Leave it empty if you take no copy.
+              </p>
+            </div>
+          )}
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">

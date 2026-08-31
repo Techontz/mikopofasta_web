@@ -6,28 +6,34 @@ import { Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Combobox } from "@/components/settings/combobox";
-import { GENDERS } from "@/types/enums";
+import { GENDERS, RESIDENCE_TYPES } from "@/types/enums";
 import type { WizardValues } from "@/features/customers/registration-wizard/wizard-schema";
 import type { MasterDataOption } from "@/lib/api/master-data";
 import type { AccountTypeRequirementProfile } from "@/lib/api/registration";
 import type { Branch } from "@/types/branch";
-import { loadDistricts, loadRegions, loadStreets, loadWards } from "@/features/customers/geography-actions";
+import { loadDistricts, loadRegions } from "@/features/customers/geography-actions";
 
 /**
- * Step 1 — Basic Information.
+ * Step 1 — Basic Information. Who the person is, and where to find them.
  *
- * The legacy screen's layout, row for row, because the officers reading it
- * recognise it:
- *
+ *   ── Registration details ──────────────────────
+ *   Branch            | Assigned Officer
+ *   ──────────────────────────────────────────────
  *   First Name        | Middle name       | Last name
- *   Branch            | Employee          | Gender
- *   Date of Birth | Year | Phone Number | Loan Type | Types of customer
- *   Account Type
- *   Region            | District          | Ward        | Street
+ *   Gender            | Date of Birth     | Phone Number
+ *   ID Type           | ID Number
+ *   Region            | District
+ *   Ward              | Street            | Residence Type
  *
- * Three things underneath it changed.
+ * THE FIRST TWO ARE NOT BASIC INFORMATION, AND NO LONGER LOOK LIKE IT. Branch
+ * and Assigned Officer describe the RECORD — which branch's book it joins, and
+ * whose portfolio it sits in — not the person being registered. Sitting in the
+ * middle of the personal details, under the heading "Employee", the second one
+ * read like a fact about the customer: an officer could reasonably have taken
+ * it for where the customer works. They now sit in their own strip above the
+ * form, headed for what they are.
  *
- * EMPLOYEE IS NO LONGER A LIST OF EVERYONE. It was a dropdown of every member
+ * ASSIGNED OFFICER IS NOT A LIST OF EVERYONE. It was a dropdown of every member
  * of staff, defaulting to nobody — so the field that records whose book the
  * customer sits on was routinely left blank, and the officer sitting with the
  * customer had to find their own name among all of them. It now shows the
@@ -36,26 +42,49 @@ import { loadDistricts, loadRegions, loadStreets, loadWards } from "@/features/c
  * customer to another officer moves the portfolio and the commission with them
  * and is a supervisory act.
  *
- * THE ADDRESS IS CHOSEN AT ALL FOUR LEVELS. Region → District → Ward → Street,
- * each loading from the reference tables once its parent is picked. Ward and
- * street were briefly typed, because the tables do not yet cover the country
- * and a cascade that dead-ends forces a wrong answer — but a typed ward is not
- * searchable, cannot be reported on, and produces four spellings of the same
- * place. The answer is to import the missing reference data, not to let the
- * officer invent it: where a ward is missing the control says so and names
- * where it is added, and no free-text box offers to record it anyway.
+ * NONE OF THAT IS ENFORCED HERE. The API decides who may assign whom — see
+ * RegisterCustomerRequest's officer check — and this only shows the officer
+ * what they are allowed to do, so the screen and the server agree.
  *
  * IDENTITY IS A TYPE AND A NUMBER. Six separate ID-number boxes asked the
  * officer to find the right one; across the customers on file, two of the six
  * were ever used. One list of accepted documents and one number says the same
  * thing and makes "which document did we see?" answerable.
  *
- * ACCOUNT TYPE IS HERE, NOT ON STEP 2. It decides what the rest of the wizard
- * asks for, so it has to be answered before the officer reaches the steps it
- * governs. See `wizard-schema.ts`.
+ * THE ADDRESS IS TWO CHOSEN LEVELS AND TWO TYPED ONES. Region and district are
+ * chosen from the reference tables, which are a complete and stable list and
+ * are what every geographic report groups by. Ward and street are typed.
  *
- * "Year" is the legacy form's read-only age box — it shows 0 until a date of
- * birth is entered and is derived, never typed.
+ * The cascade used to run all four levels deep, and it dead-ended: the
+ * reference tables do not cover the country, so an officer whose customer
+ * lived in an unimported ward could not record the address at all, and the
+ * control's advice — have it imported through Administration — is not
+ * something they can act on with the customer sitting in front of them. A
+ * typed ward is less queryable than a chosen one, and that is the cost being
+ * paid deliberately. It is the same shape the customer profile screen already
+ * uses, so a ward reads and edits the same way wherever it is seen. The values
+ * land in `wardName` and `streetName`, which the API has accepted since the
+ * 2026_08_26 migration; `wardId` and `streetId` remain in the payload for
+ * records that already hold one.
+ *
+ * CUSTOMER TYPE IS NOT ASKED HERE ANY MORE. It moved to step two, which is
+ * the step it builds: step two shows the customer type and then that type's
+ * own configured questions, so asking it here would separate the question from
+ * everything it decides and leave step two opening on a form whose shape was
+ * chosen on another page.
+ *
+ * NOTHING ABOUT A LOAN IS ASKED HERE. Loan Category, Loan Type, Types of
+ * Customer and Account Type were all on this step at one point, and none of
+ * them describes the person being registered — they describe a commercial
+ * relationship that does not exist yet at the moment the form is being filled
+ * in. Loan Category in particular pre-judged an application nobody had made.
+ * Which loan category a customer borrows under is decided in the lending
+ * workflow, where there is a loan to decide it for; the Loan Category
+ * administration module is untouched and its list is unchanged.
+ *
+ * "YEAR" IS GONE. It was the legacy form's read-only age box, derived from the
+ * date of birth and sitting immediately beside it — a second rendering of a
+ * fact already on screen, which nobody could edit and no rule read.
  */
 export function BasicInformationStep({
   branches,
@@ -63,9 +92,6 @@ export function BasicInformationStep({
   currentUser,
   employees,
   canAssignOfficer,
-  loanTypes,
-  customerTypes,
-  accountTypes,
   idTypes,
   profile,
 }: {
@@ -74,9 +100,6 @@ export function BasicInformationStep({
   currentUser: { id: string; name: string };
   employees: { id: string; name: string }[];
   canAssignOfficer: boolean;
-  loanTypes: MasterDataOption[];
-  customerTypes: MasterDataOption[];
-  accountTypes: MasterDataOption[];
   /** Which identity documents the institution accepts. Admin-managed. */
   idTypes: MasterDataOption[];
   profile: AccountTypeRequirementProfile;
@@ -88,42 +111,95 @@ export function BasicInformationStep({
     formState: { errors },
   } = useFormContext<WizardValues>();
 
-  const dob = watch("dob");
   const regionId = watch("regionId");
   const employeeId = watch("employeeId");
 
-  /** The legacy "Year" box: age in whole years, or 0 before a date is set. */
-  const age = React.useMemo(() => {
-    if (!dob) return 0;
-    const born = new Date(`${dob}T00:00:00`);
-    if (Number.isNaN(born.getTime())) return 0;
-    const now = new Date();
-    let years = now.getFullYear() - born.getFullYear();
-    const monthDelta = now.getMonth() - born.getMonth();
-    if (monthDelta < 0 || (monthDelta === 0 && now.getDate() < born.getDate())) years -= 1;
-    return Math.max(0, years);
-  }, [dob]);
-
-  const districtId = watch("districtId");
-  const wardId = watch("wardId");
-
   const regionLoader = React.useCallback(() => loadRegions(), []);
   const districtLoader = React.useCallback(() => loadDistricts(regionId ?? ""), [regionId]);
-  const wardLoader = React.useCallback(() => loadWards(districtId ?? ""), [districtId]);
-  const streetLoader = React.useCallback(() => loadStreets(wardId ?? ""), [wardId]);
 
   const asOptions = (rows: MasterDataOption[]) =>
     rows.map((r) => ({ value: r.id, label: r.name, hint: r.description ?? undefined }));
 
   /* Whoever the record is currently assigned to, named. Falls back to the
      signed-in user, which is what the form is initialised with. */
-  const assignedName =
-    employees.find((e) => e.id === employeeId)?.name ??
-    (employeeId === currentUser.id ? currentUser.name : currentUser.name);
+  const assignedName = employees.find((e) => e.id === employeeId)?.name ?? currentUser.name;
 
   return (
     <div className="space-y-5">
       <h2 className="text-base font-semibold">Basic Information</h2>
+
+      {profile.guidance && <p className="-mt-3 text-xs text-muted-foreground">{profile.guidance}</p>}
+
+      {/*
+        WHO IS DOING THE REGISTERING, and where it is booked.
+        Deliberately set apart from everything below it. Neither of these
+        describes the customer — they describe the RECORD: which branch's book
+        it joins and whose portfolio it sits in. Mixed into the personal
+        details, as they were, "Employee" read like a fact about the person in
+        front of the officer.
+      */}
+      <section className="rounded-lg border bg-muted/30 p-4">
+        <h3 className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          Registration details
+        </h3>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Branch" required error={errors.branchId?.message}>
+            <Combobox
+              id="branchId"
+              value={watch("branchId") || null}
+              onChange={(v) => v && setValue("branchId", v, { shouldValidate: true })}
+              options={branches.map((b) => ({ value: b.id, label: b.name }))}
+              disabled={branchLocked}
+              disabledMessage="Fixed to your branch"
+              placeholder="Select Branch"
+              emptyMessage="No branches are configured."
+              invalid={!!errors.branchId}
+            />
+          </Field>
+
+          <Field
+            label="Assigned Officer"
+            error={errors.employeeId?.message}
+            help={
+              canAssignOfficer
+                ? "Defaults to you. Change it only to register on another officer's behalf."
+                : undefined
+            }
+          >
+            {canAssignOfficer ? (
+              <Combobox
+                id="employeeId"
+                value={employeeId || null}
+                onChange={(v) => setValue("employeeId", v ?? currentUser.id)}
+                options={
+                  /* The signed-in user is guaranteed to be offered even if the
+                     staff list failed to load — otherwise a supervisor could be
+                     left unable to select themselves. */
+                  employees.some((e) => e.id === currentUser.id)
+                    ? employees.map((e) => ({ value: e.id, label: e.name }))
+                    : [{ value: currentUser.id, label: currentUser.name }, ...employees.map((e) => ({ value: e.id, label: e.name }))]
+                }
+                placeholder="Select officer"
+                emptyMessage="No staff are registered."
+              />
+            ) : (
+              /*
+               * Read-only, and shown as text rather than a disabled select: a
+               * disabled control invites the officer to look for a way to enable
+               * it. The value still reaches the payload — it is registered in the
+               * form, not rendered from it.
+               */
+              <div className="flex h-9 items-center gap-2 rounded-md border bg-muted px-3 text-sm">
+                <Lock className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                <span className="truncate font-medium">{assignedName}</span>
+                <span className="sr-only">
+                  Registering as {assignedName}. You may only register customers under your own name.
+                </span>
+              </div>
+            )}
+          </Field>
+        </div>
+      </section>
 
       {/* Row 1 — names */}
       <div className="grid gap-4 sm:grid-cols-3">
@@ -138,64 +214,8 @@ export function BasicInformationStep({
         </Field>
       </div>
 
-      {/* Row 2 — Branch | Employee | Gender */}
+      {/* Row 2 — Gender | Date of Birth | Phone Number */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <Field label="Branch" required error={errors.branchId?.message}>
-          <Combobox
-            id="branchId"
-            value={watch("branchId") || null}
-            onChange={(v) => v && setValue("branchId", v, { shouldValidate: true })}
-            options={branches.map((b) => ({ value: b.id, label: b.name }))}
-            disabled={branchLocked}
-            disabledMessage="Fixed to your branch"
-            placeholder="Select Branch"
-            emptyMessage="No branches are configured."
-            invalid={!!errors.branchId}
-          />
-        </Field>
-
-        <Field
-          label="Employee"
-          error={errors.employeeId?.message}
-          help={
-            canAssignOfficer
-              ? "Defaults to you. Change it only to register on another officer's behalf."
-              : undefined
-          }
-        >
-          {canAssignOfficer ? (
-            <Combobox
-              id="employeeId"
-              value={employeeId || null}
-              onChange={(v) => setValue("employeeId", v ?? currentUser.id)}
-              options={
-                /* The signed-in user is guaranteed to be offered even if the
-                   staff list failed to load — otherwise a supervisor could be
-                   left unable to select themselves. */
-                employees.some((e) => e.id === currentUser.id)
-                  ? employees.map((e) => ({ value: e.id, label: e.name }))
-                  : [{ value: currentUser.id, label: currentUser.name }, ...employees.map((e) => ({ value: e.id, label: e.name }))]
-              }
-              placeholder="Select Employee"
-              emptyMessage="No staff are registered."
-            />
-          ) : (
-            /*
-             * Read-only, and shown as text rather than a disabled select: a
-             * disabled control invites the officer to look for a way to enable
-             * it. The value still reaches the payload — it is registered in the
-             * form, not rendered from it.
-             */
-            <div className="flex h-9 items-center gap-2 rounded-md border bg-muted px-3 text-sm">
-              <Lock className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-              <span className="truncate font-medium">{assignedName}</span>
-              <span className="sr-only">
-                Registering as {assignedName}. You may only register customers under your own name.
-              </span>
-            </div>
-          )}
-        </Field>
-
         <Field label="Gender" required error={errors.gender?.message}>
           <Combobox
             id="gender"
@@ -206,44 +226,16 @@ export function BasicInformationStep({
             invalid={!!errors.gender}
           />
         </Field>
-      </div>
-
-      {/* Row 3 — DOB | Year | Phone | Loan Type | Types of customer */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Field label="Date of Birth" required error={errors.dob?.message}>
           <Input id="dob" type="date" {...register("dob")} />
-        </Field>
-        <Field label="Year">
-          {/* Derived from the date of birth, exactly as the legacy box is. */}
-          <Input id="ageYears" value={age} readOnly tabIndex={-1} className="bg-muted" />
         </Field>
         <Field label="Phone Number" required error={errors.phone?.message}>
           <Input id="phone" placeholder="0754000000" {...register("phone")} />
         </Field>
-        <Field label="Loan Type" error={errors.loanTypeId?.message}>
-          <Combobox
-            id="loanTypeId"
-            value={watch("loanTypeId") || null}
-            onChange={(v) => setValue("loanTypeId", v ?? "")}
-            options={asOptions(loanTypes)}
-            placeholder="Select loan type"
-            emptyMessage="No loan types are configured. Add them under Administration → Master Data."
-          />
-        </Field>
-        <Field label="Types of customer" error={errors.customerTypeId?.message}>
-          <Combobox
-            id="customerTypeId"
-            value={watch("customerTypeId") || null}
-            onChange={(v) => setValue("customerTypeId", v ?? "")}
-            options={asOptions(customerTypes)}
-            placeholder="Select"
-            emptyMessage="No customer types are configured. Add them under Administration → Master Data."
-          />
-        </Field>
       </div>
 
-      {/* Row 4 — identity: which document, and what it says */}
-      <div className="grid gap-4 sm:grid-cols-2">
+      {/* Row 3 — identity: which document, and what it says */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Field label="ID Type" required={profile.requiresIdentityDocument} error={errors.idTypeId?.message}>
           <Combobox
             id="idTypeId"
@@ -260,31 +252,8 @@ export function BasicInformationStep({
         </Field>
       </div>
 
-      {/* Row 5 — Account Type, which decides the rest of the wizard */}
+      {/* Row 4 — Region → District, both chosen from the reference tables */}
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field
-          label="Account Type"
-          error={errors.accountTypeId?.message}
-          help="Decides what the remaining steps ask for."
-        >
-          <Combobox
-            id="accountTypeId"
-            value={watch("accountTypeId") || null}
-            onChange={(v) => setValue("accountTypeId", v ?? "")}
-            options={asOptions(accountTypes)}
-            placeholder="Select account type"
-            emptyMessage="No account types are configured. Add them under Administration → Master Data."
-          />
-        </Field>
-        {profile.guidance && (
-          <div className="flex items-end">
-            <p className="pb-2 text-xs text-muted-foreground">{profile.guidance}</p>
-          </div>
-        )}
-      </div>
-
-      {/* Row 6 — Region → District → Ward → Street, all four chosen */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Field label="Region" required={profile.requiresAddress} error={errors.regionId?.message}>
           <Combobox
             id="addr-region"
@@ -316,45 +285,53 @@ export function BasicInformationStep({
             onChange={(v) => setValue("districtId", v, { shouldValidate: true })}
           />
         </Field>
+      </div>
 
-        <Field label="Ward" required={profile.requiresAddress} error={errors.wardId?.message}>
-          <Combobox
-            id="addr-ward"
-            value={wardId ?? null}
-            loadOptions={wardLoader}
-            loadKey={districtId ?? null}
-            disabled={!districtId}
-            disabledMessage="Select a district first"
-            placeholder="Select ward"
-            /* Not an invitation to type one instead: a ward missing from the
-               reference data is imported, never invented on a customer. */
-            emptyMessage="No wards are on file for this district yet. They are imported under Administration → Master Data."
-            invalid={!!errors.wardId}
-            onChange={(v) => {
-              setValue("wardId", v, { shouldValidate: true });
-              // The street below now belongs to a different ward.
-              setValue("streetId", null);
-            }}
-          />
+      {/* Row 5 — Ward and Street, typed. See the note at the top of the file. */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Field label="Ward" required={profile.requiresAddress} error={errors.wardName?.message}>
+          <Input id="addr-ward" placeholder="Enter ward" {...register("wardName")} />
+        </Field>
+        <Field label="Street" required={profile.requiresAddress} error={errors.streetName?.message}>
+          <Input id="addr-street" placeholder="Enter street" {...register("streetName")} />
         </Field>
 
-        <Field label="Street" required={profile.requiresAddress} error={errors.streetId?.message}>
+        {/*
+          RESIDENCE TYPE, WHICH NOTHING ASKED FOR.
+          The column exists, the API validates it, the payload carries it and
+          the customer profile has a field for it — and no control on this form
+          ever set it, so every customer showed a dash under a heading the
+          profile promised to fill. Asked here because it is part of where
+          somebody lives, which is what the rest of this row is about.
+        */}
+        <Field
+          label="Residence Type"
+          error={errors.residenceType?.message}
+          help="Whether the customer owns or rents where they live."
+        >
           <Combobox
-            id="addr-street"
-            value={watch("streetId") ?? null}
-            loadOptions={streetLoader}
-            loadKey={wardId ?? null}
-            disabled={!wardId}
-            disabledMessage="Select a ward first"
-            placeholder="Select street"
-            emptyMessage="No streets are on file for this ward yet. They are imported under Administration → Master Data."
-            invalid={!!errors.streetId}
-            onChange={(v) => setValue("streetId", v, { shouldValidate: true })}
+            id="residenceType"
+            value={watch("residenceType") ?? null}
+            onChange={(v) =>
+              setValue("residenceType", (v as WizardValues["residenceType"]) ?? null, {
+                shouldValidate: true,
+              })
+            }
+            /* The two the column accepts. Adding a third — "family", say — is a
+               migration on the enum, not a value this control may invent. */
+            options={RESIDENCE_TYPES.map((r) => ({ value: r, label: capitalise(r) }))}
+            placeholder="Select residence type"
+            invalid={!!errors.residenceType}
           />
         </Field>
       </div>
     </div>
   );
+}
+
+/** "owned" → "Owned". The enum is stored lowercase and read in prose. */
+function capitalise(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 /** Label above control, error below — the shape every row on this form uses. */

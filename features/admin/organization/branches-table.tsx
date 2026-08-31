@@ -58,6 +58,32 @@ export function BranchesTable({
       header: ({ column }) => <DataTableColumnHeader column={column} title="Code" />,
       cell: ({ row }) => <span className="font-mono text-xs">{row.original.code}</span>,
     },
+    {
+      id: "customerStatus",
+      header: "Customer Status",
+      /*
+       * Five counts inline, as the Branch List has always shown them. Not a
+       * single badge and not a chart: an officer scanning the list is comparing
+       * branches on four numbers at once, and any summary of them loses exactly
+       * the comparison they came for.
+       *
+       * Every figure is the API's; nothing is computed or assumed here.
+       */
+      cell: ({ row }) => {
+        const counts = row.original.customerStatus;
+        if (!counts) return <span className="text-muted-foreground">—</span>;
+
+        return (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 whitespace-nowrap">
+            <CountChip label="Active" value={counts.active} tone="active" />
+            <CountChip label="Pending" value={counts.pending} tone="pending" />
+            <CountChip label="Default" value={counts.default} tone="default" />
+            <CountChip label="Done" value={counts.done} tone="done" />
+            <CountChip label="All" value={counts.all} tone="all" />
+          </div>
+        );
+      },
+    },
     { id: "region", header: "Region", cell: ({ row }) => regionName(row.original.regionId) },
     { id: "zone", header: "Zone", cell: ({ row }) => zoneName(row.original.zoneId) },
     {
@@ -120,5 +146,41 @@ export function BranchesTable({
       toolbarAction={<BranchFormDialog regions={regions} zones={zones} branches={branches} />}
       emptyState={{ icon: Building2, title: "No branches yet", description: "Add your first branch to begin onboarding customers and loans." }}
     />
+  );
+}
+
+/**
+ * One `Label: [n]` pair.
+ *
+ * The label is plain text and the count is a small badge, coloured by what it
+ * means — green lending, amber waiting, red in default, blue finished, and the
+ * total in a filled grey so it reads as a sum rather than another category.
+ * Soft-filled rather than outlined so the numbers stay legible at this size in
+ * both themes.
+ */
+function CountChip({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "active" | "pending" | "default" | "done" | "all";
+}) {
+  const styles: Record<typeof tone, string> = {
+    active: "border-emerald-600/30 bg-emerald-600/10 text-emerald-700 dark:text-emerald-400",
+    pending: "border-amber-600/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
+    default: "border-red-600/30 bg-red-600/10 text-red-700 dark:text-red-400",
+    done: "border-blue-600/30 bg-blue-600/10 text-blue-700 dark:text-blue-400",
+    all: "border-transparent bg-muted-foreground/85 text-background",
+  };
+
+  return (
+    <span className="inline-flex items-center gap-1 text-xs">
+      <span className="text-muted-foreground">{label}:</span>
+      <span className={`inline-flex min-w-6 justify-center rounded border px-1.5 py-0.5 font-medium tabular-nums ${styles[tone]}`}>
+        {value}
+      </span>
+    </span>
   );
 }

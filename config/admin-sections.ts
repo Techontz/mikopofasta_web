@@ -41,8 +41,8 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     permission: PERMISSIONS.ADMIN_ORG_SETTINGS,
   },
   {
-    title: "Main Loan Category",
-    description: "Customer categories — risk tier, required documents, and dynamic KYC fields.",
+    title: "Customer Types",
+    description: "The broad classifications a customer is registered under. Created and retired here; nothing is shipped with the application.",
     icon: Tags,
     href: "/admin/customer-categories",
     permission: PERMISSIONS.ADMIN_ORG_SETTINGS,

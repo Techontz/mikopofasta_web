@@ -14,12 +14,28 @@ import type { ActionResult } from "@/lib/domain/action-result";
 const CategoryInputSchema = CustomerCategorySchema.pick({
   name: true,
   code: true,
+  description: true,
+  /* The registration form: its heading, its questions, and the documents the
+     file must and may contain. Written only by the Registration form dialog. */
+  formTitle: true,
+  isActive: true,
+  sortOrder: true,
   riskTier: true,
   sector: true,
   requiredDocuments: true,
+  optionalDocuments: true,
   dynamicFormSchema: true,
   requiresExtraApproval: true,
-});
+})
+  /*
+   * Everything but the name is OPTIONAL, and normally absent.
+   *
+   * The form asks for a name; the API derives the code and defaults the rest on
+   * create, and leaves every field a save does not mention exactly as it was on
+   * update. Sending `undefined` is how a rename says "change nothing else".
+   */
+  .partial()
+  .required({ name: true });
 export type CategoryInputValues = z.infer<typeof CategoryInputSchema>;
 
 /**
@@ -41,7 +57,7 @@ export async function createCustomerCategory(input: CategoryInputValues): Promis
   }
 
   revalidatePath("/admin/customer-categories");
-  return { ok: true, message: "Customer category created." };
+  return { ok: true, message: "Customer type created." };
 }
 
 export async function updateCustomerCategory(id: string, input: CategoryInputValues): Promise<ActionResult> {
@@ -55,7 +71,7 @@ export async function updateCustomerCategory(id: string, input: CategoryInputVal
   }
 
   revalidatePath("/admin/customer-categories");
-  return { ok: true, message: "Customer category updated." };
+  return { ok: true, message: "Customer type updated." };
 }
 
 export async function deleteCustomerCategory(id: string): Promise<ActionResult> {
@@ -66,5 +82,5 @@ export async function deleteCustomerCategory(id: string): Promise<ActionResult> 
   }
 
   revalidatePath("/admin/customer-categories");
-  return { ok: true, message: "Customer category deleted." };
+  return { ok: true, message: "Customer type deleted." };
 }

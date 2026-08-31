@@ -229,7 +229,7 @@ export default async function CustomerProfilePage({
             <CardContent className="pt-6">
               {/* Bank details are write-only in this API — the KYC panel reads the
                   server's own checklist rather than inferring them here. */}
-              <OverviewPanel customer={customer} branch={branch} category={category} region={region} district={district} ward={ward} street={street} bankDetails={undefined} />
+              <OverviewPanel customer={customer} branch={branch} category={category} region={region} district={district} ward={ward} street={street} bankDetails={undefined} maritalStatuses={lookups["marital-statuses"]} idTypes={lookups["id-types"]} />
             </CardContent>
           </Card>
         </TabsContent>

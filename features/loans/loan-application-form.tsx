@@ -304,7 +304,7 @@ export function LoanApplicationForm({
             {product && (
               <p className="text-xs text-muted-foreground">
                 {formatMoney(product.minAmount)} – {formatMoney(maxAmount)}
-                {rule?.maxAmountOverride != null && " (capped by customer category)"}
+                {rule?.maxAmountOverride != null && " (capped by customer type)"}
               </p>
             )}
           </div>

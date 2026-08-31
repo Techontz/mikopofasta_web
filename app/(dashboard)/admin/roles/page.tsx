@@ -41,7 +41,7 @@ export default async function RolesPage() {
         icon={ShieldCheck}
         title="Roles & Permissions"
         description="Role definitions and the system-wide permission matrix every screen and route is gated by."
-        breadcrumb={[{ label: "Settings", href: "/admin" }, { label: "Roles & Permissions" }]}
+        breadcrumb={[{ label: "Administration", href: "/admin" }, { label: "Roles & Permissions" }]}
       />
 
       <Tabs defaultValue="roles" className="gap-5">

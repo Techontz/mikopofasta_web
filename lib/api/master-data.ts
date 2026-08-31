@@ -1,6 +1,7 @@
 import "server-only";
 import { apiData } from "@/lib/api/client";
 import { getApiToken } from "@/lib/auth/session";
+import { MASTER_DATA_LISTS, type MasterDataList, type MasterDataOption } from "@/types/master-data";
 
 const token = async () => getApiToken();
 
@@ -12,40 +13,8 @@ const token = async () => getApiToken();
  * the Administration module, and read here at runtime — so adding one is a
  * data change rather than a deploy.
  */
-export type MasterDataList =
-  | "loan-types"
-  | "customer-types"
-  | "account-types"
-  | "work-types"
-  | "employment-types"
-  | "occupations"
-  | "banks"
-  | "mobile-money-providers"
-  | "marital-statuses"
-  /* KYC document types — what a category's required documents name. */
-  | "document-types"
-  /* Which identity document was seen, and on what terms somebody is employed
-     — see the 2026_08_30 migrations. */
-  | "id-types"
-  | "contract-types"
-  /* The employing body. Its cadres are NOT a flat list: they belong to a
-     sector, and getSectorCategories() below loads them one sector at a time,
-     exactly as the address step loads districts one region at a time. */
-  | "sectors"
-  /* Private companies. A SEPARATE list from `sectors`: a ministry has cadres
-     inside it and a company does not, and one list would offer a public
-     servant a sugar mill to serve in. */
-  | "employers";
-
-export interface MasterDataOption {
-  id: string;
-  /** Stable machine value. Data references this; the name may be renamed. */
-  code: string;
-  name: string;
-  description: string | null;
-  sortOrder: number | null;
-  isActive: boolean;
-}
+export type { MasterDataList, MasterDataOption } from "@/types/master-data";
+export { MASTER_DATA_LISTS, MASTER_DATA_LIST_LABELS } from "@/types/master-data";
 
 /**
  * One list. `activeOnly` is what a form wants — a withdrawn entry must not be
@@ -62,44 +31,43 @@ export async function getMasterData(
 }
 
 /**
- * Every list, in one round of parallel requests.
+ * Every list, in ONE request.
  *
- * All of them rather than only the ones the registration form uses: the
- * return type says `Record<MasterDataList, ...>`, and a key that is declared
- * but never fetched is an `undefined` waiting to reach a dropdown. The profile
- * needs `document-types` and registration does not; one extra request is
- * cheaper than two functions that drift apart.
+ * It used to be fourteen, issued in parallel — and that was the cause of the
+ * 429 that made this screen unopenable. Fourteen requests, fourteen
+ * authentications and fourteen rate-limiter increments to populate one form's
+ * dropdowns meant a handful of visits exhausted an allowance sized for ordinary
+ * work, and the next visit was refused. The data is a few hundred rows and is
+ * the same for every officer; asking for it fourteen times was the defect, not
+ * the limit that noticed.
  *
- * Each fails soft to an empty array: a lookup being briefly unavailable should
- * leave one dropdown empty and explaining itself, not take down the whole
- * screen.
+ * All the lists rather than only the ones registration uses: the return type
+ * promises a value for every key, and the profile screen needs `document-types`
+ * where registration does not. One request carries them all either way.
  */
-export async function getRegistrationLookups() {
-  const lists: MasterDataList[] = [
-    "loan-types",
-    "customer-types",
-    "account-types",
-    "work-types",
-    "employment-types",
-    "occupations",
-    "banks",
-    "mobile-money-providers",
-    "marital-statuses",
-    "document-types",
-    "id-types",
-    "contract-types",
-    "sectors",
-    "employers",
-  ];
+export async function getRegistrationLookups(): Promise<Record<MasterDataList, MasterDataOption[]>> {
+  const empty = Object.fromEntries(
+    MASTER_DATA_LISTS.map((list) => [list, [] as MasterDataOption[]]),
+  ) as unknown as Record<MasterDataList, MasterDataOption[]>;
 
-  const results = await Promise.all(
-    lists.map((list) => getMasterData(list).catch(() => [] as MasterDataOption[]))
-  );
+  let served: Partial<Record<MasterDataList, MasterDataOption[]>>;
 
-  return Object.fromEntries(lists.map((list, i) => [list, results[i]])) as Record<
-    MasterDataList,
-    MasterDataOption[]
-  >;
+  try {
+    served = await apiData<Partial<Record<MasterDataList, MasterDataOption[]>>>("/api/v1/master-data", {
+      token: await token(),
+      query: { active: 1 },
+    });
+  } catch {
+    /* Fails soft, as the fourteen separate calls did: a lookup being briefly
+       unavailable should leave dropdowns empty and explaining themselves, not
+       take the registration screen down. */
+    return empty;
+  }
+
+  /* Every declared key present, whatever the server sent. The return type
+     promises a value for each list, and a key that is declared but never
+     filled is an `undefined` waiting to reach a dropdown. */
+  return { ...empty, ...served };
 }
 
 /**

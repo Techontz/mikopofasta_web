@@ -21,9 +21,9 @@ import type { CategoryProductEligibility, LoanProduct } from "@/types/loan-produ
  *
  * Two things an administrator previously could only change with a database
  * client: what registration demands of a customer, and which products each
- * category may borrow.
+ * customer type may borrow.
  *
- * THE DOCUMENT SWITCH IS THE DELICATE ONE. Turning "category documents block
+ * THE DOCUMENT SWITCH IS THE DELICATE ONE. Turning "customer type documents block
  * KYC" on without a cutoff applies it to everybody already on the book —
  * including customers registered before anyone was asked for a document, who
  * would stop being able to borrow the moment it was saved. The cutoff makes it
@@ -151,7 +151,7 @@ function RequirementsForm({
         <Toggle label="Business details" checked={form.requiresBusinessDetails} onChange={(v) => set("requiresBusinessDetails", v)} />
         <Toggle label="Bank account" checked={form.requiresBankAccount} onChange={(v) => set("requiresBankAccount", v)} />
         <Toggle label="Card details" checked={form.requiresCardDetails} onChange={(v) => set("requiresCardDetails", v)} />
-        <Toggle label="Customer category" checked={form.requiresCustomerCategory} onChange={(v) => set("requiresCustomerCategory", v)} />
+        <Toggle label="Customer type" checked={form.requiresCustomerCategory} onChange={(v) => set("requiresCustomerCategory", v)} />
         <Toggle label="Marital status" checked={form.requiresMaritalStatus} onChange={(v) => set("requiresMaritalStatus", v)} />
         <Toggle label="Address" checked={form.requiresAddress} onChange={(v) => set("requiresAddress", v)} />
         <Toggle label="Identity document" checked={form.requiresIdentityDocument} onChange={(v) => set("requiresIdentityDocument", v)} />
@@ -203,12 +203,12 @@ function RequirementsForm({
       <div className="space-y-3 rounded-lg border p-4">
         <h4 className="flex items-center gap-2 text-sm font-semibold">
           <ShieldCheck className="size-4 text-muted-foreground" aria-hidden />
-          Category documents
+          Customer type documents
         </h4>
 
         <Toggle
-          label="Missing category documents block KYC"
-          hint="Each customer category names the documents it requires. Off, they are a checklist; on, they are a gate."
+          label="Missing customer type documents block KYC"
+          hint="Each customer type names the documents it requires. Off, they are a checklist; on, they are a gate."
           checked={form.requiresCategoryDocuments}
           onChange={(v) => set("requiresCategoryDocuments", v)}
         />
@@ -283,19 +283,19 @@ function EligibilitySection({
 
   return (
     <SettingsCard
-      title="Category eligibility"
-      description="Which loan products a category may borrow, and the ceiling on each. A product not ticked is refused by the loan gate."
+      title="Loan product availability"
+      description="Which loan products each customer type may borrow, and the ceiling on each. A product not ticked is refused by the loan gate."
     >
       {categories.length === 0 || products.length === 0 ? (
         <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
           {categories.length === 0
-            ? "No customer categories exist yet. Add them at Administration → Customer Categories."
+            ? "No customer types exist yet. Add them at Administration → Customer Types."
             : "No loan products exist yet. Add them at Administration → Loan Products."}
         </p>
       ) : (
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="elig-category">Customer category</Label>
+            <Label htmlFor="elig-category">Customer Type</Label>
             <select
               id="elig-category"
               value={categoryId}
@@ -310,8 +310,8 @@ function EligibilitySection({
             </select>
           </div>
 
-          {/* Keyed on the category so switching it remounts the form and its
-              rows reset from that category's rules — no render-phase sync. */}
+          {/* Keyed on the customer type so switching it remounts the form and
+              its rows reset from that type's rules — no render-phase sync. */}
           <EligibilityRules
             key={categoryId}
             categoryId={categoryId}

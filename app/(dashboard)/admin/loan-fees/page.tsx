@@ -21,7 +21,7 @@ export default async function LoanFeesPage() {
         icon={Receipt}
         title="Loan Fee"
         description="The arrangement fee and insurance premium charged on each loan category."
-        breadcrumb={[{ label: "Settings", href: "/admin" }, { label: "Loan Fee Setup" }]}
+        breadcrumb={[{ label: "Administration", href: "/admin" }, { label: "Loan Fee Setup" }]}
       />
       <LoanFeesTable rows={rows} />
     </div>

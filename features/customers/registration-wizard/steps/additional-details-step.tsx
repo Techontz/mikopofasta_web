@@ -1,75 +1,65 @@
 "use client";
 
+import * as React from "react";
 import { useFormContext } from "react-hook-form";
-import { Info } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { ClipboardList, Info } from "lucide-react";
 import { Combobox } from "@/components/settings/combobox";
-import { RESIDENCE_TYPES } from "@/types/enums";
-import { CategoryDataStep } from "@/features/customers/registration-wizard/steps/category-data-step";
-import { CategoryEmploymentStep } from "@/features/customers/registration-wizard/steps/category-employment-step";
+import { Label } from "@/components/ui/label";
+import { DynamicFields } from "@/features/customers/registration-wizard/dynamic-fields";
+import type { Lookups } from "@/features/customers/registration-wizard/dynamic-form";
 import { GuarantorsStep } from "@/features/customers/registration-wizard/steps/guarantors-step";
 import { NextOfKinStep } from "@/features/customers/registration-wizard/steps/next-of-kin-step";
+import { structuredNameFor } from "@/features/customers/registration-wizard/structured-fields";
 import type { WizardValues } from "@/features/customers/registration-wizard/wizard-schema";
-import type { MasterDataOption } from "@/lib/api/master-data";
 import type { AccountTypeRequirementProfile } from "@/lib/api/registration";
 import type { CustomerCategory } from "@/types/customer";
 
 /**
- * Step 2 — Additional Details, in the legacy form's order, plus the blocks
- * that had nowhere to live in the three-step version.
+ * Step 2 — Additional Details. One question of its own, and then the form that
+ * question selects.
  *
- *   Nick name      | Martial Status  | Work Type      | Type of employment
- *   Department     | Council No      | Name of employer
- *   Place Employment | Date of retirement | Number of Dependents
- *   Basic Salary   | Take home       | Check Number
- *   Contact  ·  Residence  ·  Business (when the account type asks)
- *   Customer category and its questions
- *   Guarantors  ·  Next of kin
+ *   CUSTOMER TYPE                       chosen from whatever is configured
+ *   ───────────────────────────────
+ *   <the type's own card>               its configured fields, in its order
  *
- * The heading keeps the original's spelling — "Martial Status" — because that
- * is what the screen being replaced says and the officers using it recognise.
+ * WHAT THIS FILE USED TO BE. Eighteen named inputs — Nick name, Work Type,
+ * Department, Council No, Place Employment, Date of retirement, Number of
+ * Dependents, Check Number and the rest — shown to every customer regardless of
+ * who they were, because there was no way to say that a shopkeeper has no
+ * council number. Adding a question meant editing this file; adding a customer
+ * type meant editing it again.
  *
- * WORK TYPE AND TYPE OF EMPLOYMENT ARE NOW TYPED. They were dropdowns over
- * admin-managed lists of three entries each, and no list of three covers what
- * people do: "Fundi wa pikipiki", "Mama lishe", "Government employee on
- * contract" are all real answers that a fixed list forces somebody to
- * mis-record. Both columns already existed as free text on the customer — the
- * `*_id` references stay for records captured before this and are still read
- * on the profile.
+ * NONE OF THOSE FIELDS ARE WRITTEN HERE ANY MORE, and none of them are gone
+ * either: each is a key a customer type's configuration may name, and naming
+ * one binds it to the same customer column it always wrote to (see
+ * structured-fields.ts). So a type that wants a check number asks for one, a
+ * type that does not never shows the box, and the payroll export reads the same
+ * column it always did.
  *
- * GUARANTORS AND NEXT OF KIN ARE COLLECTED HERE. Their step components existed
- * and were rendered by nothing — the three-step wizard validated
- * `guarantors` and `nextOfKin` before advancing and never showed a field for
- * either. Since the loan engine refuses any application without a guarantor,
- * every customer registered through that form was permanently unable to
- * borrow, which is a large part of what this work is fixing.
+ * THE CARD IS TITLED BY THE CONFIGURATION, never by a code this file
+ * recognises. `formTitle` falls back to the type's name — there is deliberately
+ * no third fallback, because a heading invented here would be this component
+ * claiming to know something about a customer type that the administrator
+ * never told it.
  *
- * WHAT IS REQUIRED HERE COMES FROM THE ACCOUNT TYPE. Business details appear
- * only when the profile asks for them; the guarantor minimum is the profile's
- * number, not a constant. See `wizard-schema.ts`.
+ * GUARANTORS AND NEXT OF KIN appear only when the account type demands them,
+ * which no account type reachable from this form does today. They are kept
+ * because the requirement profile can still ask for them and a form that
+ * silently could not satisfy its own rules would be worse than one with a
+ * section nobody sees.
  */
 export function AdditionalDetailsStep({
-  maritalStatuses,
-  occupations,
   categories,
-  sectors,
-  employers,
-  contractTypes,
+  lookups,
   profile,
 }: {
-  maritalStatuses: MasterDataOption[];
-  occupations: MasterDataOption[];
+  /** The customer types an administrator has configured and left active. */
   categories: CustomerCategory[];
-  /** Employing bodies. Admin-managed; never a literal in this file. */
-  sectors: MasterDataOption[];
-  /** Private companies — a separate list from sectors. */
-  employers: MasterDataOption[];
-  contractTypes: MasterDataOption[];
+  /** Every admin-managed list, for the configured selects to draw on. */
+  lookups: Lookups;
   profile: AccountTypeRequirementProfile;
 }) {
   const {
-    register,
     setValue,
     watch,
     formState: { errors },
@@ -77,352 +67,138 @@ export function AdditionalDetailsStep({
 
   const categoryId = watch("customerCategoryId");
   const category = categories.find((c) => c.id === categoryId);
+  const fields = category?.dynamicFormSchema ?? [];
 
-  const asOptions = (rows: MasterDataOption[]) =>
-    rows.map((r) => ({ value: r.id, label: r.name, hint: r.description ?? undefined }));
+  /**
+   * Everything the previous customer type asked, forgotten.
+   *
+   * §23: changing the type rebuilds this step, and an answer left behind from
+   * the old form would be submitted against a field the new type never asks —
+   * a sector belonging to a customer whose new type has no sector, or worse, a
+   * value that quietly satisfies a rule nobody meant to satisfy. Both the JSON
+   * answers and the structured ones are cleared, because the officer cannot see
+   * which is which and the distinction is not theirs to manage.
+   */
+  function chooseCategory(nextId: string | null) {
+    const previous = categories.find((c) => c.id === categoryId);
+
+    for (const field of previous?.dynamicFormSchema ?? []) {
+      const name = structuredNameFor(field);
+      if (name !== null) setValue(name, null as never, { shouldValidate: false });
+    }
+
+    setValue("dynamicFormData", {}, { shouldValidate: false });
+    setValue("customerCategoryId", nextId ?? "", { shouldValidate: true });
+  }
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-base font-semibold">Aditinal Detail</h2>
+    <div className="space-y-5">
+      <div className="space-y-1">
+        <h2 className="text-base font-semibold">Additional Details</h2>
+        <p className="text-sm text-muted-foreground">
+          The customer type decides what else is asked. Choose it first.
+        </p>
+      </div>
 
-      {/* Row 1 */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Field label="Nick name" error={errors.nickname?.message}>
-          <Input id="nickname" {...register("nickname")} />
-        </Field>
-        <Field
-          label="Martial Status"
-          required={profile.requiresMaritalStatus}
-          error={errors.maritalStatusId?.message}
-        >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="customerCategoryId">
+            Customer Type
+            {profile.requiresCustomerCategory && <span className="ml-0.5 text-destructive">*</span>}
+          </Label>
           <Combobox
-            id="maritalStatusId"
-            value={watch("maritalStatusId") || null}
-            onChange={(v) => setValue("maritalStatusId", v ?? "", { shouldValidate: true })}
-            options={asOptions(maritalStatuses)}
-            placeholder="Select"
-            emptyMessage="No marital statuses are configured. Add them under Administration → Master Data."
-            invalid={!!errors.maritalStatusId}
+            id="customerCategoryId"
+            value={categoryId || null}
+            onChange={chooseCategory}
+            options={categories.map((c) => ({
+              value: c.id,
+              label: c.name,
+              hint: c.requiresExtraApproval ? "Needs extra approval" : undefined,
+            }))}
+            placeholder="Select Customer Type"
+            /* The officer cannot fix this themselves — creating a customer type
+               is the Super Administrator's — so the message names who to ask
+               rather than a screen they cannot open. */
+            emptyMessage="No customer types are configured. Please contact the Super Administrator."
+            invalid={!!errors.customerCategoryId}
           />
-        </Field>
-        <Field
-          label="Work Type"
-          required={profile.requiresEmploymentDetails}
-          error={errors.workType?.message}
-          help="Type whatever the customer does — Business, Farmer, Driver, Teacher…"
-        >
-          <Input id="workType" placeholder="e.g. Farmer" {...register("workType")} />
-        </Field>
-        <Field
-          label="Type of employment"
-          error={errors.employmentType?.message}
-          help="Permanent, Contract, Casual, Self-employed, Government employee…"
-        >
-          <Input
-            id="employmentType"
-            placeholder="e.g. Permanent"
-            {...register("employmentType")}
-          />
-        </Field>
-      </div>
-
-      {/* Row 2 */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Field label="Department" error={errors.department?.message}>
-          <Input id="department" {...register("department")} />
-        </Field>
-        <Field label="Council No" error={errors.councilNumber?.message}>
-          <Input id="councilNumber" {...register("councilNumber")} />
-        </Field>
-        <Field
-          label="Name of employer"
-          required={profile.requiresEmploymentDetails}
-          error={errors.employer?.message}
-        >
-          <Input id="employer" placeholder="Or 'Self'" {...register("employer")} />
-        </Field>
-        <Field label="Occupation" error={errors.occupationId?.message}>
-          <Combobox
-            id="occupationId"
-            value={watch("occupationId") || null}
-            onChange={(v) => setValue("occupationId", v ?? "")}
-            options={asOptions(occupations)}
-            placeholder="Select"
-            emptyMessage="No occupations are configured. Add them under Administration → Master Data."
-          />
-        </Field>
-      </div>
-
-      {/* Row 3 */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Field label="Place Employment" error={errors.placeOfEmployment?.message}>
-          <Input id="placeOfEmployment" {...register("placeOfEmployment")} />
-        </Field>
-        <Field label="Date of retirement" error={errors.retirementDate?.message}>
-          <Input id="retirementDate" type="date" {...register("retirementDate")} />
-        </Field>
-        <Field label="Number of Dependents" error={errors.dependentsCount?.message}>
-          <NumberInput name="dependentsCount" min={0} />
-        </Field>
-      </div>
-
-      {/* Row 4 — the two salary figures are deliberately separate: affordability
-          is assessed on take-home, statutory deductions on basic salary. */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Field label="Basic Salary" error={errors.basicSalary?.message}>
-          <NumberInput name="basicSalary" min={0} />
-        </Field>
-        <Field
-          label="Take home"
-          required={profile.requiresEmploymentDetails}
-          error={errors.takeHome?.message}
-        >
-          <NumberInput name="takeHome" min={0} />
-        </Field>
-        <Field label="Monthly Income (TZS)" error={errors.monthlyIncome?.message}>
-          <NumberInput name="monthlyIncome" min={0} />
-        </Field>
-        <Field label="Check Number" error={errors.checkNumber?.message}>
-          <Input id="checkNumber" {...register("checkNumber")} />
-        </Field>
-      </div>
-
-      {/* ------------------------------------------------------------ contact */}
-      <Section title="Contact & residence">
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="Alternative Phone" error={errors.alternativePhone?.message}>
-            <Input id="alternativePhone" placeholder="0754000000" {...register("alternativePhone")} />
-          </Field>
-          <Field label="Email" error={errors.email?.message}>
-            <Input id="email" type="email" placeholder="name@example.co.tz" {...register("email")} />
-          </Field>
-          <Field label="Nationality" error={errors.nationality?.message}>
-            <Input id="nationality" placeholder="Tanzanian" {...register("nationality")} />
-          </Field>
+          {errors.customerCategoryId?.message && (
+            <p className="text-xs text-destructive">{errors.customerCategoryId.message}</p>
+          )}
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <Field label="Residence Type">
-            <Combobox
-              id="residenceType"
-              value={watch("residenceType") ?? null}
-              onChange={(v) => setValue("residenceType", (v as WizardValues["residenceType"]) ?? null)}
-              options={RESIDENCE_TYPES.map((r) => ({ value: r, label: r }))}
-              placeholder="Select"
-            />
-          </Field>
-          <Field label="Village" error={errors.village?.message}>
-            <Input id="village" {...register("village")} />
-          </Field>
-          <Field label="House Number" error={errors.houseNumber?.message}>
-            <Input id="houseNumber" placeholder="e.g. H-42" {...register("houseNumber")} />
-          </Field>
-          <Field label="Postal Code" error={errors.postalCode?.message}>
-            <Input id="postalCode" {...register("postalCode")} />
-          </Field>
-          <Field label="Landmark" error={errors.landmark?.message}>
-            <Input id="landmark" placeholder="What to look for nearby" {...register("landmark")} />
-          </Field>
-        </div>
-      </Section>
+      </div>
 
-      {/* ----------------------------------------------------------- business */}
-      {/*
-        Shown when the account type asks for it, and also whenever the officer
-        has already put something in it — a savings customer who happens to run
-        a shop should not have that quietly hidden and dropped because they
-        changed account type afterwards.
-      */}
-      {(profile.requiresBusinessDetails ||
-        watch("businessName") ||
-        watch("businessType") ||
-        watch("businessAddress")) && (
-        <Section title="Business information">
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Field
-              label="Business Name"
-              required={profile.requiresBusinessDetails}
-              error={errors.businessName?.message}
-            >
-              <Input id="businessName" {...register("businessName")} />
-            </Field>
-            <Field
-              label="Business Type"
-              required={profile.requiresBusinessDetails}
-              error={errors.businessType?.message}
-            >
-              <Input id="businessType" placeholder="e.g. Retail" {...register("businessType")} />
-            </Field>
-            <Field label="Business Address" error={errors.businessAddress?.message}>
-              <Input id="businessAddress" {...register("businessAddress")} />
-            </Field>
+      {/* ------------------------------------------- the type's own questions */}
+      {category ? (
+        <section className="rounded-xl border bg-muted/30">
+          <header className="flex items-center gap-2 border-b px-4 py-3">
+            <ClipboardList className="size-4 text-muted-foreground" aria-hidden />
+            <h3 className="text-sm font-semibold tracking-wide uppercase">
+              {category.formTitle?.trim() || category.name}
+            </h3>
+          </header>
+
+          <div className="p-4">
+            {fields.length > 0 ? (
+              <DynamicFields fields={fields} lookups={lookups} />
+            ) : (
+              <p className="flex items-start gap-2 text-sm text-muted-foreground">
+                <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
+                <span>
+                  No additional details have been configured for this customer type yet. A Super
+                  Administrator sets them under Administration → Customer Types → Registration form.
+                </span>
+              </p>
+            )}
           </div>
+        </section>
+      ) : (
+        <p className="flex items-start gap-2 rounded-lg border border-dashed px-4 py-3 text-sm text-muted-foreground">
+          <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <span>
+            Choose a customer type above to see the additional details it asks for.
+            {!profile.requiresCustomerCategory &&
+              " You can also continue without one and classify this customer later from their profile."}
+          </span>
+        </p>
+      )}
+
+      {/* --------------------------------- only when the account type asks --- */}
+      {profile.minGuarantors > 0 && (
+        <Section
+          title={`Guarantors (at least ${profile.minGuarantors})`}
+          error={typeof errors.guarantors?.message === "string" ? errors.guarantors.message : undefined}
+        >
+          <GuarantorsStep />
         </Section>
       )}
 
-      {/* ----------------------------------------------------------- category */}
-      <Section
-        title="Customer category"
-        note={
-          profile.requiresCustomerCategory
-            ? "Required for this account type — the category decides which loan products this customer may take."
-            : "Optional. It can also be assigned later from the customer's profile."
-        }
-      >
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field
-            label="Category"
-            required={profile.requiresCustomerCategory}
-            error={errors.customerCategoryId?.message}
-          >
-            <Combobox
-              id="customerCategoryId"
-              value={categoryId || null}
-              onChange={(v) => {
-                setValue("customerCategoryId", v ?? "", { shouldValidate: true });
-                /* A different category asks different questions; keeping the
-                   old answers would submit values against fields that no
-                   longer exist — and a sector or contract left behind by the
-                   previous category would be sent for a customer the new one
-                   never asks it of. */
-                setValue("dynamicFormData", {});
-                setValue("sectorId", null);
-                setValue("sectorCategoryId", null);
-                setValue("contractTypeId", null);
-                setValue("contractExpiryDate", null);
-                setValue("employerId", null);
-              }}
-              options={categories.map((c) => ({
-                value: c.id,
-                label: c.name,
-                hint: c.requiresExtraApproval ? "Needs extra approval" : undefined,
-              }))}
-              placeholder="Select category"
-              emptyMessage="No customer categories are configured. Add them under Administration → Customer Categories."
-              invalid={!!errors.customerCategoryId}
-            />
-          </Field>
-        </div>
-
-        {category && (
-          <div className="space-y-4 pt-2">
-            {/* The first-class blocks this category asks for — sector, cadre,
-                contract, salary. Shown off the category's own booleans, never
-                off its code. */}
-            <CategoryEmploymentStep
-              category={category}
-              sectors={sectors}
-              employers={employers}
-              contractTypes={contractTypes}
-            />
-            {/* Then the questions peculiar to this category. */}
-            <CategoryDataStep category={category} />
-          </div>
-        )}
-      </Section>
-
-      {/* --------------------------------------------------------- guarantors */}
-      <Section
-        title={
-          profile.minGuarantors > 0
-            ? `Guarantors (at least ${profile.minGuarantors})`
-            : "Guarantors"
-        }
-        note={
-          profile.minGuarantors > 0
-            ? "Required for this account type. A loan cannot be submitted without one."
-            : undefined
-        }
-        error={typeof errors.guarantors?.message === "string" ? errors.guarantors.message : undefined}
-      >
-        <GuarantorsStep />
-      </Section>
-
-      {/* -------------------------------------------------------- next of kin */}
-      <Section
-        title={
-          profile.minNextOfKin > 0 ? `Next of kin (at least ${profile.minNextOfKin})` : "Next of kin"
-        }
-        error={typeof errors.nextOfKin?.message === "string" ? errors.nextOfKin.message : undefined}
-      >
-        <NextOfKinStep />
-      </Section>
+      {profile.minNextOfKin > 0 && (
+        <Section
+          title={`Next of kin (at least ${profile.minNextOfKin})`}
+          error={typeof errors.nextOfKin?.message === "string" ? errors.nextOfKin.message : undefined}
+        >
+          <NextOfKinStep />
+        </Section>
+      )}
     </div>
   );
 }
 
-/* ----------------------------------------------------------------- parts */
-
 function Section({
   title,
-  note,
   error,
   children,
 }: {
   title: string;
-  note?: string;
   error?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-4 rounded-lg border p-4">
-      <div className="space-y-1">
-        <h3 className="text-sm font-semibold">{title}</h3>
-        {note && (
-          <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
-            <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-            {note}
-          </p>
-        )}
-        {error && <p className="text-xs text-destructive">{error}</p>}
-      </div>
+    <section className="space-y-3 rounded-xl border p-4">
+      <h3 className="text-sm font-semibold">{title}</h3>
+      {error && <p className="text-xs text-destructive">{error}</p>}
       {children}
     </section>
-  );
-}
-
-/**
- * A number box that yields null when empty rather than NaN.
- *
- * `valueAsNumber` on an empty input produces NaN, which zod rejects with
- * "expected number, received nan" — an error the officer cannot act on for a
- * field they deliberately left blank.
- */
-function NumberInput({ name, min }: { name: keyof WizardValues; min?: number }) {
-  const { register } = useFormContext<WizardValues>();
-
-  return (
-    <Input
-      id={String(name)}
-      type="number"
-      min={min}
-      {...register(name, {
-        setValueAs: (v) => (v === "" || v === null ? null : Number(v)),
-      })}
-    />
-  );
-}
-
-function Field({
-  label,
-  required,
-  error,
-  help,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  error?: string;
-  help?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <Label>
-        {label}:{required && <span className="ml-0.5 text-destructive">*</span>}
-      </Label>
-      {children}
-      {help && !error && <p className="text-[11px] text-muted-foreground">{help}</p>}
-      {error && <p className="text-xs text-destructive">{error}</p>}
-    </div>
   );
 }

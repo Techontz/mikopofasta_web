@@ -23,21 +23,35 @@ import { PageHeader } from "@/components/settings";
  */
 const LISTS: ListDefinition[] = [
   {
+    /*
+     * NOT the Customer Type classification — that is `customer-categories`
+     * below, and there is exactly one of it.
+     *
+     * This lookup is the customer's LEGAL FORM: whether they are an individual,
+     * a group or an institution. It carried the label "Customer Types", which
+     * put two unrelated things under one name in the same sidebar. Named for
+     * what it holds; the underlying list and its rows are untouched.
+     */
     key: "customer-types",
-    label: "Customer Types",
-    description: "The customer's legal form — individual, group, institution.",
+    label: "Customer Legal Form",
+    description: "Whether the customer is an individual, a group, or an institution.",
     emptyHint: "Registration asks every customer which of these they are. Add the forms your institution recognises.",
   },
   {
+    /*
+     * THE Customer Types module, and the only one. The same records
+     * Administration → Customer Types manages and Administration → Loan
+     * Category selects from — one table, one API, one source of truth.
+     */
     key: "customer-categories" as MasterDataList,
-    label: "Customer Categories",
+    label: "Customer Types",
     description:
-      "Which kind of customer this is. Decides the questions asked, the documents required, and which loan products they may take.",
+      "The customer classifications used by the institution. Decides the questions asked, the documents required, and which loan products a customer may take.",
     emptyHint:
       "Registration cannot complete without at least one category — it is what decides which questions a customer is asked and what they must produce.",
     /* Shown here, edited there. It is reference data in every sense an
        administrator cares about, but it is not a flat code/name lookup. */
-    managedElsewhere: { href: "/admin/customer-categories", label: "Open Customer Categories" },
+    managedElsewhere: { href: "/admin/customer-categories", label: "Open Customer Types" },
   },
   {
     key: "account-types",
@@ -46,10 +60,21 @@ const LISTS: ListDefinition[] = [
     emptyHint: "A loan account and a savings account ask for different things. Add the account types you offer.",
   },
   {
+    /*
+     * The names the institution gives its loan categories — NOT a customer
+     * classification, and not the same thing as a Customer Type.
+     *
+     * The table behind it is still `loan_types`, and its rows are untouched:
+     * renaming a live table that customer records point at would be an
+     * invasive change to correct a label. What was wrong was the label. The
+     * three classifications this sidebar carries are distinct and stay that
+     * way — the customer's legal form, the customer's type, and the name of a
+     * loan category.
+     */
     key: "loan-types",
-    label: "Loan Types",
-    description: "The lending programme a customer is registered under.",
-    emptyHint: "Add the lending programmes your institution runs.",
+    label: "Loan Category Names",
+    description: "The names used to identify the institution's loan categories and products.",
+    emptyHint: "Add the names your institution gives its loan categories.",
   },
   {
     key: "id-types",
@@ -61,7 +86,7 @@ const LISTS: ListDefinition[] = [
     key: "document-types",
     label: "Document Types",
     description: "What a customer may be asked to produce. Categories require these by code.",
-    emptyHint: "A customer category's required documents point at these codes. Add the documents you collect.",
+    emptyHint: "A customer type's required documents point at these codes. Add the documents you collect.",
   },
   {
     key: "sectors",
@@ -138,7 +163,7 @@ export default async function MasterDataPage() {
   const initial = Object.fromEntries(managed.map((l, i) => [l.key, results[i]]));
 
   /*
-   * Customer Categories, summarised. Enough to see what is configured without
+   * Customer Types, summarised. Enough to see what is configured without
    * leaving the screen — the facts an administrator checks at a glance are
    * which employment blocks a category asks for and how many documents it
    * demands, because those are what make a registration succeed or stall.
@@ -168,7 +193,7 @@ export default async function MasterDataPage() {
         icon={Database}
         title="Master Data"
         description="The institution's own reference data. This application ships none of it — a new installation starts empty and is configured here."
-        breadcrumb={[{ label: "Settings", href: "/admin" }, { label: "Master Data" }]}
+        breadcrumb={[{ label: "Administration", href: "/admin" }, { label: "Master Data" }]}
       />
       <MasterDataManager definitions={LISTS} initial={initial} specialised={specialised} />
     </div>

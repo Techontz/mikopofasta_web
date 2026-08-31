@@ -63,7 +63,7 @@ export default async function OrganizationSetupPage() {
         icon={Building2}
         title="Branch"
         description="Branches, and the region and zone hierarchy every record is scoped by."
-        breadcrumb={[{ label: "Settings", href: "/admin" }, { label: "Branch" }]}
+        breadcrumb={[{ label: "Administration", href: "/admin" }, { label: "Branch" }]}
       />
 
       <Tabs defaultValue="branches" className="gap-5">

@@ -18,7 +18,7 @@ export default async function ExpenseCategoriesPage() {
         icon={Receipt}
         title="Expense Categories"
         description="Branch and head-office expense classifications and the ledger account each one posts to."
-        breadcrumb={[{ label: "Settings", href: "/admin" }, { label: "Expense Categories" }]}
+        breadcrumb={[{ label: "Administration", href: "/admin" }, { label: "Expense Categories" }]}
       />
       <ExpenseCategoriesTable categories={categories} />
     </div>

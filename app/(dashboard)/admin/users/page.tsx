@@ -40,7 +40,7 @@ export default async function UsersPage() {
         icon={Users}
         title="User Management"
         description="Staff accounts, role assignment, branch scope, and access status."
-        breadcrumb={[{ label: "Settings", href: "/admin" }, { label: "User Management" }]}
+        breadcrumb={[{ label: "Administration", href: "/admin" }, { label: "User Management" }]}
       />
       {/*
         Searching, role/status filtering and sorting are the table's, over the

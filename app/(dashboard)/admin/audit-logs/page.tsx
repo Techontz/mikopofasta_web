@@ -45,7 +45,7 @@ export default async function AuditLogsPage({
         icon={History}
         title="Audit Logs"
         description="The full system audit trail — who did what, to which record, and when."
-        breadcrumb={[{ label: "Settings", href: "/admin" }, { label: "Audit Logs" }]}
+        breadcrumb={[{ label: "Administration", href: "/admin" }, { label: "Audit Logs" }]}
       />
       <AuditLogsTable logs={logs} actions={actions} total={pagination?.total ?? logs.length} />
     </div>

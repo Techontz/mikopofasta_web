@@ -36,8 +36,30 @@ export interface PendingDocument {
  * the officer would see four slots where the category asks for five and have
  * no way to know.
  *
- * EXTRA DOCUMENTS ARE STILL ALLOWED. The required slots are the floor, not the
- * ceiling; a branch that wants to attach something else can, and files it
+ * THE IDENTITY DOCUMENT IS THE FIRST SLOT, AND IT IS NOT THE CATEGORY'S.
+ * Two different questions decide what this step asks for. The ID TYPE chosen on
+ * step one decides which document proves who the customer is — the link is on
+ * the ID type itself, set in Administration, so choosing Passport asks for a
+ * passport and choosing Voter ID asks for a voter card, and this file could not
+ * name either of them if it wanted to. The CUSTOMER TYPE decides everything
+ * else: a payslip, a confirmation letter, a bank card.
+ *
+ * WHEN BOTH ASK FOR THE SAME FILE, IT IS ASKED FOR ONCE. A customer type whose
+ * document list already includes the national ID, registered by somebody who
+ * showed a national ID, produced two identical upload boxes with no way to tell
+ * them apart. The identity slot wins — it is the more specific requirement, and
+ * it says why the document is wanted — and the category's copy is dropped.
+ *
+ * OPTIONAL SLOTS SIT BELOW THE REQUIRED ONES. A customer type may name
+ * documents it would LIKE on file without making them a condition of
+ * registration — `optionalDocuments` beside `requiredDocuments`. Two lists
+ * rather than one list of objects with a flag, because "required" is what
+ * `requiredDocuments` has always meant to KycEvaluator and to this component,
+ * and widening it would have changed a contract three readers depend on in
+ * order to express one boolean.
+ *
+ * EXTRA DOCUMENTS ARE STILL ALLOWED. The configured slots are the floor, not
+ * the ceiling; a branch that wants to attach something else can, and files it
  * under any active type.
  *
  * BLOCKING IS THE SERVER'S DECISION, not this component's. When
@@ -47,22 +69,55 @@ export interface PendingDocument {
  */
 export function RequiredDocumentsStep({
   category,
+  identity,
+  identityError,
   documentTypes,
   documents,
   onChange,
   blocking,
 }: {
   category: CustomerCategory | undefined;
+  /**
+   * The document that evidences the ID type chosen on step one, resolved from
+   * the link an administrator set on that ID type. Null when no ID type is
+   * chosen, or when the institution takes no copy of the one that was.
+   */
+  identity: { code: string; name: string; idTypeName: string } | null;
+  /**
+   * Shown under the identity slot after a Save was refused for the want of it.
+   * Held by the wizard rather than derived here, because "is it missing" and
+   * "has the officer been told" are different questions — an empty slot on a
+   * form nobody has submitted yet is not an error.
+   */
+  identityError?: string;
   documentTypes: MasterDataOption[];
   documents: PendingDocument[];
   onChange: (next: PendingDocument[]) => void;
   /** Whether the API will refuse KYC completion without these. */
   blocking: boolean;
 }) {
-  const required = category?.requiredDocuments ?? [];
+  /* The category's list, minus anything the identity slot above already asks
+     for — see the note at the top of this file. */
+  const required = (category?.requiredDocuments ?? []).filter((code) => code !== identity?.code);
+  /* Offered, never demanded — and never duplicated: a code configured in both
+     lists is a misconfiguration, and showing it twice would give the officer
+     two slots for one document and no way to tell them apart. */
+  const optional = (category?.optionalDocuments ?? []).filter(
+    (code) => !required.includes(code) && code !== identity?.code,
+  );
 
+  /**
+   * The document's name, never its code.
+   *
+   * A code that matches nothing is a misconfiguration — a customer type asking
+   * for a document type somebody deleted — and it still gets a slot, because
+   * silently dropping it would show four boxes where the type asks for five and
+   * give the officer no way to know. But it is shown as readable words rather
+   * than as `EMP_CONFIRM_01`, which tells a branch officer nothing they can act
+   * on.
+   */
   const nameFor = React.useCallback(
-    (code: string) => documentTypes.find((d) => d.code === code)?.name ?? code,
+    (code: string) => documentTypes.find((d) => d.code === code)?.name ?? humanise(code),
     [documentTypes],
   );
 
@@ -75,8 +130,15 @@ export function RequiredDocumentsStep({
 
   /* Anything attached that the category did not ask for. Kept separate so the
      required checklist stays a clean "n of m". */
-  const extras = documents.filter((d) => !required.includes(d.code));
-  const attachedCount = required.filter((code) => fileFor(code) !== undefined).length;
+  const extras = documents.filter(
+    (d) => !required.includes(d.code) && !optional.includes(d.code) && d.code !== identity?.code,
+  );
+
+  /* The identity document counts toward "n of m", because it is one of the
+     documents the officer has to produce and a checklist that left it out
+     would say 4 of 4 while the registration was still refusing to save. */
+  const mandatory = identity ? [identity.code, ...required] : required;
+  const attachedCount = mandatory.filter((code) => fileFor(code) !== undefined).length;
 
   return (
     <div className="space-y-5">
@@ -85,94 +147,102 @@ export function RequiredDocumentsStep({
         <p className="text-sm text-muted-foreground">
           {category
             ? required.length === 0
-              ? `A ${category.name} customer is not required to produce any documents.`
-              : `A ${category.name} customer must produce ${required.length} document${required.length === 1 ? "" : "s"}.`
-            : "Choose a customer category first — the category decides which documents are required."}
+              ? identity
+                ? `A ${category.name} customer produces no further documents beyond their ${identity.idTypeName}.`
+                : `A ${category.name} customer is not required to produce any documents.`
+              : `A ${category.name} customer must produce ${required.length} further document${required.length === 1 ? "" : "s"}.`
+            : "Choose a customer type on the previous step — it decides which documents are required."}
         </p>
       </div>
 
-      {required.length > 0 && (
+      {identity && (
+        <ul className="space-y-3">
+          <DocumentSlot
+            code={identity.code}
+            label={identity.name}
+            /* Says WHY this one is being asked for, which is the only thing
+               that distinguishes it from the list below. */
+            note={`Identity document — the customer's ${identity.idTypeName}.`}
+            /*
+             * ALWAYS REQUIRED, and not subject to the switch that governs the
+             * category's list. The institution has said which document
+             * evidences this identity type by linking the two in
+             * Administration; a customer cannot be registered without a copy of
+             * it, and the Save button refuses until it is attached.
+             */
+            required
+            error={identityError}
+            file={fileFor(identity.code)}
+            onAttach={(f) => attach(identity.code, f)}
+          />
+        </ul>
+      )}
+
+      {mandatory.length > 0 && (
         <>
           <div
             className={cn(
               "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm",
-              attachedCount === required.length
+              attachedCount === mandatory.length
                 ? "border-emerald-600/30 text-emerald-700 dark:text-emerald-400"
                 : "text-muted-foreground",
             )}
           >
-            {attachedCount === required.length ? (
+            {attachedCount === mandatory.length ? (
               <CheckCircle2 className="size-4" aria-hidden />
             ) : (
               <CircleDashed className="size-4" aria-hidden />
             )}
             <span>
               <span className="font-medium">
-                {attachedCount} of {required.length}
+                {attachedCount} of {mandatory.length}
               </span>{" "}
               attached
-              {!blocking && attachedCount < required.length && (
+              {!blocking && attachedCount < mandatory.length && (
                 /* Said plainly rather than implied. An officer who thinks a
                    checklist is a gate will stop and go looking for a file
                    nobody is asking them for yet. */
                 <span className="text-muted-foreground">
                   {" "}
-                  — you can continue and add the rest from the customer&apos;s profile.
+                  {identity && fileFor(identity.code) === undefined
+                    ? ` — the ${identity.name} must be attached before saving; the rest can be added from the customer's profile.`
+                    : " — you can continue and add the rest from the customer's profile."}
                 </span>
               )}
             </span>
           </div>
 
           <ul className="space-y-3">
-            {required.map((code) => {
-              const file = fileFor(code);
+            {required.map((code) => (
+              <DocumentSlot
+                key={code}
+                code={code}
+                label={nameFor(code)}
+                required={blocking}
+                file={fileFor(code)}
+                onAttach={(f) => attach(code, f)}
+              />
+            ))}
+          </ul>
+        </>
+      )}
 
-              return (
-                <li key={code} className="rounded-lg border p-3">
-                  <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-                    <div className="space-y-1.5">
-                      <Label htmlFor={`doc-${code}`} className="flex items-center gap-2">
-                        {file ? (
-                          <CheckCircle2 className="size-4 text-emerald-600" aria-hidden />
-                        ) : (
-                          <CircleDashed className="size-4 text-muted-foreground" aria-hidden />
-                        )}
-                        {nameFor(code)}
-                        {blocking && <span className="text-destructive"> *</span>}
-                      </Label>
-                      <div className="flex items-center gap-2 rounded-md border px-2 py-1.5">
-                        <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                        <Input
-                          id={`doc-${code}`}
-                          type="file"
-                          accept="application/pdf,image/jpeg,image/png,image/webp"
-                          className="border-0 p-0 shadow-none focus-visible:ring-0"
-                          onChange={(e) => attach(code, e.target.files?.[0] ?? null)}
-                        />
-                      </div>
-                      {file && (
-                        <p className="text-[11px] text-muted-foreground">
-                          {file.name} · {Math.round(file.size / 1024)} KB
-                        </p>
-                      )}
-                    </div>
-
-                    {file && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => attach(code, null)}
-                        aria-label={`Remove ${nameFor(code)}`}
-                      >
-                        <X className="size-4" aria-hidden />
-                        Remove
-                      </Button>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
+      {optional.length > 0 && (
+        <>
+          <p className="text-sm text-muted-foreground">
+            Also accepted for a {category?.name} customer, if the customer has {optional.length === 1 ? "it" : "them"}:
+          </p>
+          <ul className="space-y-3">
+            {optional.map((code) => (
+              <DocumentSlot
+                key={code}
+                code={code}
+                label={nameFor(code)}
+                required={false}
+                file={fileFor(code)}
+                onAttach={(f) => attach(code, f)}
+              />
+            ))}
           </ul>
         </>
       )}
@@ -207,6 +277,91 @@ export function RequiredDocumentsStep({
       )}
     </div>
   );
+}
+
+/**
+ * One document slot — a label, a file picker, and a way to take it back.
+ *
+ * The required and the optional lists render through the same component
+ * because they ARE the same thing to the officer filling them in; the only
+ * difference is the asterisk and what happens if it is left empty.
+ */
+function DocumentSlot({
+  code,
+  label,
+  note,
+  required,
+  error,
+  file,
+  onAttach,
+}: {
+  code: string;
+  label: string;
+  /** Why this document is being asked for, when that is not obvious. */
+  note?: string;
+  required: boolean;
+  error?: string;
+  file: File | undefined;
+  onAttach: (file: File | null) => void;
+}) {
+  return (
+    /* The wizard's error focusing scrolls to this, using the same key it
+       reports the failure under. */
+    <li className="rounded-lg border p-3" data-field={`documents.${code}`}>
+      <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+        <div className="space-y-1.5">
+          <Label htmlFor={`doc-${code}`} className="flex items-center gap-2">
+            {file ? (
+              <CheckCircle2 className="size-4 text-emerald-600" aria-hidden />
+            ) : (
+              <CircleDashed className="size-4 text-muted-foreground" aria-hidden />
+            )}
+            {label}
+            {required && <span className="text-destructive"> *</span>}
+          </Label>
+          {note && <p className="text-[11px] text-muted-foreground">{note}</p>}
+          <div className="flex items-center gap-2 rounded-md border px-2 py-1.5">
+            <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            <Input
+              id={`doc-${code}`}
+              type="file"
+              accept="application/pdf,image/jpeg,image/png,image/webp"
+              className="border-0 p-0 shadow-none focus-visible:ring-0"
+              onChange={(e) => onAttach(e.target.files?.[0] ?? null)}
+            />
+          </div>
+          {file && (
+            <p className="text-[11px] text-muted-foreground">
+              {file.name} · {Math.round(file.size / 1024)} KB
+            </p>
+          )}
+          {error && <p className="text-xs text-destructive">{error}</p>}
+        </div>
+
+        {file && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => onAttach(null)}
+            aria-label={`Remove ${label}`}
+          >
+            <X className="size-4" aria-hidden />
+            Remove
+          </Button>
+        )}
+      </div>
+    </li>
+  );
+}
+
+/** `employment_contract` → "Employment Contract". A last resort, never a label a well-configured system reaches. */
+function humanise(code: string): string {
+  return code
+    .split(/[_\-\s]+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
 }
 
 /** One more document, of whatever type — the floor is not the ceiling. */

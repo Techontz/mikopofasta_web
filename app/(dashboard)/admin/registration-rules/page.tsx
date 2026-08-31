@@ -40,7 +40,7 @@ export default async function RegistrationRulesPage() {
         icon={SlidersHorizontal}
         title="Registration & Eligibility Rules"
         description="What registration demands of a customer, and which loan products each category may borrow."
-        breadcrumb={[{ label: "Settings", href: "/admin" }, { label: "Registration & Eligibility" }]}
+        breadcrumb={[{ label: "Administration", href: "/admin" }, { label: "Registration & Eligibility" }]}
       />
       <RegistrationRulesPanel
         profiles={requirements.profiles}

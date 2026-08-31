@@ -24,7 +24,7 @@ export default async function GeographyPage() {
         icon={MapPinned}
         title="Geography"
         description="Region → District → Ward → Street. Registration can only offer an address these tables contain."
-        breadcrumb={[{ label: "Settings", href: "/admin" }, { label: "Geography" }]}
+        breadcrumb={[{ label: "Administration", href: "/admin" }, { label: "Geography" }]}
       />
       <GeographyImportPanel status={status} />
     </div>

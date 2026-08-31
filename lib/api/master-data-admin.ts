@@ -19,6 +19,8 @@ export interface MasterDataInput {
   description?: string | null;
   sortOrder?: number | null;
   isActive?: boolean;
+  /** ID Types only — the document type that evidences this identity type. */
+  documentTypeId?: string | null;
 }
 
 export async function createMasterDataEntry(list: MasterDataList, input: MasterDataInput) {

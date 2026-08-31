@@ -24,7 +24,7 @@ export default async function NotificationTemplatesPage() {
         icon={BellRing}
         title="Notification Templates"
         description="SMS and email copy for system-triggered events. Placeholders are filled at send time."
-        breadcrumb={[{ label: "Settings", href: "/admin" }, { label: "Notification Templates" }]}
+        breadcrumb={[{ label: "Administration", href: "/admin" }, { label: "Notification Templates" }]}
       />
       <TemplatesTable templates={templates} vocabulary={vocabulary} />
     </div>

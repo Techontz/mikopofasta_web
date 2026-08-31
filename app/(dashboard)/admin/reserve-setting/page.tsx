@@ -21,7 +21,7 @@ export default async function ReserveSettingPage() {
         icon={Vault}
         title="Reserve Setting"
         description="The reserve percentage held against the portfolio."
-        breadcrumb={[{ label: "Settings", href: "/admin" }, { label: "Reserve Setting" }]}
+        breadcrumb={[{ label: "Administration", href: "/admin" }, { label: "Reserve Setting" }]}
       />
       <ReserveSettingForm setting={setting} />
     </div>

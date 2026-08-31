@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MASTER_DATA_LISTS, MASTER_DATA_LIST_LABELS } from "@/types/master-data";
 import {
   CUSTOMER_APPROVAL_STATUSES,
   CUSTOMER_CATEGORY_SECTORS,
@@ -11,12 +12,248 @@ import {
 } from "@/types/enums";
 
 /** One field in a CustomerCategory's dynamic KYC form (frontend spec §5). */
+/**
+ * The registration payload keys a configured customer-type field may write to.
+ *
+ * ONE LIST, THREE READERS, AND THAT IS THE POINT. The form renderer binds a
+ * control to these; `registerCustomerRequest` forwards exactly these to the
+ * API; and the server validates against its own copy
+ * (StructuredRegistrationField). Before this was shared, the outbound request
+ * body was a hand-maintained allowlist that had fallen behind the form — seven
+ * fields the officer filled in were dropped on the way out, including the ID
+ * type and its number, which made the API refuse the registration for having
+ * no identity document. A list that has to be updated in two places by hand
+ * eventually is not.
+ *
+ * The value is the label an administrator sees when choosing where an answer is
+ * kept; the key is the payload name.
+ */
+export const STRUCTURED_TARGETS = {
+  // Personal detail.
+  nickname: "Nickname",
+  maritalStatusId: "Marital status",
+  dependentsCount: "Number of dependents",
+  residenceType: "Residence type",
+  alternativePhone: "Alternative phone",
+  email: "Email",
+  nationality: "Nationality",
+  tinNumber: "TIN number",
+
+  // Address detail below the district. The two chosen levels belong to step
+  // one and are deliberately not configurable.
+  village: "Village",
+  houseNumber: "House number",
+  postalCode: "Postal code",
+  landmark: "Landmark",
+
+  // Where they work, and on what terms.
+  sectorId: "Sector",
+  sectorCategoryId: "Sector category (cadre)",
+  employerId: "Employer (from the list)",
+  employer: "Employer (typed)",
+  placeOfEmployment: "Place of employment",
+  department: "Department",
+  councilNumber: "Council number",
+  checkNumber: "Check number",
+  occupation: "Occupation (typed)",
+  occupationId: "Occupation (from the list)",
+  workType: "Work type (typed)",
+  workTypeId: "Work type (from the list)",
+  employmentType: "Employment type (typed)",
+  employmentTypeId: "Employment type (from the list)",
+  contractTypeId: "Contract type",
+  contractExpiryDate: "Contract expiry date",
+  retirementDate: "Retirement date",
+
+  // What they earn.
+  basicSalary: "Basic salary",
+  takeHome: "Take home",
+  monthlyIncome: "Monthly income",
+
+  // Their business, for a type that lends against one.
+  businessName: "Business name",
+  businessType: "Business type",
+  businessAddress: "Business address",
+
+  // Where money goes.
+  bankId: "Bank",
+  bankBranch: "Bank branch",
+  mobileMoneyProviderId: "Mobile money provider",
+  walletNumber: "Wallet number",
+} as const;
+
+export type StructuredTarget = keyof typeof STRUCTURED_TARGETS;
+
+/**
+ * The targets typed as `number | null`, which must be written and sent as
+ * numbers. A salary submitted as the string "1200000" fails the payload schema
+ * at Save, on a field the officer filled in correctly.
+ */
+export const NUMERIC_STRUCTURED_TARGETS: readonly StructuredTarget[] = [
+  "basicSalary",
+  "takeHome",
+  "monthlyIncome",
+  "dependentsCount",
+];
+
+/**
+ * The targets that hold a master-data row id and must be sent as one.
+ *
+ * Named by suffix rather than listed, because every id-bearing key in the map
+ * ends in `Id` and a new one always will — a hand-kept second list would be the
+ * same maintenance trap this whole constant exists to close.
+ */
+export function isIdTarget(target: string): boolean {
+  return target.endsWith("Id");
+}
+
+/**
+ * How a configured registration field is presented.
+ *
+ * `currency` is a number shown with a shilling prefix and thousands grouping.
+ * It is a separate type from `number` because a form that showed a salary and a
+ * dependant count identically would be asking the officer to work out for
+ * themselves which one is money. Nothing about the VALUE differs — the API
+ * validates both the same way.
+ */
+export const DYNAMIC_FIELD_TYPES = [
+  "text",
+  "number",
+  "currency",
+  "select",
+  "date",
+  "textarea",
+  "boolean",
+] as const;
+export type DynamicFieldType = (typeof DYNAMIC_FIELD_TYPES)[number];
+
+export const DYNAMIC_FIELD_TYPE_LABELS: Record<DynamicFieldType, string> = {
+  text: "Text",
+  number: "Number",
+  currency: "Currency",
+  select: "Select",
+  date: "Date",
+  textarea: "Long text",
+  boolean: "Yes / No",
+};
+
+/**
+ * Where a select gets its choices.
+ *
+ * Every admin-managed list, plus `sector-categories` — which is not one of the
+ * flat lists because its rows belong to a parent sector, and is exactly the
+ * source a dependent dropdown draws from.
+ */
+export const DYNAMIC_DATA_SOURCES = [...MASTER_DATA_LISTS, "sector-categories"] as const;
+export type DynamicDataSource = (typeof DYNAMIC_DATA_SOURCES)[number];
+
+export const DYNAMIC_DATA_SOURCE_LABELS: Record<DynamicDataSource, string> = {
+  ...MASTER_DATA_LIST_LABELS,
+  "sector-categories": "Sector Categories (depends on a Sector)",
+};
+
+/**
+ * Where an administrator goes to create the values a data source offers.
+ *
+ * A configurable form is only configurable if the person configuring it can
+ * answer "and where do I add the choices?". Without this, a field pointing at
+ * an empty list is a dead end: the administrator sees a dropdown with nothing
+ * in it and no idea whether that is a bug, a permission problem, or a screen
+ * they have not found. Every source names its screen, in the words the sidebar
+ * uses, and the registration form shows the same sentence when a list turns out
+ * to be empty at the moment a customer is in front of an officer.
+ */
+export const DYNAMIC_DATA_SOURCE_ORIGIN: Record<DynamicDataSource, { where: string; href: string }> = {
+  "loan-types": { where: "Administration → Master Data → Loan Category Names", href: "/admin/master-data" },
+  "customer-types": { where: "Administration → Master Data → Customer Legal Form", href: "/admin/master-data" },
+  "account-types": { where: "Administration → Master Data → Account Types", href: "/admin/master-data" },
+  "work-types": { where: "Administration → Master Data → Work Types", href: "/admin/master-data" },
+  "employment-types": { where: "Administration → Master Data → Employment Types", href: "/admin/master-data" },
+  occupations: { where: "Administration → Master Data → Occupations", href: "/admin/master-data" },
+  banks: { where: "Administration → Master Data → Banks", href: "/admin/master-data" },
+  "mobile-money-providers": { where: "Administration → Master Data → Mobile Money Providers", href: "/admin/master-data" },
+  "marital-statuses": { where: "Administration → Master Data → Marital Statuses", href: "/admin/master-data" },
+  "document-types": { where: "Administration → Master Data → Document Types", href: "/admin/master-data" },
+  "id-types": { where: "Administration → Master Data → ID Types", href: "/admin/master-data" },
+  "contract-types": { where: "Administration → Master Data → Contract Types", href: "/admin/master-data" },
+  sectors: { where: "Administration → Master Data → Sectors", href: "/admin/master-data" },
+  employers: { where: "Administration → Master Data → Employers", href: "/admin/master-data" },
+  /* Cadres are created INSIDE their sector, because a cadre with no sector has
+     nowhere to belong. Saying "Sectors" alone would send an administrator to a
+     screen where the thing they are looking for is one click further in. */
+  "sector-categories": {
+    where: "Administration → Master Data → Sectors → open a sector → Categories",
+    href: "/admin/master-data",
+  },
+};
+
+/** The sources whose rows belong to a parent, and so can depend on another field. */
+export const PARENTED_DATA_SOURCES: readonly DynamicDataSource[] = ["sector-categories"];
+
+/**
+ * One field on a customer type's registration form, as an administrator
+ * configured it.
+ *
+ * THE WHOLE POINT IS THAT NOTHING HERE IS A COMPONENT. A field is a row of
+ * data; `DynamicFields` reads it and renders it. Adding a question to a
+ * customer type — or adding a customer type — is a save on the administration
+ * screen, never an edit to this file.
+ *
+ * `key` decides where the answer is stored. When it names one of the customer's
+ * real columns (see structured-fields.ts, and the API's
+ * StructuredRegistrationField) the value goes to that column and stays
+ * queryable; anything else lands in `dynamicFormData`. So "Basic Salary" is
+ * still on the payroll report and "Land Size" needs no migration.
+ */
 export const DynamicFormFieldSchema = z.object({
   key: z.string(),
   label: z.string(),
-  type: z.enum(["text", "number", "select", "date", "textarea"]),
+  type: z.enum(DYNAMIC_FIELD_TYPES),
   required: z.boolean(),
-  options: z.array(z.string()).optional(),
+  /** A select's fixed choices, when it does not draw from a list. */
+  options: z.array(z.string()).nullish(),
+  /** A select's admin-managed list, which is the usual case. */
+  dataSource: z.enum(DYNAMIC_DATA_SOURCES).nullish(),
+  /**
+   * The field this one follows.
+   *
+   * Changing that field always clears THIS field's answer, which is what makes
+   * a stale answer impossible: a cadre chosen under one ministry is meaningless
+   * once the sector becomes another, and an expiry date typed against a
+   * temporary contract is a contradiction once the contract becomes permanent.
+   *
+   * When this field also draws on a list that belongs to a parent — sector
+   * categories — the same reference filters the list and reloads it.
+   */
+  dependsOn: z.string().nullish(),
+  /**
+   * What makes this field mandatory when its own `required` is false.
+   *
+   * Compared against the CODE of the referenced answer, never its name or its
+   * id, so an administrator may rename "Kwa Muda" and the rule survives — and
+   * so the same configuration behaves identically in a database where the row
+   * has a different id.
+   */
+  requiredWhen: z
+    .object({ field: z.string(), equals: z.array(z.string()) })
+    .nullish(),
+  /**
+   * Where the answer is kept.
+   *
+   * Absent means this customer type's own JSON store, which is the default and
+   * what every field configured before this existed does. Naming one of the
+   * allowlisted registration fields (see structured-fields.ts) puts the answer
+   * in that customer column instead, where it stays searchable and reportable.
+   *
+   * Declared, never inferred from the key — inferring it would silently
+   * relocate the answers of every customer type already using such a key, and
+   * would let a field overwrite a real column by accident.
+   */
+  storesIn: z.string().nullish(),
+  placeholder: z.string().nullish(),
+  helpText: z.string().nullish(),
+  /** Spans both columns of the grid — for a long text answer. */
+  fullWidth: z.boolean().nullish(),
 });
 export type DynamicFormField = z.infer<typeof DynamicFormFieldSchema>;
 
@@ -25,14 +262,35 @@ export type DynamicFormField = z.infer<typeof DynamicFormFieldSchema>;
  * category_product_eligibility) which loan products a customer may apply
  * for. Deliberately separate from LoanProduct and RepaymentSchedule.
  */
+/**
+ * One Customer Type — the broad classification the Super Administrator
+ * configures. Named `CustomerCategory` in the code because that is the table,
+ * the payload property and the deployed API contract; the UI calls it a
+ * Customer Type, which is the business term.
+ */
 export const CustomerCategorySchema = z.object({
   id: z.string(),
   name: z.string(),
   code: z.string(),
+  description: z.string().nullable().optional(),
+  /**
+   * The heading the registration form puts over this type's own questions —
+   * "MTUMISHI WA UMMA" over WATUMISHI's. Separate from `name` because the name
+   * is the administrator's label for the classification and this is what the
+   * form calls the section. Null means "use the name".
+   */
+  formTitle: z.string().nullable().optional(),
+  /* Whether registration may still offer it, and where it sits in the list.
+     A retired type stays on file — every customer under it keeps their
+     classification — it simply stops being offered to new registrations. */
+  isActive: z.boolean().optional(),
+  sortOrder: z.number().optional(),
   riskTier: z.enum(RISK_TIERS),
   /** Determines whether the registration wizard labels its dynamic step "Employment Details" or "Business Information". */
   sector: z.enum(CUSTOMER_CATEGORY_SECTORS),
   requiredDocuments: z.array(z.string()),
+  /** Offered a slot on the documents step, never blocking. */
+  optionalDocuments: z.array(z.string()).optional(),
   dynamicFormSchema: z.array(DynamicFormFieldSchema),
   /*
    * Which of the FIRST-CLASS registration blocks this category asks for.

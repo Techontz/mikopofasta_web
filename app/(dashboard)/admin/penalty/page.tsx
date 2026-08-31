@@ -22,7 +22,7 @@ export default async function PenaltyPage() {
         icon={Scale}
         title="Penalty"
         description="The organisation-wide penalty default applied to newly created loan categories."
-        breadcrumb={[{ label: "Settings", href: "/admin" }, { label: "Penalty Setting" }]}
+        breadcrumb={[{ label: "Administration", href: "/admin" }, { label: "Penalty Setting" }]}
       />
       {/* Form above, list below — the legacy screen's arrangement. */}
       <PenaltyForm />

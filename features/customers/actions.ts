@@ -106,7 +106,14 @@ export async function resubmitCustomerRegistration(customerId: string): Promise<
 
 export async function registerCustomer(
   input: RegisterCustomerInput
-): Promise<ActionResult & { customerId?: string; fieldErrors?: Record<string, string[]> }> {
+): Promise<
+  ActionResult & {
+    customerId?: string;
+    /** Shown to the officer once the record exists — the number they can find it by. */
+    customerNumber?: string;
+    fieldErrors?: Record<string, string[]>;
+  }
+> {
   let customer;
 
   try {
@@ -138,9 +145,10 @@ export async function registerCustomer(
     ok: true,
     message:
       customer.approvalStatus === "pending"
-        ? "Customer registered — pending approval before loan eligibility."
-        : "Customer registered successfully.",
+        ? "Customer saved — pending approval before loan eligibility."
+        : "Customer saved.",
     customerId: customer.id,
+    customerNumber: customer.customerNumber,
   };
 }
 

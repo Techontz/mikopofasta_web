@@ -142,6 +142,17 @@ interface LoanProductWire {
   interestFormulaCode?: string;
   allowedRepaymentScheduleIds?: string[];
   loanCount?: number;
+  /* The Loan Category screen's own terms — see the API's 2026_09_02 migration. */
+  minRepayments: number | null;
+  maxRepayments: number | null;
+  allowsDeduction: boolean;
+  approvalStageId: string | null;
+  approvalStageName?: string | null;
+  topupPercent: string | null;
+  takeHomePercent: string | null;
+  durationNames?: string[];
+  customerTypeIds?: string[];
+  branchNames?: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -735,6 +746,18 @@ export interface LoanProductWithConfig extends LoanProduct {
   interestFormulaCode: string | null;
   allowedRepaymentScheduleIds: string[];
   loanCount: number | null;
+  /* How many instalments, whether it is deducted at source, which tier signs
+     it off, the two percentages, and which Customer Types may borrow it. */
+  minRepayments: number | null;
+  maxRepayments: number | null;
+  allowsDeduction: boolean;
+  approvalStageId: string | null;
+  approvalStageName: string | null;
+  topupPercent: number | null;
+  takeHomePercent: number | null;
+  customerTypeIds: string[];
+  /** Branches offering it. Empty means every branch. */
+  branchNames: string[];
 }
 
 function toProduct(wire: LoanProductWire): LoanProductWithConfig {
@@ -760,6 +783,16 @@ function toProduct(wire: LoanProductWire): LoanProductWithConfig {
     interestFormulaCode: wire.interestFormulaCode ?? null,
     allowedRepaymentScheduleIds: wire.allowedRepaymentScheduleIds ?? [],
     loanCount: wire.loanCount ?? null,
+
+    minRepayments: wire.minRepayments,
+    maxRepayments: wire.maxRepayments,
+    allowsDeduction: wire.allowsDeduction,
+    approvalStageId: wire.approvalStageId,
+    approvalStageName: wire.approvalStageName ?? null,
+    topupPercent: nullableNum(wire.topupPercent),
+    takeHomePercent: nullableNum(wire.takeHomePercent),
+    customerTypeIds: wire.customerTypeIds ?? [],
+    branchNames: wire.branchNames ?? [],
   };
 }
 
@@ -787,6 +820,12 @@ export interface LoanProductInput {
   penaltyGraceDays: number;
   penaltyCapAmount: number | null;
   requiresMandate: boolean;
+  minRepayments?: number | null;
+  maxRepayments?: number | null;
+  allowsDeduction?: boolean;
+  approvalStageId?: string | null;
+  topupPercent?: number | null;
+  takeHomePercent?: number | null;
   status: string;
   repaymentScheduleIds: string[];
 }

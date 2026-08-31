@@ -51,6 +51,20 @@ export const BranchSchema = z.object({
    * customers read it aloud when they pay.
    */
   code: z.string(),
+  /**
+   * The Branch List's customer-status counts: four mutually exclusive buckets
+   * plus the branch total. Present only on the list endpoint, which is the only
+   * caller that asks the API to compute them.
+   */
+  customerStatus: z
+    .object({
+      active: z.number(),
+      pending: z.number(),
+      default: z.number(),
+      done: z.number(),
+      all: z.number(),
+    })
+    .optional(),
   regionId: z.string().nullable(),
   zoneId: z.string().nullable(),
   phone: z.string(),

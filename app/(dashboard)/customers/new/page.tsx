@@ -32,6 +32,10 @@ import { RegistrationWizard } from "@/features/customers/registration-wizard/reg
  *   drafts        unfinished registrations. Held on the server, so one begun
  *                 at another desk can be finished here.
  *
+ * NO LOAN DATA IS READ HERE. Registration records who somebody is, not what
+ * they will borrow — loan categories and products belong to the lending
+ * workflow and are chosen there.
+ *
  * Districts, wards and streets are not read here. The address step asks for
  * districts one region at a time as the officer opens the control (see
  * geography-actions.ts), and ward and street are typed rather than chosen.
@@ -51,7 +55,9 @@ export default async function NewCustomerPage() {
 
   const [branches, categories, users, lookups, requirements, drafts] = await Promise.all([
     getBranches(),
-    getCustomerCategories(),
+    /* Active only: a Customer Type the institution has retired must not be
+       offered to a new registration. */
+    getCustomerCategories(true),
     /* The staff list, needed only when delegation is allowed. Fails soft: a
        missing officer list should leave one dropdown short, not block
        registration. */
@@ -72,7 +78,9 @@ export default async function NewCustomerPage() {
     ? activeBranches
     : activeBranches.filter((b) => b.id === user.branchId);
 
-  const activeCategories = categories.filter((c) => c.deletedAt === null);
+  /* The API already filtered to active and undeleted; this is belt and braces
+     for a record soft-deleted between the two. */
+  const activeCategories = categories.filter((c) => c.deletedAt === null && c.isActive !== false);
 
   return (
     <>
@@ -97,7 +105,6 @@ export default async function NewCustomerPage() {
         canAssignOfficer={canAssignOfficer}
         lookups={lookups}
         profiles={requirements.profiles}
-        externalVerification={requirements.externalVerification}
         openDrafts={drafts}
       />
     </>

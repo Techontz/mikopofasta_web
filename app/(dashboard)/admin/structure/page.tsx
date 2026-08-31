@@ -45,7 +45,7 @@ export default async function OrganizationStructurePage() {
         icon={Layers}
         title="Organization Structure"
         description="Super Admin → Head Office → Zones → Branches, and who staffs each tier."
-        breadcrumb={[{ label: "Settings", href: "/admin" }, { label: "Organization Structure" }]}
+        breadcrumb={[{ label: "Administration", href: "/admin" }, { label: "Organization Structure" }]}
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

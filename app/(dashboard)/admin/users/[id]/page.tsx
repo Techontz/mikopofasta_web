@@ -91,7 +91,7 @@ export default async function UserProfilePage({ params }: { params: Promise<{ id
         title={user.name}
         description={ROLE_LABELS[user.role]}
         breadcrumb={[
-          { label: "Settings", href: "/admin" },
+          { label: "Administration", href: "/admin" },
           { label: "User Management", href: "/admin/users" },
           { label: user.name },
         ]}

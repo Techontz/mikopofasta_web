@@ -57,15 +57,32 @@ export interface LegacyNavItem {
 export const LEGACY_MENU: LegacyNavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: House, expandable: false },
   {
-    label: "Settings",
+    /*
+     * "Administration", not "Settings".
+     *
+     * The section has always held the institution's configuration, and every
+     * empty state in the product tells the officer where to go for it in those
+     * words — "Add them under Administration → Master Data", and 26 more like
+     * it, plus the fresh-install runbook, which is written as Administration →
+     * this and Administration → that. The menu answered to a different name, so
+     * an administrator following those instructions had nowhere to click. The
+     * screens were reachable the whole time; the label was the only thing
+     * hiding them.
+     *
+     * Renamed rather than added alongside: a second group listing the same
+     * hrefs would be two doors into one room.
+     */
+    label: "Administration",
     href: "/admin",
     icon: Settings,
     expandable: true,
     permission: PERMISSIONS.ADMIN_ORG_SETTINGS,
     /*
-     * The seven Settings entries, straight from config/admin-sections.ts, in
-     * the order the old system lists them. Menu and landing page read the same
-     * array so they can never disagree about what exists or what a role sees.
+     * Every entry in config/admin-sections.ts, in the order the old system
+     * lists them. Menu and landing page read the same array so they can never
+     * disagree about what exists or what a role sees — which is why the three
+     * screens added for admin-managed reference data needed no menu change of
+     * their own.
      */
     children: ADMIN_SECTIONS.map((section) => ({
       label: section.title,

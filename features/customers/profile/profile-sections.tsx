@@ -79,8 +79,15 @@ export function ProfileSections({
              version is gone from the form; records that reference a list entry
              still read correctly because the migration copied the name across. */
           { name: "workType", label: "Work Type" },
-          { name: "loanTypeId", label: "Loan Type", kind: "select", options: opts(lookups["loan-types"]) },
-          { name: "customerTypeId", label: "Types of customer", kind: "select", options: opts(lookups["customer-types"]) },
+          /* Reads the `loan-types` lookup, which holds the names of the
+             institution's loan categories — not a customer classification.
+             The property keeps its name for API compatibility. */
+          { name: "loanTypeId", label: "Loan Category Name", kind: "select", options: opts(lookups["loan-types"]) },
+          /* The legacy `customer_types` master-data list, which is NOT the
+             Customer Type classification — that is `customerCategoryId`. Kept
+             for records captured before the two were told apart, and named
+             here so nobody reads it as the classification. */
+          { name: "customerTypeId", label: "Legacy customer list", kind: "select", options: opts(lookups["customer-types"]) },
           { name: "dependentsCount", label: "Number of Dependents", kind: "number" },
         ]}
       />

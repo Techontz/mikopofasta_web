@@ -15,9 +15,9 @@ export default async function AdminLandingPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Settings"
+        title="Administration"
         description="Organization-wide configuration."
-        breadcrumb={[{ label: "Settings" }]}
+        breadcrumb={[{ label: "Administration" }]}
       />
 
       {/*

@@ -19,7 +19,7 @@ export default async function RepaymentSchedulesPage() {
         icon={CalendarClock}
         title="Repayment Schedules"
         description="The repayment cadences a loan product can offer. Frequency drives every instalment date."
-        breadcrumb={[{ label: "Settings", href: "/admin" }, { label: "Repayment Schedules" }]}
+        breadcrumb={[{ label: "Administration", href: "/admin" }, { label: "Repayment Schedules" }]}
       />
       <SchedulesTable schedules={schedules} />
     </div>

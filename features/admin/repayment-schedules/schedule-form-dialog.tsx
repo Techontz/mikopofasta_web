@@ -76,7 +76,7 @@ export function ScheduleFormDialog({ schedule }: { schedule?: RepaymentScheduleR
         )
       }
       title={isEdit ? "Edit Repayment Schedule" : "New Repayment Schedule"}
-      description="The cadence a loan's installments follow — independent of the customer category and loan product."
+      description="The cadence a loan's installments follow — independent of the customer type and loan product."
       formId="schedule-form"
       onSubmit={handleSubmit(onSubmit)}
       submitLabel={isEdit ? "Save changes" : "Create schedule"}
