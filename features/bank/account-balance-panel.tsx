@@ -70,7 +70,7 @@ export function AccountBalancePanel({
       cell: ({ row }) => (
         <div className="min-w-0">
           <p className="font-medium text-[var(--st-ink)]">{row.original.accountName}</p>
-          <p className="font-tabular mt-0.5 text-[12px] text-[var(--st-ink-faint)]">
+          <p className="font-tabular mt-0.5 text-[12.5px] text-[var(--st-ink-faint)]">
             {row.original.accountNumber} · {row.original.branch}
           </p>
         </div>

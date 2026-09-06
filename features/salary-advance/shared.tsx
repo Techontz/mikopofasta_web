@@ -57,7 +57,7 @@ export const customerColumn: ColumnDef<SalaryAdvance> = {
   cell: ({ row }) => (
     <div className="min-w-0">
       <p className="font-medium text-[var(--st-ink)]">{row.original.customerName}</p>
-      <p className="font-tabular mt-0.5 text-[12px] text-[var(--st-ink-faint)]">{row.original.reference}</p>
+      <p className="font-tabular mt-0.5 text-[12.5px] text-[var(--st-ink-faint)]">{row.original.reference}</p>
     </div>
   ),
 };

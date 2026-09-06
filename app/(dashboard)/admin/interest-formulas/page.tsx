@@ -35,7 +35,7 @@ export default async function InterestFormulasPage() {
         style={{ background: "var(--st-accent-soft)", borderColor: "var(--st-accent-line)" }}
       >
         <Lock className="mt-0.5 size-4 shrink-0 text-[var(--st-accent)]" strokeWidth={1.9} aria-hidden />
-        <p className="text-[13px] leading-relaxed text-[var(--st-accent-ink)]">
+        <p className="text-[14px] leading-relaxed text-[var(--st-accent-ink)]">
           These three calculation methods are fixed by the loan engine. Only the label and description are
           editable — the maths behind each one cannot be changed here.
         </p>
@@ -56,7 +56,7 @@ export default async function InterestFormulasPage() {
             footer={
               <div className="flex w-full items-center justify-between gap-3">
                 {/* What is riding on the label being clear. */}
-                <span className="text-[12px] text-muted-foreground">
+                <span className="text-[12.5px] text-muted-foreground">
                   {formula.productCount} product{formula.productCount === 1 ? "" : "s"}
                 </span>
                 <FormulaFormDialog formula={formula} />

@@ -80,7 +80,7 @@ export function PayrollRunActions({
   if (status === "draft") {
     if (!canGenerate) {
       return (
-        <p className="text-[13px] text-[var(--st-ink-soft)]">
+        <p className="text-[14px] text-[var(--st-ink-soft)]">
           Draft — awaiting HR to approve the figures. Nothing has posted yet.
         </p>
       );
@@ -96,7 +96,7 @@ export function PayrollRunActions({
         >
           Approve Figures
         </Button>
-        <p className="text-[12.5px] text-[var(--st-ink-soft)]">
+        <p className="text-[13px] text-[var(--st-ink-soft)]">
           Approving closes the period: the figures can no longer change, and no allowance or
           penalty can be recorded against it. Nothing posts to the ledger — Finance does that.
         </p>
@@ -107,7 +107,7 @@ export function PayrollRunActions({
   if (status === "approved") {
     if (!canFinalize) {
       return (
-        <p className="text-[13px] text-[var(--st-ink-soft)]">
+        <p className="text-[14px] text-[var(--st-ink-soft)]">
           Approved — awaiting Finance to post it to the ledger.
         </p>
       );
@@ -128,7 +128,7 @@ export function PayrollRunActions({
   if (status === "finalized") {
     if (!canFinalize) {
       return (
-        <p className="text-[13px] text-[var(--st-ink-soft)]">
+        <p className="text-[14px] text-[var(--st-ink-soft)]">
           Finalized — awaiting Finance to execute payment.
         </p>
       );
@@ -147,7 +147,7 @@ export function PayrollRunActions({
   }
 
   return (
-    <p className="text-[13px] text-[var(--st-ink-soft)]">
+    <p className="text-[14px] text-[var(--st-ink-soft)]">
       Paid — salaries have been transferred and posted.
     </p>
   );

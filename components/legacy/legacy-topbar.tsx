@@ -39,7 +39,7 @@ export function LegacyTopbar({ notifications }: { notifications: AppNotification
 
       <Link
         href="/dashboard"
-        className="hidden w-[calc(var(--lg-sidebar-w)-16px)] shrink-0 text-[13px] font-bold leading-none tracking-tight lg:block"
+        className="hidden w-[calc(var(--lg-sidebar-w)-16px)] shrink-0 text-[14px] font-bold leading-none tracking-tight lg:block"
       >
         <span style={{ color: "var(--lg-brand-a)" }}>m-kopa</span>
         <span style={{ color: "var(--lg-brand-b)" }}>software</span>
@@ -156,13 +156,13 @@ function NotificationBell({ notifications }: { notifications: AppNotification[] 
       >
         <div role="dialog" aria-label="Notifications">
           <p
-            className="border-b px-3 py-2 text-[12px] font-semibold uppercase tracking-wide"
+            className="border-b px-3 py-2 text-[12.5px] font-semibold uppercase tracking-wide"
             style={{ borderColor: "var(--lg-ctrl-line)", color: "var(--lg-ink-tab)" }}
           >
             Notifications{unread > 0 && ` · ${unread} unread`}
           </p>
           {notifications.length === 0 ? (
-            <p className="px-3 py-4 text-[13px]" style={{ color: "var(--lg-ink-tab)" }}>
+            <p className="px-3 py-4 text-[14px]" style={{ color: "var(--lg-ink-tab)" }}>
               Nothing to show.
             </p>
           ) : (
@@ -174,12 +174,12 @@ function NotificationBell({ notifications }: { notifications: AppNotification[] 
                   style={{ borderColor: "var(--lg-ctrl-line)" }}
                 >
                   <p
-                    className={cn("text-[13.5px]", !n.read && "font-semibold")}
+                    className={cn("text-[14px]", !n.read && "font-semibold")}
                     style={{ color: "var(--lg-ink-tab)" }}
                   >
                     {n.title}
                   </p>
-                  <p className="mt-0.5 text-[12px] opacity-75" style={{ color: "var(--lg-ink-tab)" }}>
+                  <p className="mt-0.5 text-[12.5px] opacity-75" style={{ color: "var(--lg-ink-tab)" }}>
                     {n.description}
                   </p>
                 </li>

@@ -354,7 +354,7 @@ function Field({
         {label}:{required && <span className="ml-0.5 text-destructive">*</span>}
       </Label>
       {children}
-      {help && !error && <p className="text-[11px] text-muted-foreground">{help}</p>}
+      {help && !error && <p className="text-[12px] text-muted-foreground">{help}</p>}
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );

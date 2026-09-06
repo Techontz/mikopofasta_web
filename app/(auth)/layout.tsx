@@ -96,7 +96,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                 >
                   <Icon className="size-4" strokeWidth={1.7} aria-hidden />
                 </span>
-                <span className="text-[14.5px]" style={{ color: PANEL.ink }}>
+                <span className="text-[15px]" style={{ color: PANEL.ink }}>
                   {label}
                 </span>
               </li>
@@ -107,18 +107,18 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             className="mt-12 max-w-md rounded-xl px-5 py-4"
             style={{ background: "oklch(1 0 0 / 5%)", boxShadow: `inset 0 0 0 1px ${PANEL.line}` }}
           >
-            <p className="flex items-center gap-2 text-[13.5px] font-medium">
+            <p className="flex items-center gap-2 text-[14px] font-medium">
               <Lock className="size-4" strokeWidth={1.8} aria-hidden />
               Bank-grade security
             </p>
-            <p className="mt-1.5 text-[13px] leading-relaxed" style={{ color: PANEL.soft }}>
+            <p className="mt-1.5 text-[14px] leading-relaxed" style={{ color: PANEL.soft }}>
               Encrypted sessions, audit trails and role-based access.
             </p>
           </div>
         </div>
 
         <footer
-          className="relative mt-auto flex flex-wrap items-center gap-x-2.5 gap-y-1 pt-14 text-[12px]"
+          className="relative mt-auto flex flex-wrap items-center gap-x-2.5 gap-y-1 pt-14 text-[12.5px]"
           style={{ color: PANEL.faint }}
         >
           {/* Real values: the year is computed, the version is package.json's,

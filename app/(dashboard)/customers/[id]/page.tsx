@@ -76,59 +76,54 @@ export default async function CustomerProfilePage({
   const { id } = await params;
   const { tab } = await searchParams;
 
-  // A customer outside this officer's branch scope comes back 403, a missing
-  // one 404. Both mean "no such profile, for you" and belong on the not-found
-  // page rather than the error boundary.
-  let customer;
-  try {
-    customer = await getCustomer(id);
-  } catch (error) {
-    if (error instanceof ApiError && (error.status === 404 || error.status === 403)) notFound();
-    throw error;
-  }
+  /*
+   * ## One wave, not nine
+   *
+   * Every read below used to be awaited in its own step: the customer, then
+   * the user, then a group of seven, then the face scans alone, then the
+   * lookups, then the address chain, then the freezes alone, then the audit
+   * trail alone, then the groups alone. Nine round-trips to the API, one after
+   * the other, before this page could render a single row — and eight of them
+   * were waiting on nothing. The API is remote, so that ordering, not the
+   * work, was most of the time it took to open a customer.
+   *
+   * Almost every one of these reads needs only `id`, which comes from the URL.
+   * So they all start together, and the page waits once. The only genuine
+   * dependency is the address chain — a district is fetched for the customer's
+   * region — and that is the second and last wave.
+   *
+   * `settle()` attaches a passive rejection handler so that bailing out early
+   * (the notFound below) does not leave the in-flight reads rejecting into the
+   * void as unhandled promises. It does not swallow anything: the original
+   * promise is returned untouched, so each `await` still throws or resolves
+   * exactly as it did when these ran one at a time — including the `.catch()`
+   * fallbacks, which are unchanged.
+   */
+  const settle = <T,>(promise: Promise<T>): Promise<T> => {
+    promise.catch(() => {});
+    return promise;
+  };
 
-  const user = await getCurrentUser();
-  const canManage = user ? hasPermission(user, PERMISSIONS.CUSTOMERS_MANAGE) : false;
-  const canApprove = user ? hasPermission(user, PERMISSIONS.CUSTOMERS_APPROVE) : false;
-
-  const [kyc, documents, notes, guarantors, nextOfKin, categories, branches] = await Promise.all([
-    getKycStatus(id),
-    getCustomerDocuments(id),
-    getCustomerNotes(id),
-    getGuarantors(id),
-    getNextOfKin(id),
-    getCustomerCategories(),
-    getBranches(),
-  ]);
+  const customerRequest = settle(getCustomer(id));
+  const kycRequest = settle(getKycStatus(id));
+  const documentsRequest = settle(getCustomerDocuments(id));
+  const notesRequest = settle(getCustomerNotes(id));
+  const guarantorsRequest = settle(getGuarantors(id));
+  const nextOfKinRequest = settle(getNextOfKin(id));
+  const categoriesRequest = settle(getCustomerCategories());
+  const branchesRequest = settle(getBranches());
+  const regionsRequest = settle(getRegions());
 
   /* The biometric record. Fails soft to an empty history: a customer
      registered before the scanner existed genuinely has none, and the panel
      says so rather than the page falling over. */
-  const faceScans = await getFaceScans(id).catch(() => []);
+  const faceScansRequest = getFaceScans(id).catch(() => []);
 
   /* The master-data lists and the staff book, for the editable sections'
      dropdowns. Both fail soft: an unreachable lookup should leave one select
      empty, not take the whole profile down. */
-  const [lookups, users] = await Promise.all([
-    getRegistrationLookups(),
-    getUsers().catch(() => ({ users: [] })),
-  ]);
-
-  // The address chain is resolved one level at a time, each filtered by the
-  // level above, rather than pulling every street in the country to name one.
-  const [regions, districts, wards, streets] = await Promise.all([
-    getRegions(),
-    customer.districtId ? getDistricts(customer.regionId ?? undefined) : Promise.resolve([]),
-    customer.wardId ? getWards(customer.districtId ?? undefined) : Promise.resolve([]),
-    customer.streetId ? getStreets(customer.wardId ?? undefined) : Promise.resolve([]),
-  ]);
-
-  const branch = branches.find((b) => b.id === customer.branchId);
-  const category = categories.find((c) => c.id === customer.customerCategoryId);
-  const region = regions.find((r) => r.id === customer.regionId);
-  const district = districts.find((d) => d.id === customer.districtId);
-  const ward = wards.find((w) => w.id === customer.wardId);
-  const street = streets.find((s) => s.id === customer.streetId);
+  const lookupsRequest = settle(getRegistrationLookups());
+  const usersRequest = getUsers().catch(() => ({ users: [] }));
 
   /*
    * The freeze history, which the timeline reads for "frozen by whom, when and
@@ -138,22 +133,8 @@ export default async function CustomerProfilePage({
    * Fails soft: a profile should not fall over because one panel's history is
    * unavailable, and an empty list renders honestly as no freezes on record.
    */
-  const freezes = await getCustomerFreezes(id).catch(() => []);
-  /*
-   * This record's own history, from the audit trail.
-   *
-   * The whole trail needs `audit.view`; a read pinned to one record is
-   * authorised against the record's own policy instead, so anyone who may see
-   * this page may see how it got here. An empty list if that read is refused —
-   * the panel is context, not the reason the page exists.
-   */
-  const auditLogs = await getAuditLogs({
-    auditableType: "Customer",
-    auditableId: customer.id,
-    perPage: 100,
-  })
-    .then((result) => result.logs)
-    .catch(() => []);
+  const freezesRequest = getCustomerFreezes(id).catch(() => []);
+
   /*
    * Which group this customer belongs to, if any.
    *
@@ -162,7 +143,92 @@ export default async function CustomerProfilePage({
    * because the group list is unavailable, and the panel already renders
    * "not part of any group" when there is nothing to show.
    */
-  const groups = await getAllGroups().catch(() => []);
+  const groupsRequest = getAllGroups().catch(() => []);
+
+  // A customer outside this officer's branch scope comes back 403, a missing
+  // one 404. Both mean "no such profile, for you" and belong on the not-found
+  // page rather than the error boundary.
+  let customer;
+  try {
+    customer = await customerRequest;
+  } catch (error) {
+    if (error instanceof ApiError && (error.status === 404 || error.status === 403)) notFound();
+    throw error;
+  }
+
+  const user = await getCurrentUser();
+  const canManage = user ? hasPermission(user, PERMISSIONS.CUSTOMERS_MANAGE) : false;
+  const canApprove = user ? hasPermission(user, PERMISSIONS.CUSTOMERS_APPROVE) : false;
+
+  const [
+    kyc,
+    documents,
+    notes,
+    guarantors,
+    nextOfKin,
+    categories,
+    branches,
+    regions,
+    faceScans,
+    lookups,
+    users,
+    freezes,
+    groups,
+  ] = await Promise.all([
+    kycRequest,
+    documentsRequest,
+    notesRequest,
+    guarantorsRequest,
+    nextOfKinRequest,
+    categoriesRequest,
+    branchesRequest,
+    regionsRequest,
+    faceScansRequest,
+    lookupsRequest,
+    usersRequest,
+    freezesRequest,
+    groupsRequest,
+  ]);
+
+  /*
+   * The second and final wave: everything that genuinely needs the customer.
+   *
+   * The address chain is resolved one level at a time, each filtered by the
+   * level above, rather than pulling every street in the country to name one.
+   *
+   * The audit trail is here rather than in the first wave for a reason worth
+   * stating. It could be keyed off the `id` in the URL, which would let it
+   * start earlier — but only if `id` and `customer.id` are always the same
+   * string, and that is an assumption about routing rather than something this
+   * page knows. It reads `customer.id`, exactly as it did before this change,
+   * and costs nothing to do so: this wave already exists for the address chain,
+   * so joining it adds no round-trip.
+   *
+   * The whole trail needs `audit.view`; a read pinned to one record is
+   * authorised against the record's own policy instead, so anyone who may see
+   * this page may see how it got here. An empty list if that read is refused —
+   * the panel is context, not the reason the page exists.
+   */
+  const [districts, wards, streets, auditLogs] = await Promise.all([
+    customer.districtId ? getDistricts(customer.regionId ?? undefined) : Promise.resolve([]),
+    customer.wardId ? getWards(customer.districtId ?? undefined) : Promise.resolve([]),
+    customer.streetId ? getStreets(customer.wardId ?? undefined) : Promise.resolve([]),
+    getAuditLogs({
+      auditableType: "Customer",
+      auditableId: customer.id,
+      perPage: 100,
+    })
+      .then((result) => result.logs)
+      .catch(() => []),
+  ]);
+
+  const branch = branches.find((b) => b.id === customer.branchId);
+  const category = categories.find((c) => c.id === customer.customerCategoryId);
+  const region = regions.find((r) => r.id === customer.regionId);
+  const district = districts.find((d) => d.id === customer.districtId);
+  const ward = wards.find((w) => w.id === customer.wardId);
+  const street = streets.find((s) => s.id === customer.streetId);
+
   const groupWithMember = groups.find((g) =>
     (g.members ?? []).some((m) => m.customerId === customer.id)
   );

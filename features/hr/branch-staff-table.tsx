@@ -47,7 +47,7 @@ export function BranchStaffTable({ branches }: { branches: BranchStaffRow[] }) {
         <div className="min-w-0">
           <p className="whitespace-nowrap font-medium text-[var(--st-ink)]">{row.original.name}</p>
           {row.original.isHeadOffice && (
-            <p className="mt-0.5 text-[12px] text-[var(--st-ink-faint)]">Head office</p>
+            <p className="mt-0.5 text-[12.5px] text-[var(--st-ink-faint)]">Head office</p>
           )}
         </div>
       ),

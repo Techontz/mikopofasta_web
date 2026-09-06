@@ -3,6 +3,7 @@ import { apiData, apiRequest } from "@/lib/api/client";
 import { getApiToken } from "@/lib/auth/session";
 import type { ApiPagination } from "@/lib/api/types";
 import type { AccountType, JournalSourceType, ReversalStatus } from "@/types/enums";
+import { collectPages } from "@/lib/api/paginate";
 
 /**
  * Ledger — backend §2.7, §5, §8, §15.4.
@@ -290,27 +291,13 @@ const PER_PAGE = 100;
 const PAGE_LIMIT = 200;
 
 export async function getAllJournalEntries(filters: EntryFilters = {}): Promise<LedgerEntry[]> {
-  const all: LedgerEntry[] = [];
-  let page = 1;
-
-  for (;;) {
-    const { entries, pagination } = await getJournalEntries({ ...filters, page, perPage: PER_PAGE });
-    all.push(...entries);
-
-    const lastPage = pagination?.lastPage ?? page;
-    if (page >= lastPage) break;
-
-    if (page >= PAGE_LIMIT) {
-      console.warn(
-        `getAllJournalEntries stopped at ${PAGE_LIMIT} pages (${all.length} of ${pagination?.total ?? "?"} entries).`
-      );
-      break;
-    }
-
-    page += 1;
-  }
-
-  return all;
+  return collectPages(
+    async (page, perPage) => {
+      const { entries, pagination } = await getJournalEntries({ ...filters, page, perPage });
+      return { items: entries, pagination };
+    },
+    { pageLimit: PAGE_LIMIT, perPage: PER_PAGE, label: "getAllJournalEntries" }
+  );
 }
 
 export async function getJournalEntry(id: string): Promise<LedgerEntry> {

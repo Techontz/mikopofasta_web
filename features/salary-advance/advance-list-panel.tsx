@@ -364,10 +364,10 @@ function ViewAdvanceDialog({
       <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2 xl:grid-cols-3">
         {facts.map((fact) => (
           <div key={fact.label}>
-            <dt className="text-[11.5px] font-medium uppercase tracking-[0.04em] text-[var(--st-ink-faint)]">
+            <dt className="text-[12px] font-medium uppercase tracking-[0.04em] text-[var(--st-ink-faint)]">
               {fact.label}
             </dt>
-            <dd className={`mt-0.5 text-[13.5px] text-[var(--st-ink)] ${fact.mono ? "font-tabular" : ""}`}>
+            <dd className={`mt-0.5 text-[14px] text-[var(--st-ink)] ${fact.mono ? "font-tabular" : ""}`}>
               {fact.value}
             </dd>
           </div>

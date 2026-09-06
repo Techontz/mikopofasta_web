@@ -30,12 +30,29 @@ export default async function PayrollDetailsPage({ params }: { params: Promise<{
   const latest = await getPayslips();
   let row = latest.payslips.find((p) => p.id === id);
 
+  /*
+   * The fallback used to walk the periods one at a time, waiting for each
+   * before asking for the next — so a payslip from a year ago cost a dozen
+   * round-trips laid end to end. The periods are searched in batches now, which
+   * keeps the common case free (the latest period already matched, and nothing
+   * below runs) while bounding the worst case to a handful of waves instead of
+   * one per month. Batched rather than all-at-once so an institution with years
+   * of history does not open thirty connections to answer one lookup.
+   */
   if (!row) {
-    for (const period of latest.periods) {
-      const found = (await getPayslips({ period })).payslips.find((p) => p.id === id);
-      if (found) {
-        row = found;
-        break;
+    const BATCH = 6;
+    const older = latest.periods;
+
+    for (let i = 0; i < older.length && !row; i += BATCH) {
+      const batch = await Promise.all(
+        older.slice(i, i + BATCH).map((period) => getPayslips({ period }))
+      );
+      for (const result of batch) {
+        const found = result.payslips.find((p) => p.id === id);
+        if (found) {
+          row = found;
+          break;
+        }
       }
     }
   }

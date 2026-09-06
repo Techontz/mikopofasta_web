@@ -98,7 +98,7 @@ export function ApprovalChainPanel({
                       <div className="min-w-0 flex-1 space-y-1">
                         <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
                           {stage.name}
-                          <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+                          <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[12px] text-muted-foreground">
                             {stage.code}
                           </code>
                           {!stage.isActive && (
@@ -110,7 +110,7 @@ export function ApprovalChainPanel({
                         {stage.description && (
                           <p className="text-xs text-muted-foreground">{stage.description}</p>
                         )}
-                        <p className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                        <p className="flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-muted-foreground">
                           <span>
                             Waits at <code className="font-mono">{stage.loanStatus}</code>
                           </span>
@@ -398,7 +398,7 @@ function Field({
     <div className="space-y-1.5">
       <Label>{label}</Label>
       {children}
-      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
+      {hint && <p className="text-[12px] text-muted-foreground">{hint}</p>}
     </div>
   );
 }
@@ -419,7 +419,7 @@ function Toggle({
       <Switch checked={checked} onCheckedChange={onChange} className="mt-0.5" />
       <div className="space-y-0.5">
         <p className="text-sm">{label}</p>
-        <p className="text-[11px] text-muted-foreground">{hint}</p>
+        <p className="text-[12px] text-muted-foreground">{hint}</p>
       </div>
     </div>
   );

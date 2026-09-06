@@ -262,7 +262,7 @@ function DynamicField({
         />
       )}
 
-      {field.helpText && !error && <p className="text-[11px] text-muted-foreground">{field.helpText}</p>}
+      {field.helpText && !error && <p className="text-[12px] text-muted-foreground">{field.helpText}</p>}
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );

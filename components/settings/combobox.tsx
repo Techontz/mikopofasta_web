@@ -203,7 +203,7 @@ export function Combobox({
           }}
           onFocus={openBox}
           onKeyDown={onKeyDown}
-          className="w-full min-w-0 flex-1 bg-transparent text-[13.5px] outline-none placeholder:text-[var(--st-ink-faint)] disabled:cursor-not-allowed"
+          className="w-full min-w-0 flex-1 bg-transparent text-[14px] outline-none placeholder:text-[var(--st-ink-faint)] disabled:cursor-not-allowed"
         />
         {loading ? (
           <Loader2 className="size-4 shrink-0 animate-spin text-[var(--st-ink-faint)]" aria-hidden />
@@ -241,12 +241,12 @@ export function Combobox({
             one of them. They are never collapsed into a single "No results".
           */}
           {loading ? (
-            <li className="flex items-center gap-2 px-3 py-2 text-[13px] text-[var(--st-ink-soft)]">
+            <li className="flex items-center gap-2 px-3 py-2 text-[14px] text-[var(--st-ink-soft)]">
               <Loader2 className="size-3.5 animate-spin" aria-hidden />
               Loading…
             </li>
           ) : filtered.length === 0 ? (
-            <li className="px-3 py-2 text-[13px] text-[var(--st-ink-soft)]">
+            <li className="px-3 py-2 text-[14px] text-[var(--st-ink-soft)]">
               {rows.length === 0 ? emptyMessage : `No match for “${query.trim()}”.`}
             </li>
           ) : (
@@ -260,7 +260,7 @@ export function Combobox({
                   onMouseEnter={() => setActive(i)}
                   onClick={() => choose(option)}
                   className={cn(
-                    "flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13.5px] transition-colors",
+                    "flex w-full items-center gap-2 px-3 py-1.5 text-left text-[14px] transition-colors",
                     i === active && "bg-[var(--st-subtle-strong)]"
                   )}
                 >
@@ -274,7 +274,7 @@ export function Combobox({
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[var(--st-ink)]">{option.label}</span>
                     {option.hint && (
-                      <span className="block truncate text-[12px] text-[var(--st-ink-faint)]">
+                      <span className="block truncate text-[12.5px] text-[var(--st-ink-faint)]">
                         {option.hint}
                       </span>
                     )}

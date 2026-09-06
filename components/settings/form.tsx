@@ -41,7 +41,7 @@ export function Field({
   className?: string;
 }) {
   return (
-    <div className={cn("space-y-1.5", className)}>
+    <div className={cn("space-y-2", className)}>
       {label && (
         <label htmlFor={htmlFor} className="st-field-label">
           {label}
@@ -63,7 +63,7 @@ export function Field({
       {error && (
         <p className="st-field-error" role="alert">
           {/* Colour alone would not reach a red-green colour-blind reader. */}
-          <AlertCircle className="size-3.5 shrink-0" strokeWidth={2} aria-hidden />
+          <AlertCircle className="size-4 shrink-0" strokeWidth={2} aria-hidden />
           <span>{error}</span>
         </p>
       )}
@@ -118,7 +118,7 @@ export const TextInput = React.forwardRef<
   return (
     <div className="relative">
       {prefix && (
-        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-[var(--st-ink-faint)]">
+        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-[var(--st-ink-faint)]">
           {prefix}
         </span>
       )}
@@ -129,7 +129,7 @@ export const TextInput = React.forwardRef<
         {...props}
       />
       {suffix && (
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[13px] text-[var(--st-ink-faint)]">
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[14px] text-[var(--st-ink-faint)]">
           {suffix}
         </span>
       )}
@@ -222,7 +222,7 @@ export function Toggle({
         disabled={disabled}
         onClick={() => onCheckedChange?.(!checked)}
         className={cn(
-          "relative mt-0.5 h-[22px] w-[38px] shrink-0 rounded-full transition-colors duration-150",
+          "relative mt-0.5 h-[24px] w-[44px] shrink-0 rounded-full transition-colors duration-150",
           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--st-accent)]",
           checked ? "bg-[var(--st-accent)]" : "bg-[var(--st-line-strong)]",
           disabled && "cursor-not-allowed opacity-55"
@@ -232,8 +232,8 @@ export function Toggle({
             moves, and a knob that changes colour with the track loses that. */}
         <span
           className={cn(
-            "absolute top-[3px] size-4 rounded-full bg-white shadow-sm transition-transform duration-150",
-            checked ? "translate-x-[19px]" : "translate-x-[3px]"
+            "absolute top-[3px] size-[18px] rounded-full bg-white shadow-sm transition-transform duration-150",
+            checked ? "translate-x-[23px]" : "translate-x-[3px]"
           )}
         />
       </button>
@@ -263,9 +263,9 @@ export const Button = React.forwardRef<
       {...props}
     >
       {loading ? (
-        <Loader2 className="size-4 animate-spin" aria-hidden />
+        <Loader2 className="size-[18px] animate-spin" aria-hidden />
       ) : (
-        Icon && <Icon className="size-4" strokeWidth={1.9} aria-hidden />
+        Icon && <Icon className="size-[18px]" strokeWidth={1.9} aria-hidden />
       )}
       {children}
     </button>
@@ -347,7 +347,7 @@ export function SettingsForm({
   ...props
 }: React.FormHTMLAttributes<HTMLFormElement> & { footer?: React.ReactNode }) {
   return (
-    <form className={cn("space-y-5", className)} {...props}>
+    <form className={cn("space-y-6", className)} {...props}>
       {children}
       {footer && (
         <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-4" style={{ borderColor: "var(--st-line)" }}>

@@ -9,6 +9,7 @@ import type { ApiPagination } from "@/lib/api/types";
 import type { EarlySettlementRecord, Loan, LoanSchedule, LoanStatusHistory } from "@/types/loan";
 import type { CategoryProductEligibility, LoanProduct } from "@/types/loan-product";
 import type { DisbursementChannel, LoanStatus } from "@/types/enums";
+import { collectPages } from "@/lib/api/paginate";
 
 /**
  * Loan Origination — backend §2.5, §6, §10, §15.2.
@@ -307,25 +308,13 @@ const PER_PAGE = 100;
 const PAGE_LIMIT = 100;
 
 export async function getAllLoans(filters: LoanFilters = {}): Promise<LoanListItem[]> {
-  const all: LoanListItem[] = [];
-  let page = 1;
-
-  for (;;) {
-    const { loans, pagination } = await getLoans({ ...filters, page, perPage: PER_PAGE });
-    all.push(...loans);
-
-    const lastPage = pagination?.lastPage ?? page;
-    if (page >= lastPage) break;
-
-    if (page >= PAGE_LIMIT) {
-      console.warn(`getAllLoans stopped at ${PAGE_LIMIT} pages (${all.length} of ${pagination?.total ?? "?"} loans).`);
-      break;
-    }
-
-    page += 1;
-  }
-
-  return all;
+  return collectPages(
+    async (page, perPage) => {
+      const { loans, pagination } = await getLoans({ ...filters, page, perPage });
+      return { items: loans, pagination };
+    },
+    { pageLimit: PAGE_LIMIT, perPage: PER_PAGE, label: "getAllLoans" }
+  );
 }
 
 /**

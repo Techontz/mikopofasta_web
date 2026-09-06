@@ -110,7 +110,7 @@ export function LoginForm() {
         <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <Landmark className="size-[18px]" strokeWidth={1.7} aria-hidden />
         </span>
-        <span className="text-[13px] font-semibold tracking-[0.16em] text-foreground uppercase">
+        <span className="text-[14px] font-semibold tracking-[0.16em] text-foreground uppercase">
           M-Kopa
         </span>
       </div>
@@ -119,7 +119,7 @@ export function LoginForm() {
         <h1 className="text-[27px] leading-tight font-semibold tracking-tight text-foreground">
           Welcome back
         </h1>
-        <p className="mt-2 text-[14.5px] text-muted-foreground">Sign in to continue to your workspace.</p>
+        <p className="mt-2 text-[15px] text-muted-foreground">Sign in to continue to your workspace.</p>
       </header>
 
       {/*
@@ -132,7 +132,7 @@ export function LoginForm() {
       {expired && (
         <p
           role="status"
-          className="mt-7 rounded-xl border border-border bg-muted/60 px-4 py-3 text-[13.5px] text-muted-foreground"
+          className="mt-7 rounded-xl border border-border bg-muted/60 px-4 py-3 text-[14px] text-muted-foreground"
         >
           Your session ended and you were signed out. Please log in again.
         </p>
@@ -140,7 +140,7 @@ export function LoginForm() {
 
       <form action={formAction} className="mt-8 space-y-5" noValidate>
         <div className="space-y-2">
-          <Label htmlFor="phone" className="text-[13.5px] font-medium">
+          <Label htmlFor="phone" className="text-[14px] font-medium">
             Phone number
           </Label>
           <Input
@@ -157,14 +157,14 @@ export function LoginForm() {
             className="h-11 rounded-xl px-3.5 text-[15px] md:text-[15px]"
           />
           {phoneError && (
-            <p id="phone-error" className="text-[12.5px] text-destructive">
+            <p id="phone-error" className="text-[13px] text-destructive">
               {phoneError}
             </p>
           )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password" className="text-[13.5px] font-medium">
+          <Label htmlFor="password" className="text-[14px] font-medium">
             Password
           </Label>
           <div className="relative">
@@ -196,7 +196,7 @@ export function LoginForm() {
             </button>
           </div>
           {passwordError && (
-            <p id="password-error" className="text-[12.5px] text-destructive">
+            <p id="password-error" className="text-[13px] text-destructive">
               {passwordError}
             </p>
           )}
@@ -210,7 +210,7 @@ export function LoginForm() {
               onCheckedChange={(checked) => onRememberChange(checked === true)}
               aria-describedby="remember-hint"
             />
-            <Label htmlFor="remember" className="cursor-pointer text-[13.5px] font-normal">
+            <Label htmlFor="remember" className="cursor-pointer text-[14px] font-normal">
               Remember me
             </Label>
             {/* Visible to a screen reader only: the row stays clean, and the
@@ -225,7 +225,7 @@ export function LoginForm() {
             onClick={() => setShowReset((v) => !v)}
             aria-expanded={showReset}
             aria-controls="reset-help"
-            className="rounded-sm text-[13.5px] font-medium text-primary transition-opacity hover:opacity-70 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+            className="rounded-sm text-[14px] font-medium text-primary transition-opacity hover:opacity-70 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
           >
             Forgot password?
           </button>
@@ -234,7 +234,7 @@ export function LoginForm() {
         {showReset && (
           <p
             id="reset-help"
-            className="rounded-xl border border-dashed border-border px-4 py-3 text-[13px] leading-relaxed text-muted-foreground"
+            className="rounded-xl border border-dashed border-border px-4 py-3 text-[14px] leading-relaxed text-muted-foreground"
           >
             Passwords are reset by your branch manager or a system administrator. Contact them and you
             will be issued a new one.
@@ -244,7 +244,7 @@ export function LoginForm() {
         {formError && (
           <p
             role="alert"
-            className="rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-[13.5px] text-destructive"
+            className="rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-[14px] text-destructive"
           >
             {formError}
           </p>
@@ -267,7 +267,7 @@ export function LoginForm() {
         </Button>
       </form>
 
-      <p className="mt-8 border-t border-border pt-5 text-[12.5px] leading-relaxed text-muted-foreground">
+      <p className="mt-8 border-t border-border pt-5 text-[13px] leading-relaxed text-muted-foreground">
         Demo accounts: any seeded phone number (e.g. 0754000001) with password <code>password</code>.
       </p>
     </div>
@@ -287,7 +287,7 @@ export function LoginFormSkeleton() {
         <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <Landmark className="size-[18px]" strokeWidth={1.7} aria-hidden />
         </span>
-        <span className="text-[13px] font-semibold tracking-[0.16em] text-foreground uppercase">
+        <span className="text-[14px] font-semibold tracking-[0.16em] text-foreground uppercase">
           M-Kopa
         </span>
       </div>
@@ -296,16 +296,16 @@ export function LoginFormSkeleton() {
         <h1 className="text-[27px] leading-tight font-semibold tracking-tight text-foreground">
           Welcome back
         </h1>
-        <p className="mt-2 text-[14.5px] text-muted-foreground">Sign in to continue to your workspace.</p>
+        <p className="mt-2 text-[15px] text-muted-foreground">Sign in to continue to your workspace.</p>
       </header>
 
       <div className="mt-8 space-y-5" aria-hidden>
         <div className="space-y-2">
-          <Label className="text-[13.5px] font-medium">Phone number</Label>
+          <Label className="text-[14px] font-medium">Phone number</Label>
           <Input disabled placeholder="Eg. 0753XXXXXX" className="h-11 rounded-xl px-3.5 text-[15px] md:text-[15px]" />
         </div>
         <div className="space-y-2">
-          <Label className="text-[13.5px] font-medium">Password</Label>
+          <Label className="text-[14px] font-medium">Password</Label>
           <Input disabled type="password" className="h-11 rounded-xl px-3.5 pr-11 text-[15px] md:text-[15px]" />
         </div>
         <Button disabled className="h-11 w-full rounded-xl text-[15px] font-medium">
@@ -313,7 +313,7 @@ export function LoginFormSkeleton() {
         </Button>
       </div>
 
-      <p className="mt-8 border-t border-border pt-5 text-[12.5px] leading-relaxed text-muted-foreground">
+      <p className="mt-8 border-t border-border pt-5 text-[13px] leading-relaxed text-muted-foreground">
         Demo accounts: any seeded phone number (e.g. 0754000001) with password <code>password</code>.
       </p>
     </div>

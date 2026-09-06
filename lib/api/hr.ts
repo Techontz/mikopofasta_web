@@ -12,6 +12,7 @@ import type { PayrollRun, PayrollLine, Allowance, Deduction } from "@/types/payr
 import type { CommissionPool, CommissionDistribution, ZoneCommissionDistribution } from "@/types/commission";
 import type { Role } from "@/types/auth";
 import type { AllowanceType, DeductionType } from "@/types/enums";
+import { collectPages } from "@/lib/api/paginate";
 
 /**
  * HR, Payroll & Commission — backend §2.9, §11, §15.5.
@@ -144,25 +145,13 @@ const PER_PAGE = 100;
 const PAGE_LIMIT = 50;
 
 export async function getAllStaff(filters: StaffFilters = {}): Promise<StaffListItem[]> {
-  const all: StaffListItem[] = [];
-  let page = 1;
-
-  for (;;) {
-    const { staff, pagination } = await getStaff({ ...filters, page, perPage: PER_PAGE });
-    all.push(...staff);
-
-    const lastPage = pagination?.lastPage ?? page;
-    if (page >= lastPage) break;
-
-    if (page >= PAGE_LIMIT) {
-      console.warn(`getAllStaff stopped at ${PAGE_LIMIT} pages (${all.length} of ${pagination?.total ?? "?"} staff).`);
-      break;
-    }
-
-    page += 1;
-  }
-
-  return all;
+  return collectPages(
+    async (page, perPage) => {
+      const { staff, pagination } = await getStaff({ ...filters, page, perPage });
+      return { items: staff, pagination };
+    },
+    { pageLimit: PAGE_LIMIT, perPage: PER_PAGE, label: "getAllStaff" }
+  );
 }
 
 /** `show` carries the employee's loans, advances and performance in `meta`. */
@@ -628,18 +617,13 @@ export async function getPayrollRuns(
 }
 
 export async function getAllPayrollRuns(): Promise<PayrollRunWithLines[]> {
-  const all: PayrollRunWithLines[] = [];
-  let page = 1;
-
-  for (;;) {
-    const { runs, pagination } = await getPayrollRuns({ page, perPage: PER_PAGE });
-    all.push(...runs);
-    const lastPage = pagination?.lastPage ?? page;
-    if (page >= lastPage || page >= PAGE_LIMIT) break;
-    page += 1;
-  }
-
-  return all;
+  return collectPages(
+    async (page, perPage) => {
+      const { runs, pagination } = await getPayrollRuns({ page, perPage });
+      return { items: runs, pagination };
+    },
+    { pageLimit: PAGE_LIMIT, perPage: PER_PAGE, label: "getAllPayrollRuns" }
+  );
 }
 
 /** `show` eager-loads each line's staff, allowances and deductions. */

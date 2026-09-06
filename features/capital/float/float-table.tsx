@@ -117,7 +117,7 @@ export function FloatTable({
         className="st-card flex items-center justify-between px-4 py-3"
         style={{ background: "var(--st-subtle)" }}
       >
-        <span className="text-[12px] font-semibold uppercase tracking-wide text-[var(--st-ink-faint)]">Total</span>
+        <span className="text-[12.5px] font-semibold uppercase tracking-wide text-[var(--st-ink-faint)]">Total</span>
         <span className="font-tabular text-[15px] font-semibold text-[var(--st-ink)]">{formatMoney(total)}</span>
       </div>
     </div>

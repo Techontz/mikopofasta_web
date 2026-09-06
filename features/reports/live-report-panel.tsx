@@ -68,7 +68,7 @@ export async function LiveReportPanel({
     <div className="space-y-4">
       {note && (
         <div
-          className="flex items-start gap-2 rounded-[var(--st-radius-sm)] border px-4 py-3 text-[13px] text-[var(--st-ink-soft)]"
+          className="flex items-start gap-2 rounded-[var(--st-radius-sm)] border px-4 py-3 text-[14px] text-[var(--st-ink-soft)]"
           style={{ borderColor: "var(--st-line-strong)", background: "var(--st-subtle)" }}
         >
           <ScrollText className="mt-0.5 size-4 shrink-0" aria-hidden />
@@ -86,7 +86,7 @@ export async function LiveReportPanel({
 
       <SettingsCard title={`${report.title} (${result.rows.length})`} bodyClassName="pt-0 sm:pt-0">
         <div className="space-y-3">
-          <Suspense fallback={<p className="text-[13px] text-[var(--st-ink-soft)]">Loading controls…</p>}>
+          <Suspense fallback={<p className="text-[14px] text-[var(--st-ink-soft)]">Loading controls…</p>}>
             <ReportControls
               slug={report.slug}
               pagination={pagination}
@@ -101,7 +101,7 @@ export async function LiveReportPanel({
 
       {result.reconciliation && (
         <div
-          className="flex gap-2 rounded-[var(--st-radius-sm)] border px-4 py-3 text-[13px] text-[var(--st-ink-soft)]"
+          className="flex gap-2 rounded-[var(--st-radius-sm)] border px-4 py-3 text-[14px] text-[var(--st-ink-soft)]"
           style={{ borderColor: "var(--st-line-strong)", background: "var(--st-subtle)" }}
         >
           <ScrollText className="mt-0.5 size-4 shrink-0" aria-hidden />
@@ -114,7 +114,7 @@ export async function LiveReportPanel({
 
       {/* §15.6's traceability rule: a figure on screen names the computation
           it came from. */}
-      <p className="text-[12px] text-[var(--st-ink-faint)]">
+      <p className="text-[12.5px] text-[var(--st-ink-faint)]">
         Generated {new Date(generatedAt).toLocaleString()}
       </p>
     </div>

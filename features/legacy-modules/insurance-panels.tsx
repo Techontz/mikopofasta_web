@@ -79,7 +79,7 @@ export function InsuranceLedgerPanel() {
         title="Search Customer"
         description="Pick a customer to record a deposit or a withdrawal against their savings."
       >
-        <p className="text-[13px] text-[var(--st-ink-soft)]">
+        <p className="text-[14px] text-[var(--st-ink-soft)]">
           The legacy screen opens a customer&rsquo;s savings record from here. Neither the customer
           savings list nor the record it opens exists in the API yet, so there is nothing to search
           and nothing to open.
@@ -181,7 +181,7 @@ export function InsuranceWithdrawalPanel() {
     <div className="space-y-6">
       <AwaitingBackendNote module="Insurance (Saving Deposit)" />
 
-      <p className="text-[13px] text-[var(--st-ink-soft)]">
+      <p className="text-[14px] text-[var(--st-ink-soft)]">
         The legacy screen splits this list three ways:{" "}
         <span className="text-[var(--st-ink)]">{LEGACY_SAVING_WITHDRAWAL_KINDS.join(" · ")}</span>.
       </p>

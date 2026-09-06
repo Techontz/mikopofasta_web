@@ -29,6 +29,7 @@ import { AccountFreezeSchema, type AccountFreeze } from "@/types/audit";
 import type { CustomerNote } from "@/types/customer-note";
 import type { Guarantor, ImportableGuarantor } from "@/types/guarantor";
 import type { NextOfKin } from "@/types/next-of-kin";
+import { collectPages } from "@/lib/api/paginate";
 
 /**
  * Customers & KYC — backend §2.3, §2.4, §9, §15.1.
@@ -155,27 +156,13 @@ const PER_PAGE = 100;
 const PAGE_LIMIT = 50;
 
 export async function getAllCustomers(filters: CustomerFilters = {}): Promise<CustomerListItem[]> {
-  const all: CustomerListItem[] = [];
-  let page = 1;
-
-  for (;;) {
-    const { customers, pagination } = await getCustomers({ ...filters, page, perPage: PER_PAGE });
-    all.push(...customers);
-
-    const lastPage = pagination?.lastPage ?? page;
-    if (page >= lastPage) break;
-
-    if (page >= PAGE_LIMIT) {
-      console.warn(
-        `getAllCustomers stopped at ${PAGE_LIMIT} pages (${all.length} of ${pagination?.total ?? "?"} customers).`
-      );
-      break;
-    }
-
-    page += 1;
-  }
-
-  return all;
+  return collectPages(
+    async (page, perPage) => {
+      const { customers, pagination } = await getCustomers({ ...filters, page, perPage });
+      return { items: customers, pagination };
+    },
+    { pageLimit: PAGE_LIMIT, perPage: PER_PAGE, label: "getAllCustomers" }
+  );
 }
 
 /**

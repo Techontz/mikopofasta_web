@@ -30,7 +30,7 @@ export function WriteOffTable({ writeOffs }: { writeOffs: WriteOff[] }) {
       id: "forgone",
       header: "Forgone",
       cell: ({ row }) => (
-        <div className="space-y-0.5 text-[12px] text-[var(--st-ink-faint)]">
+        <div className="space-y-0.5 text-[12.5px] text-[var(--st-ink-faint)]">
           <p>Interest {formatMoney(row.original.interestForgone)}</p>
           <p>Penalty {formatMoney(row.original.penaltyForgone)}</p>
         </div>
@@ -56,14 +56,14 @@ export function WriteOffTable({ writeOffs }: { writeOffs: WriteOff[] }) {
       accessorKey: "reason",
       header: "Reason",
       cell: ({ row }) => (
-        <p className="max-w-[24rem] text-[13px] text-[var(--st-ink-soft)]">{row.original.reason}</p>
+        <p className="max-w-[24rem] text-[14px] text-[var(--st-ink-soft)]">{row.original.reason}</p>
       ),
     },
     {
       id: "audit",
       header: "Audit",
       cell: ({ row }) => (
-        <div className="space-y-0.5 text-[12px] text-[var(--st-ink-faint)]">
+        <div className="space-y-0.5 text-[12.5px] text-[var(--st-ink-faint)]">
           <p>By {row.original.approvedByName ?? "—"}</p>
           <p>{formatDateTime(row.original.createdAt)}</p>
         </div>

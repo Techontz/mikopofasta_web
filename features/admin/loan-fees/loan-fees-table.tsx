@@ -24,7 +24,7 @@ export function LoanFeesTable({ rows }: { rows: LoanFeeRow[] }) {
       cell: ({ row }) => (
         <div className="flex flex-col">
           <span className="font-medium text-[var(--st-ink)]">{row.original.productName}</span>
-          <span className="font-mono text-[11.5px] text-[var(--st-ink-faint)]">{row.original.productCode}</span>
+          <span className="font-mono text-[12px] text-[var(--st-ink-faint)]">{row.original.productCode}</span>
         </div>
       ),
     },

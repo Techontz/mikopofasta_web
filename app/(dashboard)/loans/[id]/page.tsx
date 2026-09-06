@@ -49,66 +49,45 @@ const DISBURSEMENT_EVENT_STATUSES: LoanStatus[] = ["awaiting_disbursement", "dis
 export default async function LoanDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  // Outside this officer's branch scope comes back 403, missing comes back 404.
-  // Both mean "no such loan, for you" and belong on the not-found page.
-  let loan;
-  try {
-    loan = await getLoan(id);
-  } catch (error) {
-    if (error instanceof ApiError && (error.status === 404 || error.status === 403)) notFound();
-    throw error;
-  }
-
-  const user = await getCurrentUser();
-  if (!user) return <AccessDeniedState />;
-
-  const [history, product, schedules, topup, approval, settlement] = await Promise.all([
-    getLoanHistory(id),
-    getLoanProduct(loan.loanProductId),
-    getRepaymentSchedules(),
-    // Only a loan on the book can be topped up, so the check is only worth
-    // making once it is there.
-    loan.status === "active" || loan.status === "arrears"
-      ? getTopupEligibility(id).catch(() => null)
-      : Promise.resolve(null),
-
-    /*
-     * Where the loan sits in the approval chain, and what this user may do
-     * about it — asked of the API rather than derived here, so the buttons the
-     * page offers and the decisions the server accepts cannot disagree.
-     *
-     * Fails soft: the panel is one card on a page that is mostly about the
-     * loan, and a page that refused to load because it could not describe the
-     * approval chain would be a broken one.
-     */
-    getLoanApproval(id).catch(() => null),
-
-    /*
-     * What settling today would cost — only worth asking for a loan that is
-     * actually on the book, and failing soft because the panel is one card on a
-     * page that is mostly about the loan.
-     */
-    loan.status === "active" || loan.status === "arrears"
-      ? getEarlySettlementQuote(id).catch(() => null)
-      : Promise.resolve(null),
-  ]);
-
-  const schedule = schedules.find((s) => s.id === loan.repaymentScheduleId);
   /*
-   * This record's own history, from the audit trail.
+   * ## Two waves, not six
    *
-   * The whole trail needs `audit.view`; a read pinned to one record is
-   * authorised against the record's own policy instead, so anyone who may see
-   * this page may see how it got here. An empty list if that read is refused —
-   * the panel is context, not the reason the page exists.
+   * These reads used to run in six steps, one after another: the loan, then a
+   * group of six, then the audit trail alone, then the staff book alone, then
+   * the bad-debt group. Only some of them actually depended on the loan — the
+   * history, the schedules, the approval chain, the audit trail and the staff
+   * book all key off the id in the URL and could have started immediately.
+   * Against a remote API that ordering was most of the wait.
+   *
+   * So it is two waves now, and the split is the real dependency: what needs
+   * only the id goes first, and what needs a field off the loan — its product,
+   * its status — goes second. Every `.catch()` fallback and every conditional
+   * is unchanged; only the ordering moved.
+   *
+   * `settle()` attaches a passive rejection handler so that bailing out early
+   * (the notFound below) does not leave the in-flight reads rejecting as
+   * unhandled promises. It returns the original promise untouched, so each
+   * await still throws or resolves exactly as before.
    */
-  const auditLogs = await getAuditLogs({
-    auditableType: "Loan",
-    auditableId: loan.id,
-    perPage: 100,
-  })
-    .then((result) => result.logs)
-    .catch(() => []);
+  const settle = <T,>(promise: Promise<T>): Promise<T> => {
+    promise.catch(() => {});
+    return promise;
+  };
+
+  const loanRequest = settle(getLoan(id));
+  const historyRequest = settle(getLoanHistory(id));
+  const schedulesRequest = settle(getRepaymentSchedules());
+
+  /*
+   * Where the loan sits in the approval chain, and what this user may do
+   * about it — asked of the API rather than derived here, so the buttons the
+   * page offers and the decisions the server accepts cannot disagree.
+   *
+   * Fails soft: the panel is one card on a page that is mostly about the
+   * loan, and a page that refused to load because it could not describe the
+   * approval chain would be a broken one.
+   */
+  const approvalRequest = getLoanApproval(id).catch(() => null);
 
   /*
    * The loan resource carries officer and approver as ids, not names, so they
@@ -120,9 +99,20 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
    * administrator sees a name is a missing convenience, whereas a page that
    * refused to load because it could not name somebody would be a broken one.
    */
-  const userNames = Object.fromEntries(
-    (await getAllUsers().catch(() => [])).map((u) => [u.id, u.name])
-  );
+  const userNamesRequest = getAllUsers().catch(() => []);
+
+  // Outside this officer's branch scope comes back 403, missing comes back 404.
+  // Both mean "no such loan, for you" and belong on the not-found page.
+  let loan;
+  try {
+    loan = await loanRequest;
+  } catch (error) {
+    if (error instanceof ApiError && (error.status === 404 || error.status === 403)) notFound();
+    throw error;
+  }
+
+  const user = await getCurrentUser();
+  if (!user) return <AccessDeniedState />;
 
   /*
    * Bad debt — §5's Write-Off and Recovered Loans.
@@ -137,8 +127,52 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
    * list bank accounts would be a broken one.
    */
   const isBadDebt = loan.status === "written_off" || loan.status === "recovered";
+  const isOnBook = loan.status === "active" || loan.status === "arrears";
 
-  const [writeOffRegister, recoveries, recoveryAccounts] = await Promise.all([
+  const [
+    history,
+    schedules,
+    approval,
+    allUsers,
+    product,
+    auditLogs,
+    topup,
+    settlement,
+    writeOffRegister,
+    recoveries,
+    recoveryAccounts,
+  ] = await Promise.all([
+    historyRequest,
+    schedulesRequest,
+    approvalRequest,
+    userNamesRequest,
+    getLoanProduct(loan.loanProductId),
+    /*
+     * This record's own history, from the audit trail.
+     *
+     * Keyed off `loan.id`, not the `id` in the URL. The two are the same string
+     * in every route that reaches this page, but "the same in every route I
+     * looked at" is not something to stake an audit trail on, and this wave
+     * already exists for the product read — so reading it off the loan costs no
+     * round-trip.
+     *
+     * The whole trail needs `audit.view`; a read pinned to one record is
+     * authorised against the record's own policy instead, so anyone who may see
+     * this page may see how it got here. An empty list if that read is refused —
+     * the panel is context, not the reason the page exists.
+     */
+    getAuditLogs({ auditableType: "Loan", auditableId: loan.id, perPage: 100 })
+      .then((result) => result.logs)
+      .catch(() => []),
+    // Only a loan on the book can be topped up, so the check is only worth
+    // making once it is there.
+    isOnBook ? getTopupEligibility(id).catch(() => null) : Promise.resolve(null),
+    /*
+     * What settling today would cost — only worth asking for a loan that is
+     * actually on the book, and failing soft because the panel is one card on a
+     * page that is mostly about the loan.
+     */
+    isOnBook ? getEarlySettlementQuote(id).catch(() => null) : Promise.resolve(null),
     isBadDebt ? getWriteOffs().catch(() => null) : Promise.resolve(null),
     isBadDebt ? getLoanRecoveries(id).catch(() => []) : Promise.resolve([]),
     isBadDebt
@@ -147,6 +181,9 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
           .catch(() => [])
       : Promise.resolve([]),
   ]);
+
+  const schedule = schedules.find((s) => s.id === loan.repaymentScheduleId);
+  const userNames = Object.fromEntries(allUsers.map((u) => [u.id, u.name]));
 
   const writeOff = writeOffRegister?.writeOffs.find((w) => w.loanId === loan.id) ?? null;
 

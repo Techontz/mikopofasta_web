@@ -35,7 +35,7 @@ export function TellerCustomerPicker({ customers }: { customers: CustomerListIte
           className="block min-w-0 hover:underline"
         >
           <p className="whitespace-nowrap font-medium text-[var(--st-ink)]">{row.original.fullName}</p>
-          <p className="font-tabular mt-0.5 text-[12px] text-[var(--st-ink-faint)]">
+          <p className="font-tabular mt-0.5 text-[12.5px] text-[var(--st-ink-faint)]">
             {row.original.customerNumber} · {row.original.phone}
           </p>
         </Link>

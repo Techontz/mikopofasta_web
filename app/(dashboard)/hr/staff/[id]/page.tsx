@@ -107,7 +107,7 @@ export default async function StaffProfilePage({ params }: { params: Promise<{ i
             </span>
             <div>
               <p className="font-semibold text-[var(--st-ink)]">{name}</p>
-              <p className="mt-0.5 text-[13px] text-[var(--st-ink-soft)]">
+              <p className="mt-0.5 text-[14px] text-[var(--st-ink-soft)]">
                 {staff.role ? (ROLE_LABELS[staff.role] ?? staff.role) : "—"}
               </p>
             </div>
@@ -221,12 +221,12 @@ export default async function StaffProfilePage({ params }: { params: Promise<{ i
               {loans.map((l) => (
                 <li
                   key={l.id}
-                  className="flex items-center justify-between rounded-[var(--st-radius-sm)] border p-3 text-[13px]"
+                  className="flex items-center justify-between rounded-[var(--st-radius-sm)] border p-3 text-[14px]"
                   style={{ borderColor: "var(--st-line-strong)" }}
                 >
                   <div>
                     <p className="font-medium text-[var(--st-ink)]">Staff loan</p>
-                    <p className="mt-0.5 text-[12px] text-[var(--st-ink-soft)]">
+                    <p className="mt-0.5 text-[12.5px] text-[var(--st-ink-soft)]">
                       Disbursed {l.disbursedAt}
                     </p>
                   </div>
@@ -241,12 +241,12 @@ export default async function StaffProfilePage({ params }: { params: Promise<{ i
               {advances.map((a) => (
                 <li
                   key={a.id}
-                  className="flex items-center justify-between rounded-[var(--st-radius-sm)] border p-3 text-[13px]"
+                  className="flex items-center justify-between rounded-[var(--st-radius-sm)] border p-3 text-[14px]"
                   style={{ borderColor: "var(--st-line-strong)" }}
                 >
                   <div>
                     <p className="font-medium text-[var(--st-ink)]">Salary advance</p>
-                    <p className="mt-0.5 text-[12px] text-[var(--st-ink-soft)]">
+                    <p className="mt-0.5 text-[12.5px] text-[var(--st-ink-soft)]">
                       Requested {new Date(a.requestedAt).toLocaleDateString()}
                     </p>
                   </div>
@@ -270,7 +270,7 @@ export default async function StaffProfilePage({ params }: { params: Promise<{ i
               {performance.map((p) => (
                 <li
                   key={p.id}
-                  className="rounded-[var(--st-radius-sm)] border p-3 text-[13px]"
+                  className="rounded-[var(--st-radius-sm)] border p-3 text-[14px]"
                   style={{ borderColor: "var(--st-line-strong)" }}
                 >
                   <div className="flex items-center justify-between">
@@ -279,7 +279,7 @@ export default async function StaffProfilePage({ params }: { params: Promise<{ i
                       {p.rating ?? "—"}
                     </StatusBadge>
                   </div>
-                  <p className="mt-1 text-[12px] text-[var(--st-ink-soft)]">
+                  <p className="mt-1 text-[12.5px] text-[var(--st-ink-soft)]">
                     {Object.entries(p.achieved)
                       .map(([k, v]) => `${k.replace(/_/g, " ")}: ${v}/${p.targets[k] ?? "—"}`)
                       .join(" · ")}
@@ -297,10 +297,10 @@ export default async function StaffProfilePage({ params }: { params: Promise<{ i
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-0.5">
-      <p className="text-[11.5px] font-medium uppercase tracking-[0.04em] text-[var(--st-ink-faint)]">
+      <p className="text-[12px] font-medium uppercase tracking-[0.04em] text-[var(--st-ink-faint)]">
         {label}
       </p>
-      <p className="text-[13.5px] font-medium text-[var(--st-ink)]">{children}</p>
+      <p className="text-[14px] font-medium text-[var(--st-ink)]">{children}</p>
     </div>
   );
 }

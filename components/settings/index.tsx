@@ -37,20 +37,20 @@ export function SettingsBreadcrumb({ trail }: { trail: Crumb[] }) {
       aria-label="Breadcrumb"
       /* The trail scrolls rather than wraps: a two-line breadcrumb shifts the
          heading below it, and on a phone the tail is the part worth reading. */
-      className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap text-[12.5px] text-[var(--st-ink-faint)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap text-[13px] text-[var(--st-ink-faint)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       <Link
         href="/dashboard"
         aria-label="Dashboard"
         className="shrink-0 rounded-[var(--st-radius-xs)] transition-colors hover:text-[var(--st-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--st-accent)]"
       >
-        <Home className="size-3.5" strokeWidth={1.8} aria-hidden />
+        <Home className="size-4" strokeWidth={1.8} aria-hidden />
       </Link>
       {trail.map((crumb, i) => {
         const last = i === trail.length - 1;
         return (
           <span key={crumbKey(crumb)} className="flex shrink-0 items-center gap-1.5">
-            <ChevronRight className="size-3 text-[var(--st-line-strong)]" aria-hidden />
+            <ChevronRight className="size-3.5 text-[var(--st-line-strong)]" aria-hidden />
             {crumb.href && !last ? (
               <Link
                 href={crumb.href}
@@ -97,22 +97,27 @@ export function PageHeader({
         <div className="flex min-w-0 items-start gap-3">
           {Icon && (
             <span
-              className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-[var(--st-radius-sm)] border"
+              className="mt-0.5 flex size-11 shrink-0 items-center justify-center rounded-[var(--st-radius-sm)] border"
               style={{
                 background: "var(--st-accent-soft)",
                 borderColor: "var(--st-accent-line)",
                 color: "var(--st-accent)",
               }}
             >
-              <Icon className="size-[18px]" strokeWidth={1.8} aria-hidden />
+              <Icon className="size-[22px]" strokeWidth={1.8} aria-hidden />
             </span>
           )}
           <div className="min-w-0">
-            <h1 className="text-[20px] font-semibold leading-[1.25] tracking-[-0.018em] text-[var(--st-ink)]">
+            {/* 24px on a phone, 30px from the small breakpoint up: a 30px
+                title wraps to three lines on a 390px screen, and a page title
+                that needs three lines has stopped being a title. */}
+            <h1 className="text-[24px] font-semibold leading-[1.2] tracking-[-0.02em] text-[var(--st-ink)] sm:text-[var(--st-text-2xl)]">
               {title}
             </h1>
             {description && (
-              <p className="mt-1 max-w-2xl text-[13.5px] leading-relaxed text-[var(--st-ink-soft)]">{description}</p>
+              <p className="mt-1.5 max-w-2xl text-[var(--st-text-base)] leading-relaxed text-[var(--st-ink-soft)]">
+                {description}
+              </p>
             )}
           </div>
         </div>
@@ -146,22 +151,30 @@ export function SettingsCard({
   return (
     <section className={cn("st-card overflow-hidden", className)}>
       {(title || actions) && (
-        <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2 px-5 pb-4 pt-5 sm:px-6">
+        <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2 px-[var(--st-pad-card-sm)] pb-4 pt-[var(--st-pad-card-sm)] sm:px-[var(--st-pad-card)] sm:pb-5 sm:pt-[var(--st-pad-card)]">
           <div className="min-w-0">
             {title && (
-              <h2 className="text-[15px] font-semibold leading-tight tracking-[-0.012em] text-[var(--st-ink)]">
+              <h2 className="text-[var(--st-text-lg)] font-semibold leading-tight tracking-[-0.014em] text-[var(--st-ink)]">
                 {title}
               </h2>
             )}
             {description && (
-              <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-[var(--st-ink-soft)]">{description}</p>
+              <p className="mt-1.5 max-w-2xl text-[var(--st-text-sm)] leading-relaxed text-[var(--st-ink-soft)]">
+                {description}
+              </p>
             )}
           </div>
           {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
         </div>
       )}
       {children && (
-        <div className={cn("px-5 pb-5 sm:px-6 sm:pb-6", !title && !actions && "pt-5 sm:pt-6", bodyClassName)}>
+        <div
+          className={cn(
+            "px-[var(--st-pad-card-sm)] pb-[var(--st-pad-card-sm)] sm:px-[var(--st-pad-card)] sm:pb-[var(--st-pad-card)]",
+            !title && !actions && "pt-[var(--st-pad-card-sm)] sm:pt-[var(--st-pad-card)]",
+            bodyClassName
+          )}
+        >
           {children}
         </div>
       )}
@@ -173,7 +186,7 @@ export function SettingsCard({
          * is a miss waiting to happen.
          */
         <div
-          className="flex flex-col-reverse gap-2 border-t px-5 py-3.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:px-6 [&>.st-btn]:w-full sm:[&>.st-btn]:w-auto"
+          className="flex flex-col-reverse gap-2.5 border-t px-[var(--st-pad-card-sm)] py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:px-[var(--st-pad-card)] [&>.st-btn]:w-full sm:[&>.st-btn]:w-auto"
           style={{ borderColor: "var(--st-line)", background: "var(--st-subtle)" }}
         >
           {footer}
@@ -196,7 +209,7 @@ export function SettingsCard({
  * column leaves dead gutters while the table inside it scrolls.
  */
 export function PageContainer({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("w-full space-y-6 px-4 py-6 sm:px-6 sm:py-7 xl:px-8", className)}>{children}</div>;
+  return <div className={cn("w-full space-y-7 px-4 py-6 sm:px-6 sm:py-8 xl:px-8", className)}>{children}</div>;
 }
 
 // ---------------------------------------------------------------------------
@@ -262,25 +275,27 @@ export function StatCard({
   className?: string;
 }) {
   return (
-    <div className={cn("st-card p-4 sm:p-5", className)}>
+    <div className={cn("st-card p-5 sm:p-6", className)}>
       <div className="flex items-start justify-between gap-3">
-        <p className="text-[12px] font-medium uppercase tracking-[0.04em] text-[var(--st-ink-faint)]">{label}</p>
+        <p className="text-[var(--st-text-xs)] font-semibold uppercase tracking-[0.05em] text-[var(--st-ink-faint)]">
+          {label}
+        </p>
         {Icon && (
           <span
-            className="flex size-7 shrink-0 items-center justify-center rounded-[var(--st-radius-xs)]"
+            className="flex size-9 shrink-0 items-center justify-center rounded-[var(--st-radius-xs)]"
             style={{
               background: tone === "accent" ? "var(--st-accent-soft)" : "var(--st-subtle-strong)",
               color: tone === "accent" ? "var(--st-accent)" : "var(--st-ink-faint)",
             }}
           >
-            <Icon className="size-4" strokeWidth={1.8} aria-hidden />
+            <Icon className="size-5" strokeWidth={1.8} aria-hidden />
           </span>
         )}
       </div>
-      <p className="font-tabular mt-2 text-[22px] font-semibold leading-tight tracking-[-0.02em] text-[var(--st-ink)]">
+      <p className="font-tabular mt-2.5 text-[28px] font-semibold leading-tight tracking-[-0.022em] text-[var(--st-ink)]">
         {value}
       </p>
-      {hint && <p className="mt-1 text-[12px] leading-relaxed text-[var(--st-ink-soft)]">{hint}</p>}
+      {hint && <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--st-ink-soft)]">{hint}</p>}
     </div>
   );
 }
@@ -304,8 +319,10 @@ export function SectionHeader({
   return (
     <div className={cn("flex flex-wrap items-start justify-between gap-x-6 gap-y-2", className)}>
       <div className="min-w-0">
-        <h3 className="text-[13.5px] font-semibold tracking-[-0.01em] text-[var(--st-ink)]">{title}</h3>
-        {description && <p className="mt-1 text-[12.5px] leading-relaxed text-[var(--st-ink-soft)]">{description}</p>}
+        <h3 className="text-[var(--st-text-base)] font-semibold tracking-[-0.012em] text-[var(--st-ink)]">{title}</h3>
+        {description && (
+          <p className="mt-1 text-[var(--st-text-sm)] leading-relaxed text-[var(--st-ink-soft)]">{description}</p>
+        )}
       </div>
       {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
     </div>
@@ -320,7 +337,9 @@ export function SectionDivider({ label, className }: { label?: string; className
   if (!label) return <hr className={cn("border-0 border-t", className)} style={{ borderColor: "var(--st-line)" }} />;
   return (
     <div className={cn("flex items-center gap-3", className)}>
-      <span className="text-[11.5px] font-semibold uppercase tracking-[0.06em] text-[var(--st-ink-faint)]">{label}</span>
+      <span className="text-[var(--st-text-xs)] font-semibold uppercase tracking-[0.06em] text-[var(--st-ink-faint)]">
+        {label}
+      </span>
       <hr className="flex-1 border-0 border-t" style={{ borderColor: "var(--st-line)" }} />
     </div>
   );
@@ -424,9 +443,9 @@ export function FilterBar({
         <button
           type="button"
           onClick={onReset}
-          className="st-btn st-btn-ghost h-9 shrink-0"
+          className="st-btn st-btn-ghost shrink-0"
         >
-          <X className="size-3.5" strokeWidth={2} aria-hidden />
+          <X className="size-4" strokeWidth={2} aria-hidden />
           Clear filters
         </button>
       )}
@@ -447,10 +466,10 @@ export function Filter({
   className?: string;
 }) {
   return (
-    <div className={cn("min-w-0 flex-1 sm:max-w-[190px]", className)}>
+    <div className={cn("min-w-0 flex-1 sm:max-w-[210px]", className)}>
       <label
         htmlFor={htmlFor}
-        className="mb-1 block text-[11.5px] font-medium uppercase tracking-[0.04em] text-[var(--st-ink-faint)]"
+        className="mb-1.5 block text-[var(--st-text-xs)] font-semibold uppercase tracking-[0.05em] text-[var(--st-ink-faint)]"
       >
         {label}
       </label>
@@ -481,10 +500,10 @@ export function PageHeaderSkeleton() {
     <div className="space-y-3">
       <Bar className="h-3.5 w-40" />
       <div className="flex items-start gap-3">
-        <Bar className="size-9 shrink-0 rounded-[var(--st-radius-sm)]" />
-        <div className="space-y-2 pt-0.5">
-          <Bar className="h-5 w-52" />
-          <Bar className="h-3.5 w-80 max-w-full" />
+        <Bar className="size-11 shrink-0 rounded-[var(--st-radius-sm)]" />
+        <div className="space-y-2.5 pt-0.5">
+          <Bar className="h-7 w-52" />
+          <Bar className="h-4 w-80 max-w-full" />
         </div>
       </div>
     </div>
@@ -495,12 +514,12 @@ export function SettingsTableSkeleton({ rows = 6 }: { rows?: number }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        <Bar className="h-9 w-full rounded-[var(--st-radius-sm)] sm:w-72" />
-        <Bar className="ml-auto h-9 w-32 rounded-[var(--st-radius-sm)]" />
+        <Bar className="h-11 w-full rounded-[var(--st-radius-sm)] sm:w-72" />
+        <Bar className="ml-auto h-11 w-32 rounded-[var(--st-radius-sm)]" />
       </div>
       <div className="st-card overflow-hidden">
         <div
-          className="flex gap-4 border-b px-4 py-[13px]"
+          className="flex gap-4 border-b px-[var(--st-pad-cell-x)] py-[17px]"
           style={{ borderColor: "var(--st-line)", background: "var(--st-subtle)" }}
         >
           {Array.from({ length: 4 }).map((_, i) => (
@@ -510,7 +529,7 @@ export function SettingsTableSkeleton({ rows = 6 }: { rows?: number }) {
         {Array.from({ length: rows }).map((_, i) => (
           <div
             key={i}
-            className="flex gap-4 border-b px-4 py-[15px] last:border-b-0"
+            className="flex gap-4 border-b px-[var(--st-pad-cell-x)] py-[19px] last:border-b-0"
             style={{ borderColor: "var(--st-line-soft)" }}
           >
             {Array.from({ length: 4 }).map((_, j) => (
@@ -527,9 +546,9 @@ export function SettingsCardsSkeleton({ cards = 6 }: { cards?: number }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: cards }).map((_, i) => (
-        <div key={i} className="st-card space-y-3 p-5">
-          <Bar className="size-9 rounded-[var(--st-radius-sm)]" />
-          <Bar className="h-4 w-32" />
+        <div key={i} className="st-card space-y-3 p-5 sm:p-6">
+          <Bar className="size-11 rounded-[var(--st-radius-sm)]" />
+          <Bar className="h-4.5 w-32" />
           <Bar className="h-3.5 w-full" />
           <Bar className="h-3.5 w-3/4" />
         </div>
@@ -540,16 +559,16 @@ export function SettingsCardsSkeleton({ cards = 6 }: { cards?: number }) {
 
 export function SettingsFormSkeleton() {
   return (
-    <div className="st-card space-y-5 p-6">
+    <div className="st-card space-y-6 p-5 sm:p-6">
       <div className="space-y-2">
         <Bar className="h-4 w-40" />
         <Bar className="h-3.5 w-72 max-w-full" />
       </div>
       <div className="grid gap-x-5 gap-y-4 sm:grid-cols-2">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="space-y-1.5">
-            <Bar className="h-3 w-24" />
-            <Bar className="h-9 w-full rounded-[var(--st-radius-sm)]" />
+          <div key={i} className="space-y-2">
+            <Bar className="h-3.5 w-24" />
+            <Bar className="h-11 w-full rounded-[var(--st-radius-sm)]" />
           </div>
         ))}
       </div>

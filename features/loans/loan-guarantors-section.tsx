@@ -421,7 +421,7 @@ function CreateGuarantorCard({
               />
             </div>
             {passport && (
-              <p className="truncate text-[11px] text-muted-foreground">{passport.name}</p>
+              <p className="truncate text-[12px] text-muted-foreground">{passport.name}</p>
             )}
           </Field>
           <div className="flex items-end">

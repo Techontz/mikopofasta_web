@@ -278,7 +278,7 @@ function ActivityRow({ entry }: { entry: ActivityEntry }) {
           {entry.ipAddress ? ` · ${entry.ipAddress}` : ""}
         </p>
       </div>
-      <Badge variant="outline" className="text-[11px]">
+      <Badge variant="outline" className="text-[12px]">
         {entry.auditableType}
       </Badge>
     </div>

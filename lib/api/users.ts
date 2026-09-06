@@ -4,6 +4,7 @@ import { getApiToken } from "@/lib/auth/session";
 import type { ApiPagination } from "@/lib/api/types";
 import type { Role } from "@/types/auth";
 import type { User } from "@/types/user";
+import { collectPages } from "@/lib/api/paginate";
 
 /**
  * User and role administration — Settings → User Management, Roles &
@@ -73,19 +74,13 @@ const PER_PAGE = 100;
 const PAGE_LIMIT = 20;
 
 export async function getAllUsers(filters: UserFilters = {}): Promise<User[]> {
-  const all: User[] = [];
-  let page = 1;
-
-  for (;;) {
-    const { users, pagination } = await getUsers({ ...filters, page, perPage: PER_PAGE });
-    all.push(...users);
-
-    const lastPage = pagination?.lastPage ?? page;
-    if (page >= lastPage || page >= PAGE_LIMIT) break;
-    page += 1;
-  }
-
-  return all;
+  return collectPages(
+    async (page, perPage) => {
+      const { users, pagination } = await getUsers({ ...filters, page, perPage });
+      return { items: users, pagination };
+    },
+    { pageLimit: PAGE_LIMIT, perPage: PER_PAGE, label: "getAllUsers" }
+  );
 }
 
 export async function getUser(id: string): Promise<User> {

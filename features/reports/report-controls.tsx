@@ -142,18 +142,18 @@ export function ReportControls({
 
       <div className="flex flex-wrap items-center gap-2">
         {matchedRows !== undefined && totalRows !== undefined && (
-          <span className="text-[12.5px] text-muted-foreground">
+          <span className="text-[13px] text-muted-foreground">
             {matchedRows} of {totalRows} rows match
           </span>
         )}
 
-        <label className="flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
+        <label className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
           Show
           <select
             value={perPage}
             onChange={(e) => setPerPage(e.target.value)}
             aria-label="Rows per page"
-            className="rounded-md border bg-transparent px-2 py-1 text-[12.5px]"
+            className="rounded-md border bg-transparent px-2 py-1 text-[13px]"
           >
             {/* "All" is the default, because a report read in pages is usually
                 being read wrong — a trial balance cut off at row fifty is not a
@@ -175,7 +175,7 @@ export function ReportControls({
             key={format}
             href={exportHref(format)}
             download
-            className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[12.5px] font-medium hover:bg-muted"
+            className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[13px] font-medium hover:bg-muted"
           >
             <Download className="size-4" aria-hidden />
             {format.toUpperCase()}
@@ -185,7 +185,7 @@ export function ReportControls({
 
       {pagination && pagination.lastPage > 1 && (
         <div className="flex w-full items-center justify-between gap-2 border-t pt-3">
-          <span className="text-[12.5px] text-muted-foreground">
+          <span className="text-[13px] text-muted-foreground">
             Page {pagination.page} of {pagination.lastPage} · {pagination.total} rows · showing{" "}
             {rowCount}
           </span>
@@ -260,7 +260,7 @@ export function SortableHeader({
       aria-label={`Sort by ${label}`}
     >
       {label}
-      <span aria-hidden className="text-[10px]">
+      <span aria-hidden className="text-[11px]">
         {active ? (direction === "asc" ? "▲" : "▼") : "↕"}
       </span>
     </button>

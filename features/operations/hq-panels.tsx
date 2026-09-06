@@ -226,7 +226,7 @@ export function HqBalancePanel({ transactions }: { transactions: HqTransaction[]
  */
 function MonthlyChart({ series }: { series: { month: string; income: number; expense: number }[] }) {
   if (series.length === 0) {
-    return <p className="text-[13px] text-[var(--st-ink-faint)]">No approved movement to chart yet.</p>;
+    return <p className="text-[14px] text-[var(--st-ink-faint)]">No approved movement to chart yet.</p>;
   }
 
   const peak = Math.max(...series.flatMap((s) => [s.income, s.expense]), 1);
@@ -253,14 +253,14 @@ function MonthlyChart({ series }: { series: { month: string; income: number; exp
                 }}
               />
             </div>
-            <span className="font-tabular whitespace-nowrap text-[11.5px] text-[var(--st-ink-faint)]">
+            <span className="font-tabular whitespace-nowrap text-[12px] text-[var(--st-ink-faint)]">
               {formatMonthShort(point.month)}
             </span>
           </div>
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[12px] text-[var(--st-ink-soft)]">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[12.5px] text-[var(--st-ink-soft)]">
         <span className="inline-flex items-center gap-1.5">
           <span className="size-2.5 rounded-[2px]" style={{ background: "var(--st-accent)" }} aria-hidden />
           Income
@@ -353,7 +353,7 @@ export function HqTransactionsPanel({
       cell: ({ row }) => (
         <div className="min-w-0">
           <p className="font-medium text-[var(--st-ink)]">{row.original.branch}</p>
-          <p className="font-tabular mt-0.5 text-[12px] text-[var(--st-ink-faint)]">{row.original.reference}</p>
+          <p className="font-tabular mt-0.5 text-[12.5px] text-[var(--st-ink-faint)]">{row.original.reference}</p>
         </div>
       ),
     },
@@ -528,10 +528,10 @@ export function HqTransactionsPanel({
               { label: "Date", value: formatOpsDate(viewing.date), mono: true },
             ].map((fact) => (
               <div key={fact.label}>
-                <dt className="text-[11.5px] font-medium uppercase tracking-[0.04em] text-[var(--st-ink-faint)]">
+                <dt className="text-[12px] font-medium uppercase tracking-[0.04em] text-[var(--st-ink-faint)]">
                   {fact.label}
                 </dt>
-                <dd className={`mt-0.5 text-[13.5px] text-[var(--st-ink)] ${fact.mono ? "font-tabular" : ""}`}>
+                <dd className={`mt-0.5 text-[14px] text-[var(--st-ink)] ${fact.mono ? "font-tabular" : ""}`}>
                   {fact.value}
                 </dd>
               </div>

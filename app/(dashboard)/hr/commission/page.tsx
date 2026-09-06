@@ -141,12 +141,12 @@ export default async function CommissionPage() {
             {zoneOverrides.map((z) => (
               <li
                 key={z.id}
-                className="flex items-center justify-between rounded-[var(--st-radius-sm)] border p-3 text-[13px]"
+                className="flex items-center justify-between rounded-[var(--st-radius-sm)] border p-3 text-[14px]"
                 style={{ borderColor: "var(--st-line-strong)" }}
               >
                 <div>
                   <p className="font-medium text-[var(--st-ink)]">{z.zoneName ?? z.zoneId}</p>
-                  <p className="mt-0.5 text-[12px] text-[var(--st-ink-soft)]">
+                  <p className="mt-0.5 text-[12.5px] text-[var(--st-ink-soft)]">
                     {z.period} · {z.overridePercentage}% of {formatMoney(z.totalPoolBase)} pool base
                   </p>
                 </div>

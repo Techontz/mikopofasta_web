@@ -89,7 +89,7 @@ function LegacyDialog({
           <button
             type="button"
             onClick={onClose}
-            className="rounded px-4 py-2 text-[14px] font-medium uppercase tracking-wide"
+            className="rounded px-4 py-2 text-[15px] font-medium uppercase tracking-wide"
             style={{ background: "var(--lg-muted)", color: "var(--lg-on-link)" }}
           >
             Close
@@ -100,8 +100,8 @@ function LegacyDialog({
   );
 }
 
-const TH = "whitespace-nowrap px-3 py-2.5 text-left text-[13px] font-semibold text-[var(--lg-text)]";
-const TD = "whitespace-nowrap px-3 py-2.5 text-[14px] text-[var(--lg-text)]";
+const TH = "whitespace-nowrap px-3 py-2.5 text-left text-[14px] font-semibold text-[var(--lg-text)]";
+const TD = "whitespace-nowrap px-3 py-2.5 text-[15px] text-[var(--lg-text)]";
 const NUM = `${TD} font-tabular text-right`;
 
 /* ------------------------------------------------------------ branch list */
@@ -115,7 +115,7 @@ export function BranchListButton({ rows }: { rows: BranchAccountRow[] }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 rounded px-2 py-1.5 text-[14px] transition-opacity hover:opacity-90"
+        className="flex items-center gap-1.5 rounded px-2 py-1.5 text-[15px] transition-opacity hover:opacity-90"
         style={{ background: "var(--lg-link)", color: "var(--lg-on-link)" }}
       >
         <List className="size-4" strokeWidth={2} aria-hidden />
@@ -125,7 +125,7 @@ export function BranchListButton({ rows }: { rows: BranchAccountRow[] }) {
       {open && (
         <LegacyDialog title="Branch List" onClose={() => setOpen(false)}>
           {rows.length === 0 ? (
-            <p className="py-6 text-center text-[14px] text-[var(--lg-muted)]">
+            <p className="py-6 text-center text-[15px] text-[var(--lg-muted)]">
               No branches are registered yet.
             </p>
           ) : (
@@ -254,7 +254,7 @@ export function AccountBalanceTile({
       {open && (
         <LegacyDialog title="Company Account List" onClose={() => setOpen(false)}>
           {rows.length === 0 ? (
-            <p className="py-6 text-center text-[14px] text-[var(--lg-muted)]">
+            <p className="py-6 text-center text-[15px] text-[var(--lg-muted)]">
               No company accounts are registered yet.
             </p>
           ) : (

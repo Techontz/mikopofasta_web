@@ -52,8 +52,8 @@ export default async function ReportsPage() {
                     style={{ borderColor: "var(--st-line-strong)" }}
                   >
                     <div className="min-w-0">
-                      <p className="text-[13.5px] font-medium text-[var(--st-ink)]">{report.title}</p>
-                      <p className="mt-0.5 text-[12.5px] leading-relaxed text-[var(--st-ink-soft)]">
+                      <p className="text-[14px] font-medium text-[var(--st-ink)]">{report.title}</p>
+                      <p className="mt-0.5 text-[13px] leading-relaxed text-[var(--st-ink-soft)]">
                         {report.description}
                       </p>
                     </div>

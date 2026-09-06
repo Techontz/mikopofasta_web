@@ -105,7 +105,7 @@ export default async function UserProfilePage({ params }: { params: Promise<{ id
 
       <Link
         href="/admin/users"
-        className="inline-flex items-center gap-1.5 text-[13px] text-[var(--st-ink-soft)] transition-colors hover:text-[var(--st-ink)]"
+        className="inline-flex items-center gap-1.5 text-[14px] text-[var(--st-ink-soft)] transition-colors hover:text-[var(--st-ink)]"
       >
         <ArrowLeft className="size-3.5" aria-hidden />
         Back to Staff List
@@ -119,7 +119,7 @@ export default async function UserProfilePage({ params }: { params: Promise<{ id
             </Avatar>
             <div>
               <p className="text-[15px] font-semibold text-[var(--st-ink)]">{user.name}</p>
-              <p className="text-[13px] text-[var(--st-ink-soft)]">{ROLE_LABELS[user.role]}</p>
+              <p className="text-[14px] text-[var(--st-ink-soft)]">{ROLE_LABELS[user.role]}</p>
             </div>
             <StatusBadge tone={user.status === "active" ? "active" : "inactive"} className="capitalize">
               {user.status}
@@ -160,7 +160,7 @@ export default async function UserProfilePage({ params }: { params: Promise<{ id
           </div>
 
           <SectionDivider label="Grants beyond the role" className="my-4" />
-          <p className="text-[12.5px] text-[var(--st-ink-soft)]">
+          <p className="text-[13px] text-[var(--st-ink-soft)]">
             Per-user grants are not listed here: the users endpoint does not carry them, and an
             empty list would assert there are none.
           </p>
@@ -183,8 +183,8 @@ function initials(name: string): string {
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-0.5">
-      <dt className="text-[12px] text-[var(--st-ink-faint)]">{label}</dt>
-      <dd className="text-[13.5px] font-medium text-[var(--st-ink)]">{children}</dd>
+      <dt className="text-[12.5px] text-[var(--st-ink-faint)]">{label}</dt>
+      <dd className="text-[14px] font-medium text-[var(--st-ink)]">{children}</dd>
     </div>
   );
 }

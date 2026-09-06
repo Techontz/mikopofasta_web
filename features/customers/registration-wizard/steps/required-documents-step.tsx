@@ -319,7 +319,7 @@ function DocumentSlot({
             {label}
             {required && <span className="text-destructive"> *</span>}
           </Label>
-          {note && <p className="text-[11px] text-muted-foreground">{note}</p>}
+          {note && <p className="text-[12px] text-muted-foreground">{note}</p>}
           <div className="flex items-center gap-2 rounded-md border px-2 py-1.5">
             <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden />
             <Input
@@ -331,7 +331,7 @@ function DocumentSlot({
             />
           </div>
           {file && (
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-[12px] text-muted-foreground">
               {file.name} · {Math.round(file.size / 1024)} KB
             </p>
           )}

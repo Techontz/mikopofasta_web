@@ -76,7 +76,7 @@ export function PayrollPanel({
           >
             {row.original.employee}
           </Link>
-          <p className="font-tabular mt-0.5 text-[12px] text-[var(--st-ink-faint)]">
+          <p className="font-tabular mt-0.5 text-[12.5px] text-[var(--st-ink-faint)]">
             {row.original.staffNo} · {row.original.branch ?? "—"}
           </p>
         </div>

@@ -253,7 +253,7 @@ export function MasterDataManager({
                 <div className="min-w-0 flex-1">
                   <p className="flex items-center gap-2 text-sm font-medium">
                     <span className="truncate">{row.name}</span>
-                    <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+                    <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[12px] text-muted-foreground">
                       {row.code}
                     </code>
                     {!row.isActive && (
@@ -396,7 +396,7 @@ function SpecialisedList({
               <div className="min-w-0 flex-1">
                 <p className="flex items-center gap-2 text-sm font-medium">
                   <span className="truncate">{row.name}</span>
-                  <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+                  <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[12px] text-muted-foreground">
                     {row.code}
                   </code>
                 </p>
@@ -513,7 +513,7 @@ function SectorCadres({ sectors }: { sectors: MasterDataOption[] }) {
             <li key={c.id} className="flex items-center gap-3 p-2.5">
               <span className="min-w-0 flex-1 truncate text-sm">
                 {c.name}{" "}
-                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[12px] text-muted-foreground">
                   {c.code}
                 </code>
               </span>
@@ -656,7 +656,7 @@ function EntryDialog({
               {entry !== null && (
                 /* Said, not silently enforced: stored data references the code
                    and no foreign key protects a rename. */
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-[12px] text-muted-foreground">
                   Fixed after creation — existing records reference it.
                 </p>
               )}
@@ -691,7 +691,7 @@ function EntryDialog({
               />
               {/* The reason this control exists, said plainly — otherwise it
                   reads as one more optional box. */}
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-[12px] text-muted-foreground">
                 When an officer picks this ID type during registration, the documents step asks them
                 to upload this document. Leave it empty if you take no copy.
               </p>

@@ -512,7 +512,7 @@ export function FaceScanner({
           </div>
 
           <div className="absolute inset-x-0 bottom-0 rounded-b-lg bg-black/65 px-3 py-2 text-center">
-            <p className="text-[13px] font-medium text-white">
+            <p className="text-[14px] font-medium text-white">
               {checks?.hint ?? POSE_PROMPT[POSE_SEQUENCE[stepIndex]]}
             </p>
           </div>
@@ -544,7 +544,7 @@ export function FaceScanner({
             ))}
           </div>
 
-          <ul className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11.5px]">
+          <ul className="grid grid-cols-2 gap-x-3 gap-y-1 text-[12px]">
             <Check ok={checks?.singleFace} label="One face only" />
             <Check ok={checks?.wellSized} label="Distance" />
             <Check ok={checks?.centered} label="Centred" />

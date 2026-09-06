@@ -67,6 +67,11 @@ export default async function ReportPage({
     perPage: single("per_page") ? Number(single("per_page")) : undefined,
   };
 
+  /* The branch list does not depend on the report, so it is asked for at the
+     same time rather than after it. `catch` is attached here rather than at
+     the await so an early notFound() below cannot leave it unhandled. */
+  const branchesRequest = getBranches().catch(() => []);
+
   let payload;
   try {
     payload = await getReport(slug, requested, presentation);
@@ -79,7 +84,7 @@ export default async function ReportPage({
     payload;
 
   const seesAllBranches = hasPermission(user, PERMISSIONS.BRANCHES_VIEW_ALL);
-  const branches = (await getBranches().catch(() => []))
+  const branches = (await branchesRequest)
     .filter((b) => b.deletedAt === null && (seesAllBranches || b.id === user.branchId))
     .map((b) => ({ id: b.id, name: b.name }));
 
@@ -102,11 +107,11 @@ export default async function ReportPage({
 
       <SettingsCard title="Filters">
         <div className="space-y-3">
-          <Suspense fallback={<p className="text-[13px] text-[var(--st-ink-soft)]">Loading filters…</p>}>
+          <Suspense fallback={<p className="text-[14px] text-[var(--st-ink-soft)]">Loading filters…</p>}>
             <ReportFiltersBar supported={report.filters} branches={branches} />
           </Suspense>
           {!seesAllBranches && report.filters.includes("branchId") && (
-            <p className="text-[12.5px] text-[var(--st-ink-soft)]">Scoped to your branch — you don&apos;t hold cross-branch visibility.</p>
+            <p className="text-[13px] text-[var(--st-ink-soft)]">Scoped to your branch — you don&apos;t hold cross-branch visibility.</p>
           )}
         </div>
       </SettingsCard>
@@ -121,7 +126,7 @@ export default async function ReportPage({
 
       <SettingsCard title={`${report.title} (${result.rows.length})`} bodyClassName="pt-0 sm:pt-0">
         <div className="space-y-3">
-          <Suspense fallback={<p className="text-[13px] text-[var(--st-ink-soft)]">Loading controls…</p>}>
+          <Suspense fallback={<p className="text-[14px] text-[var(--st-ink-soft)]">Loading controls…</p>}>
             <ReportControls
               slug={report.slug}
               pagination={pagination}
@@ -134,7 +139,7 @@ export default async function ReportPage({
           {sortIgnored && (
             /* Surfaced rather than swallowed: the reader believes the order
                means something, and an unsorted list reads as wrong data. */
-            <p className="text-[12.5px] text-[var(--st-warning-ink,var(--st-ink-soft))]">
+            <p className="text-[13px] text-[var(--st-warning-ink,var(--st-ink-soft))]">
               This report has no “{sortIgnored}” column, so the rows are in their natural order.
             </p>
           )}
@@ -145,7 +150,7 @@ export default async function ReportPage({
 
       {result.reconciliation && (
         <div
-          className="flex gap-2 rounded-[var(--st-radius-sm)] border px-4 py-3 text-[13px] text-[var(--st-ink-soft)]"
+          className="flex gap-2 rounded-[var(--st-radius-sm)] border px-4 py-3 text-[14px] text-[var(--st-ink-soft)]"
           style={{ borderColor: "var(--st-line-strong)", background: "var(--st-subtle)" }}
         >
           <ScrollText className="mt-0.5 size-4 shrink-0" aria-hidden />
@@ -160,7 +165,7 @@ export default async function ReportPage({
           a figure on screen is traceable to a specific computation — and both
           are now the server's own values rather than this page's account of
           what it asked for. */}
-      <p className="text-[12px] text-[var(--st-ink-faint)]">
+      <p className="text-[12.5px] text-[var(--st-ink-faint)]">
         Generated {new Date(generatedAt).toLocaleString()} · filters applied:{" "}
         {Object.keys(filtersApplied).length === 0 ? "none" : JSON.stringify(filtersApplied)}
         {!seesAllBranches && report.filters.includes("branchId") && " (branch forced by your permissions)"}

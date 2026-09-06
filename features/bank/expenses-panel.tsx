@@ -143,7 +143,7 @@ export function ExpensesPanel({
       header: "Receipt",
       cell: ({ row }) =>
         row.original.receiptName ? (
-          <span className="inline-flex max-w-[180px] items-center gap-1.5 text-[12.5px] text-[var(--st-ink-soft)]">
+          <span className="inline-flex max-w-[180px] items-center gap-1.5 text-[13px] text-[var(--st-ink-soft)]">
             <Paperclip className="size-3.5 shrink-0" aria-hidden />
             <span className="truncate">{row.original.receiptName}</span>
           </span>

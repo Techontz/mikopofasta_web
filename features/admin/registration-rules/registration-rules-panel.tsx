@@ -181,7 +181,7 @@ function RequirementsForm({
             value={form.minGuarantors}
             onChange={(e) => set("minGuarantors", Number(e.target.value))}
           />
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-[12px] text-muted-foreground">
             Enforced at registration. The loan gate still applies its own minimum of one — see the
             follow-up note in the repository.
           </p>
@@ -222,7 +222,7 @@ function RequirementsForm({
             onChange={(e) => set("categoryDocumentsEnforcedFrom", e.target.value || null)}
             disabled={!form.requiresCategoryDocuments}
           />
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-[12px] text-muted-foreground">
             Applies only to customers registered on or after this date, read from their own
             registration date. Leave it empty to apply to everybody.
           </p>
@@ -434,7 +434,7 @@ function Toggle({
       <Switch checked={checked} onCheckedChange={onChange} className="mt-0.5" />
       <div className="space-y-0.5">
         <p className="text-sm">{label}</p>
-        {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
+        {hint && <p className="text-[12px] text-muted-foreground">{hint}</p>}
       </div>
     </div>
   );

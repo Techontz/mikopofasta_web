@@ -40,9 +40,11 @@ export default async function NewLoanPage({
    * for the same reason: a bad query string should cost the officer a
    * selection, not the whole screen.
    */
-  const preselected = customerId ? await resolveApplicant(customerId) : null;
-
-  const [products, schedules, formulas, categories] = await Promise.all([
+  const [preselected, products, schedules, formulas, categories] = await Promise.all([
+    /* Nothing below depends on the applicant, so resolving them no longer
+       holds up the product, schedule, formula and category reads — it used to
+       be its own round-trip in front of theirs. */
+    customerId ? resolveApplicant(customerId) : Promise.resolve(null),
     getLoanProducts(),
     getRepaymentSchedules(),
     getInterestFormulas(),

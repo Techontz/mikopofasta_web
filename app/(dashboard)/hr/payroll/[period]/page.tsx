@@ -159,12 +159,12 @@ export default async function PayrollPeriodPage({ params }: { params: Promise<{ 
                       {formatMoneyExact(line.allowancesTotal)}
                     </Money>
                     {line.allowances.length > 0 && (
-                      <span className="mt-0.5 block text-right text-[11.5px] capitalize text-[var(--st-ink-faint)]">
+                      <span className="mt-0.5 block text-right text-[12px] capitalize text-[var(--st-ink-faint)]">
                         {line.allowances.map((a) => a.type.replace(/_/g, " ")).join(", ")}
                       </span>
                     )}
                   </td>
-                  <td className="text-[12.5px] capitalize text-[var(--st-ink-soft)]">
+                  <td className="text-[13px] capitalize text-[var(--st-ink-soft)]">
                     {line.deductions.length === 0 ? (
                       <span className="text-[var(--st-ink-faint)]">—</span>
                     ) : (
@@ -187,7 +187,7 @@ export default async function PayrollPeriodPage({ params }: { params: Promise<{ 
                 <td>
                   <Money strong>{formatMoneyExact(allowances)}</Money>
                 </td>
-                <td className="text-[12.5px] text-[var(--st-ink-soft)]">
+                <td className="text-[13px] text-[var(--st-ink-soft)]">
                   {deductions === 0 ? "—" : `−${formatMoneyExact(deductions)}`}
                 </td>
                 <td>

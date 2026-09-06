@@ -36,7 +36,7 @@ export function PermissionMatrix({ rolePermissions, canEdit }: PermissionMatrixP
               <TableRow key={group.label} className="hover:bg-transparent">
                 <TableCell
                   colSpan={ASSIGNABLE_ROLES.length + 1}
-                  className="sticky left-0 py-2 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-[var(--st-ink-faint)]"
+                  className="sticky left-0 py-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--st-ink-faint)]"
                   style={{ background: "var(--st-subtle-strong)" }}
                 >
                   {group.label}
@@ -44,7 +44,7 @@ export function PermissionMatrix({ rolePermissions, canEdit }: PermissionMatrixP
               </TableRow>
               {group.permissions.map((permission) => (
                 <TableRow key={permission}>
-                  <TableCell className="sticky left-0 z-10 bg-[var(--st-card)] font-mono text-[12px]">
+                  <TableCell className="sticky left-0 z-10 bg-[var(--st-card)] font-mono text-[12.5px]">
                     {PERMISSION_LABELS[permission]}
                   </TableCell>
                   {ASSIGNABLE_ROLES.map((role) => {

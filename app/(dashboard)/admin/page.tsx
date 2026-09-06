@@ -37,10 +37,10 @@ export default async function AdminLandingPage() {
             <Layers className="size-[18px]" strokeWidth={1.8} aria-hidden />
           </span>
           <div className="flex-1">
-            <h2 className="text-[14.5px] font-semibold tracking-[-0.01em] text-[var(--st-ink)]">
+            <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--st-ink)]">
               Organization Structure
             </h2>
-            <p className="mt-1 text-[13px] leading-relaxed text-[var(--st-ink-soft)]">
+            <p className="mt-1 text-[14px] leading-relaxed text-[var(--st-ink-soft)]">
               Super Admin → Head Office → Zones → Branches, who staffs each tier, and which branches nobody
               supervises.
             </p>
@@ -79,10 +79,10 @@ export default async function AdminLandingPage() {
                   )}
                 </div>
                 <div>
-                  <h2 className="text-[14.5px] font-semibold tracking-[-0.01em] text-[var(--st-ink)]">
+                  <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--st-ink)]">
                     {section.title}
                   </h2>
-                  <p className="mt-1 text-[13px] leading-relaxed text-[var(--st-ink-soft)]">{section.description}</p>
+                  <p className="mt-1 text-[14px] leading-relaxed text-[var(--st-ink-soft)]">{section.description}</p>
                 </div>
               </>
             );

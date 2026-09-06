@@ -28,8 +28,8 @@ export function ErrorState({ error, reset, className }: ErrorStateProps) {
         <AlertTriangle className="size-5 text-destructive" strokeWidth={1.7} aria-hidden />
       </div>
       <div className="space-y-1.5">
-        <h3 className="st-empty-title text-[14px] font-semibold tracking-[-0.01em]">Something went wrong</h3>
-        <p className="st-empty-text mx-auto max-w-sm text-[13px] leading-relaxed text-muted-foreground">
+        <h3 className="st-empty-title text-[15px] font-semibold tracking-[-0.01em]">Something went wrong</h3>
+        <p className="st-empty-text mx-auto max-w-sm text-[14px] leading-relaxed text-muted-foreground">
           {describeError(error)}
         </p>
       </div>

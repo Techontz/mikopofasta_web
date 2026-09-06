@@ -48,7 +48,7 @@ export function RegistrationApprovalsTable({
       cell: ({ row }) => (
         <div className="min-w-0">
           <p className="whitespace-nowrap font-medium">{row.original.fullName}</p>
-          <p className="mt-0.5 text-[12px] text-muted-foreground">
+          <p className="mt-0.5 text-[12.5px] text-muted-foreground">
             {row.original.customerNumber} · {row.original.phone}
           </p>
         </div>
@@ -66,7 +66,7 @@ export function RegistrationApprovalsTable({
       cell: ({ row }) => (
         <div className="min-w-0">
           <p className="text-sm">{row.original.registeredByName ?? "—"}</p>
-          <p className="text-[12px] text-muted-foreground">{row.original.registeredAt ?? "—"}</p>
+          <p className="text-[12.5px] text-muted-foreground">{row.original.registeredAt ?? "—"}</p>
         </div>
       ),
     },
@@ -76,7 +76,7 @@ export function RegistrationApprovalsTable({
       cell: ({ row }) => (
         <div className="min-w-0">
           <p className="text-sm">{row.original.accountTypeName ?? "—"}</p>
-          <p className="text-[12px] text-muted-foreground">{row.original.categoryName ?? "No category"}</p>
+          <p className="text-[12.5px] text-muted-foreground">{row.original.categoryName ?? "No category"}</p>
         </div>
       ),
     },
@@ -110,7 +110,7 @@ export function RegistrationApprovalsTable({
         ) : (
           /* Named, not counted. "3 items outstanding" sends the manager to the
              profile to find out which; the list itself is the useful thing. */
-          <ul className="max-w-xs space-y-0.5 text-[12px] text-amber-700 dark:text-amber-400">
+          <ul className="max-w-xs space-y-0.5 text-[12.5px] text-amber-700 dark:text-amber-400">
             {row.original.outstanding.slice(0, 3).map((item) => (
               <li key={item}>{item}</li>
             ))}

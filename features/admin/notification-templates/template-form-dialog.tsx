@@ -185,7 +185,7 @@ export function TemplateFormDialog({
         literal text {{amount}}.
       */}
       <div className="space-y-1.5">
-        <p className="text-[12px] text-muted-foreground">Available placeholders</p>
+        <p className="text-[12.5px] text-muted-foreground">Available placeholders</p>
         <div className="flex flex-wrap gap-1.5">
           {placeholders.map((placeholder) => {
             const token = `{{${placeholder}}}`;
@@ -196,7 +196,7 @@ export function TemplateFormDialog({
                 key={placeholder}
                 type="button"
                 onClick={() => setValue("body", `${body ?? ""}${token}`, { shouldDirty: true })}
-                className={`rounded-md border px-2 py-1 font-mono text-[11px] transition-colors ${
+                className={`rounded-md border px-2 py-1 font-mono text-[12px] transition-colors ${
                   used
                     ? "border-[var(--st-accent-line)] bg-[var(--st-accent-soft)] text-[var(--st-accent-ink)]"
                     : "text-muted-foreground hover:bg-muted"

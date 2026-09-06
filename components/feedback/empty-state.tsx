@@ -24,17 +24,17 @@ export function EmptyState({ icon: Icon = Inbox, title, description, action, cla
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center gap-3.5 rounded-lg border border-dashed px-6 py-12 text-center",
+        "flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed px-6 py-14 text-center",
         className
       )}
     >
-      <div className="st-empty-icon flex size-12 items-center justify-center rounded-full bg-muted">
-        <Icon className="size-5 text-muted-foreground" strokeWidth={1.7} aria-hidden />
+      <div className="st-empty-icon flex size-14 items-center justify-center rounded-full bg-muted">
+        <Icon className="size-6 text-muted-foreground" strokeWidth={1.7} aria-hidden />
       </div>
       <div className="space-y-1.5">
-        <h3 className="st-empty-title text-[14px] font-semibold tracking-[-0.01em]">{title}</h3>
+        <h3 className="st-empty-title text-[17px] font-semibold tracking-[-0.012em]">{title}</h3>
         {description && (
-          <p className="st-empty-text mx-auto max-w-sm text-[13px] leading-relaxed text-muted-foreground">
+          <p className="st-empty-text mx-auto max-w-sm text-[14px] leading-relaxed text-muted-foreground">
             {description}
           </p>
         )}

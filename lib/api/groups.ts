@@ -2,6 +2,7 @@ import "server-only";
 import { apiData, apiRequest } from "@/lib/api/client";
 import { getApiToken } from "@/lib/auth/session";
 import type { ApiPagination } from "@/lib/api/types";
+import { collectPages } from "@/lib/api/paginate";
 
 /**
  * Village banking groups — sidebar → Group.
@@ -96,19 +97,13 @@ const PER_PAGE = 100;
 const PAGE_LIMIT = 20;
 
 export async function getAllGroups(filters: GroupFilters = {}): Promise<GroupRecord[]> {
-  const all: GroupRecord[] = [];
-  let page = 1;
-
-  for (;;) {
-    const { groups, pagination } = await getGroups({ ...filters, page, perPage: PER_PAGE });
-    all.push(...groups);
-
-    const lastPage = pagination?.lastPage ?? page;
-    if (page >= lastPage || page >= PAGE_LIMIT) break;
-    page += 1;
-  }
-
-  return all;
+  return collectPages(
+    async (page, perPage) => {
+      const { groups, pagination } = await getGroups({ ...filters, page, perPage });
+      return { items: groups, pagination };
+    },
+    { pageLimit: PAGE_LIMIT, perPage: PER_PAGE, label: "getAllGroups" }
+  );
 }
 
 /** Eager-loads the membership, so the committee and the balance resolve. */

@@ -247,7 +247,7 @@ export function ContributionsPanel({
                 ))}
 
                 <tr style={{ background: "var(--st-subtle)" }}>
-                  <td colSpan={2} className="font-semibold uppercase tracking-wide text-[12px]">
+                  <td colSpan={2} className="font-semibold uppercase tracking-wide text-[12.5px]">
                     Share Holder Capital
                   </td>
                   <td colSpan={6} className="font-tabular font-semibold">
@@ -255,7 +255,7 @@ export function ContributionsPanel({
                   </td>
                 </tr>
                 <tr style={{ background: "var(--st-subtle)" }}>
-                  <td colSpan={2} className="font-semibold uppercase tracking-wide text-[12px]">
+                  <td colSpan={2} className="font-semibold uppercase tracking-wide text-[12.5px]">
                     Total Company Capital
                   </td>
                   <td colSpan={6} className="font-tabular font-semibold">

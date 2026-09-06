@@ -4,7 +4,7 @@ import * as React from "react";
 import { useTransition } from "react";
 import { toast } from "sonner";
 import { Check, Plus, Send, X } from "lucide-react";
-import { Button, Field, FieldGrid, Select, TextInput } from "@/components/settings/form";
+import { Button, Field, FieldGrid, TextInput } from "@/components/settings/form";
 import { Combobox } from "@/components/settings/combobox";
 import { decideStaffAdvance, disburseStaffAdvance, requestStaffAdvance } from "@/features/hr/actions";
 import type { ActionResult } from "@/lib/domain/action-result";
@@ -106,7 +106,7 @@ export function AdvanceDecisionButtons({
 
   if (status === "requested") {
     if (!canApprove) {
-      return <span className="text-[12px] text-[var(--st-ink-soft)]">Awaiting HR approval</span>;
+      return <span className="text-[12.5px] text-[var(--st-ink-soft)]">Awaiting HR approval</span>;
     }
     return (
       <div className="flex gap-2">
@@ -133,7 +133,7 @@ export function AdvanceDecisionButtons({
 
   if (status === "approved") {
     if (!canDisburse) {
-      return <span className="text-[12px] text-[var(--st-ink-soft)]">Approved — Finance disburses</span>;
+      return <span className="text-[12.5px] text-[var(--st-ink-soft)]">Approved — Finance disburses</span>;
     }
     return (
       <Button

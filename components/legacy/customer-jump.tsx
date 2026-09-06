@@ -256,7 +256,7 @@ export function CustomerJump() {
         <div>
           {showingRecents && (
             <p
-              className="border-b px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide opacity-60"
+              className="border-b px-3 py-1.5 text-[12px] font-semibold uppercase tracking-wide opacity-60"
               style={{ borderColor: "var(--lg-ctrl-line)", color: "var(--lg-ink-tab)" }}
             >
               Recent
@@ -280,15 +280,15 @@ export function CustomerJump() {
               customer book when the truth is about the network.
             */}
             {message ? (
-              <li className="px-3 py-3 text-[13px]" style={{ color: "var(--lg-ink-tab)" }} role="alert">
+              <li className="px-3 py-3 text-[14px]" style={{ color: "var(--lg-ink-tab)" }} role="alert">
                 {message}
               </li>
             ) : loading && visible.length === 0 ? (
-              <li className="px-3 py-3 text-[13px]" style={{ color: "var(--lg-ink-tab)" }}>
+              <li className="px-3 py-3 text-[14px]" style={{ color: "var(--lg-ink-tab)" }}>
                 Searching…
               </li>
             ) : visible.length === 0 ? (
-              <li className="px-3 py-3 text-[13px]" style={{ color: "var(--lg-ink-tab)" }}>
+              <li className="px-3 py-3 text-[14px]" style={{ color: "var(--lg-ink-tab)" }}>
                 {search === "" ? "No customers registered yet." : `No customer matches “${search}”.`}
               </li>
             ) : (
@@ -310,16 +310,16 @@ export function CustomerJump() {
                     <CustomerAvatar name={pick.name} photoUrl={pick.photoUrl} size="sm" />
                     <span className="min-w-0 flex-1">
                       <span className="flex items-baseline justify-between gap-2">
-                        <span className="truncate text-[14px] font-medium">{pick.name}</span>
-                        <span className="font-tabular shrink-0 text-[11.5px] opacity-70">
+                        <span className="truncate text-[15px] font-medium">{pick.name}</span>
+                        <span className="font-tabular shrink-0 text-[12px] opacity-70">
                           {pick.customerNumber}
                         </span>
                       </span>
-                      <span className="flex items-center gap-1.5 text-[12px] opacity-70">
+                      <span className="flex items-center gap-1.5 text-[12.5px] opacity-70">
                         <span className="font-tabular truncate">{pick.phone ?? "—"}</span>
                         {pick.branch && <span className="truncate">· {pick.branch}</span>}
                         {pick.status !== "active" && (
-                          <span className="shrink-0 rounded px-1 text-[10.5px] uppercase tracking-wide opacity-90">
+                          <span className="shrink-0 rounded px-1 text-[11.5px] uppercase tracking-wide opacity-90">
                             {pick.status}
                           </span>
                         )}
@@ -332,7 +332,7 @@ export function CustomerJump() {
 
             {loadingMore && (
               <li
-                className="flex items-center justify-center gap-2 py-2 text-[12px]"
+                className="flex items-center justify-center gap-2 py-2 text-[12.5px]"
                 style={{ color: "var(--lg-ink-tab)" }}
               >
                 <Loader2 className="size-3.5 animate-spin" aria-hidden />

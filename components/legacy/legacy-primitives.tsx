@@ -16,7 +16,7 @@ export function legacyNumber(value: number): string {
 
 export function LegacyBreadcrumb({ trail }: { trail: string[] }) {
   return (
-    <div className="flex items-center gap-2 text-[13px]" style={{ color: "var(--lg-muted)" }}>
+    <div className="flex items-center gap-2 text-[14px]" style={{ color: "var(--lg-muted)" }}>
       <Link
         href="/dashboard"
         aria-label="Home"
@@ -37,7 +37,7 @@ export function LegacyBreadcrumb({ trail }: { trail: string[] }) {
 export function LegacyTable({ children }: { children: React.ReactNode }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-[14px]">{children}</table>
+      <table className="w-full border-collapse text-[15px]">{children}</table>
     </div>
   );
 }
@@ -52,7 +52,7 @@ export function LegacyTh({
 }) {
   return (
     <th
-      className={`whitespace-nowrap border-b px-4 py-3.5 text-left text-[13px] font-bold uppercase tracking-wide ${className}`}
+      className={`whitespace-nowrap border-b px-4 py-3.5 text-left text-[14px] font-bold uppercase tracking-wide ${className}`}
       style={{ background: "var(--lg-head)", borderColor: "var(--lg-line)", color: "var(--lg-text)" }}
     >
       {children}

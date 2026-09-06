@@ -86,7 +86,7 @@ export function DataTablePagination<TData>({ table, variant = "default" }: DataT
    */
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <p className="text-[12.5px] text-[var(--st-ink-soft)]">
+      <p className="text-[13px] text-[var(--st-ink-soft)]">
         {total === 0 ? (
           "No results"
         ) : (
@@ -99,7 +99,7 @@ export function DataTablePagination<TData>({ table, variant = "default" }: DataT
       </p>
 
       <div className="flex items-center justify-between gap-4 sm:justify-end sm:gap-5">
-        <label className="flex items-center gap-2 text-[12.5px] text-[var(--st-ink-soft)]">
+        <label className="flex items-center gap-2 text-[13px] text-[var(--st-ink-soft)]">
           <span className="hidden sm:inline">Rows per page</span>
           <span className="sm:hidden">Rows</span>
           <SettingsSelect
@@ -107,8 +107,10 @@ export function DataTablePagination<TData>({ table, variant = "default" }: DataT
             value={String(pageSize)}
             onChange={(e) => table.setPageSize(Number(e.target.value))}
             /* Narrow enough not to dominate the row, wide enough for "100"
-               beside the chevron — which sits 12px from the right edge. */
-            className="h-8 w-[74px] pl-2.5 pr-7 text-[12.5px]"
+               beside the chevron — which sits 12px from the right edge. 40px
+               tall rather than 32: it is a control in a row of 40px page
+               buttons, and 32px was under the touch minimum. */
+            className="h-10 w-[82px] pl-3 pr-8 text-[13px]"
           >
             {[10, 20, 50, 100].map((size) => (
               <option key={size} value={size}>
@@ -118,7 +120,7 @@ export function DataTablePagination<TData>({ table, variant = "default" }: DataT
           </SettingsSelect>
         </label>
 
-        <span className="whitespace-nowrap text-[12.5px] text-[var(--st-ink-soft)]">
+        <span className="whitespace-nowrap text-[13px] text-[var(--st-ink-soft)]">
           Page{" "}
           <span className="font-medium text-[var(--st-ink)]">{total === 0 ? 0 : pageIndex + 1}</span> of{" "}
           <span className="font-medium text-[var(--st-ink)]">{pageCount || 0}</span>

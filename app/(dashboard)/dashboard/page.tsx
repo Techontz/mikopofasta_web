@@ -59,7 +59,7 @@ export default async function DashboardPage() {
         <div className="flex flex-wrap gap-x-10 gap-y-3">
           {data.accounts.map((account) => (
             <div key={account.label}>
-              <div className="text-[11px] font-medium uppercase tracking-wider text-[var(--lg-muted)]">
+              <div className="text-[12px] font-medium uppercase tracking-wider text-[var(--lg-muted)]">
                 {account.label}
               </div>
               <div className="mt-1 flex items-center gap-1.5 text-[15px] text-[var(--lg-text)]">

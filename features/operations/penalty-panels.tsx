@@ -79,7 +79,7 @@ export function PenaltyListPanel({
       cell: ({ row }) => (
         <div className="min-w-0">
           <p className="font-medium text-[var(--st-ink)]">{row.original.customerName}</p>
-          <p className="font-tabular mt-0.5 text-[12px] text-[var(--st-ink-faint)]">
+          <p className="font-tabular mt-0.5 text-[12.5px] text-[var(--st-ink-faint)]">
             {row.original.loanNumber} · installment {row.original.installmentNumber}
           </p>
         </div>
@@ -233,7 +233,7 @@ function PenaltyDetail({ penalty, onClose }: { penalty: PenaltyRecord; onClose: 
         onClose();
       }}
     >
-      <dl className="grid grid-cols-2 gap-4 text-[13px]">
+      <dl className="grid grid-cols-2 gap-4 text-[14px]">
         <Fact label="Loan amount" value={formatMoney(penalty.loanAmount)} />
         <Fact label="Branch" value={penalty.branch} />
         <Fact label="Penalty charged" value={formatMoney(penalty.penaltyAmount)} />
@@ -285,7 +285,7 @@ export function PaidPenaltyPanel({
       cell: ({ row }) => (
         <div className="min-w-0">
           <p className="font-medium text-[var(--st-ink)]">{row.original.customerName}</p>
-          <p className="font-tabular mt-0.5 text-[12px] text-[var(--st-ink-faint)]">
+          <p className="font-tabular mt-0.5 text-[12.5px] text-[var(--st-ink-faint)]">
             {row.original.paymentReference}
           </p>
         </div>
@@ -396,7 +396,7 @@ export function PaidPenaltyPanel({
             setViewing(null);
           }}
         >
-          <dl className="grid grid-cols-2 gap-4 text-[13px]">
+          <dl className="grid grid-cols-2 gap-4 text-[14px]">
             <Fact label="Loan" value={viewing.loanNumber} />
             <Fact label="Branch" value={viewing.branch} />
             <Fact label="Installment" value={String(viewing.installmentNumber)} />

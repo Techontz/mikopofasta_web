@@ -356,7 +356,7 @@ export function ExpenseClaimsPanel({
             header: "Comment",
             cell: ({ row }) =>
               row.original.comment ? (
-                <span className="block max-w-[200px] truncate text-[12.5px] text-[var(--st-ink-soft)]" title={row.original.comment}>
+                <span className="block max-w-[200px] truncate text-[13px] text-[var(--st-ink-soft)]" title={row.original.comment}>
                   {row.original.comment}
                 </span>
               ) : (

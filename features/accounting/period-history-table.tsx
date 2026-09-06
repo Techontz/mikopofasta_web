@@ -86,7 +86,7 @@ export function PeriodHistoryTable({ periods }: { periods: AccountingPeriod[] })
             closed at one rate and read after it changed would otherwise look
             like bad arithmetic.
           */}
-          <p className="text-[12px] text-[var(--st-ink-faint)]">at {row.original.reservePercentage}%</p>
+          <p className="text-[12.5px] text-[var(--st-ink-faint)]">at {row.original.reservePercentage}%</p>
         </div>
       ),
     },
@@ -99,7 +99,7 @@ export function PeriodHistoryTable({ periods }: { periods: AccountingPeriod[] })
       id: "audit",
       header: "Audit",
       cell: ({ row }) => (
-        <div className="space-y-0.5 text-[12px] text-[var(--st-ink-faint)]">
+        <div className="space-y-0.5 text-[12.5px] text-[var(--st-ink-faint)]">
           <p>Closed by {row.original.closedByName ?? "—"}</p>
           <p>{formatDateTime(row.original.closedAt)}</p>
           {row.original.notes && <p className="max-w-[16rem] text-[var(--st-ink-soft)]">{row.original.notes}</p>}
@@ -142,10 +142,10 @@ export function PeriodHistoryTable({ periods }: { periods: AccountingPeriod[] })
         <div className="px-5 pb-5 sm:px-6">
           <div className="st-card overflow-hidden">
             <div className="border-b border-[var(--st-line)] px-4 py-3">
-              <p className="text-[13px] font-semibold text-[var(--st-ink)]">
+              <p className="text-[14px] font-semibold text-[var(--st-ink)]">
                 {formatPeriod(openPeriod.period)} — per branch
               </p>
-              <p className="text-[12px] text-[var(--st-ink-faint)]">
+              <p className="text-[12.5px] text-[var(--st-ink-faint)]">
                 The figures §11 computes each branch&rsquo;s commission pool from.
               </p>
             </div>

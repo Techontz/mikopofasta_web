@@ -503,7 +503,7 @@ function PermissionsCard({ permissions }: { permissions: string[] }) {
         ) : (
           <div className="flex flex-wrap gap-1.5">
             {permissions.map((permission) => (
-              <Badge key={permission} variant="outline" className="font-mono text-[11px]">
+              <Badge key={permission} variant="outline" className="font-mono text-[12px]">
                 {permission}
               </Badge>
             ))}

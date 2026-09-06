@@ -153,10 +153,10 @@ export function PeriodCloseDialog({
 
       {preview && (
         <div className="st-card space-y-3 p-4" style={{ background: "var(--st-subtle)" }}>
-          <p className="text-[13px] font-semibold text-[var(--st-ink)]">{formatPeriod(preview.period)}</p>
+          <p className="text-[14px] font-semibold text-[var(--st-ink)]">{formatPeriod(preview.period)}</p>
 
           {preview.alreadyClosed ? (
-            <p className="text-[13px] text-[var(--st-ink-soft)]">
+            <p className="text-[14px] text-[var(--st-ink-soft)]">
               This period is already closed. Correct it with a reversal in a later period.
             </p>
           ) : (
@@ -172,7 +172,7 @@ export function PeriodCloseDialog({
                 />
               </dl>
 
-              <p className="text-[12px] text-[var(--st-ink-faint)]">
+              <p className="text-[12.5px] text-[var(--st-ink-faint)]">
                 {preview.realisedProfit > 0
                   ? "Income and expense are swept into Profit, then the reserve is appropriated from what the period earned. The reserve belongs to Headquarters and needs Admin approval to spend."
                   : "This period made a loss, so no reserve is appropriated — there are no earnings to protect capital from."}
@@ -208,12 +208,12 @@ export function PeriodCloseDialog({
 function PreviewRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <dt className="text-[13px] text-[var(--st-ink-soft)]">{label}</dt>
+      <dt className="text-[14px] text-[var(--st-ink-soft)]">{label}</dt>
       <dd
         className={
           strong
-            ? "font-tabular text-[14px] font-semibold text-[var(--st-ink)]"
-            : "font-tabular text-[13px] text-[var(--st-ink-soft)]"
+            ? "font-tabular text-[15px] font-semibold text-[var(--st-ink)]"
+            : "font-tabular text-[14px] text-[var(--st-ink-soft)]"
         }
       >
         {value}

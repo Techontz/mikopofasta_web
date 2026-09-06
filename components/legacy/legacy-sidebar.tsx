@@ -99,7 +99,7 @@ export function LegacySidebar({ user, tenantName }: { user: AuthenticatedUser; t
       <div className="px-4 pb-3 pt-5">
         <button
           type="button"
-          className="flex items-center gap-1.5 text-[14px] font-bold tracking-wide"
+          className="flex items-center gap-1.5 text-[15px] font-bold tracking-wide"
           style={{ color: "var(--lg-icon-action)" }}
         >
           {tenantName}

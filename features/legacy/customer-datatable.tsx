@@ -85,7 +85,7 @@ export function LegacyCustomerTable({ rows }: { rows: LegacyCustomerRow[] }) {
       </div>
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <label className="flex items-center gap-2 text-[14px] text-[var(--lg-text)]">
+        <label className="flex items-center gap-2 text-[15px] text-[var(--lg-text)]">
           Show
           <select
             aria-label="Entries per page"
@@ -94,7 +94,7 @@ export function LegacyCustomerTable({ rows }: { rows: LegacyCustomerRow[] }) {
               setPageSize(Number(e.target.value));
               setPage(1);
             }}
-            className="h-[27px] w-[71px] rounded border px-2 text-[14px]"
+            className="h-[27px] w-[71px] rounded border px-2 text-[15px]"
             style={{ borderColor: "var(--lg-ctrl-line)", background: "var(--lg-surface)" }}
           >
             {PAGE_SIZES.map((size) => (
@@ -106,7 +106,7 @@ export function LegacyCustomerTable({ rows }: { rows: LegacyCustomerRow[] }) {
           entries
         </label>
 
-        <label className="flex items-center gap-2 text-[14px] text-[var(--lg-text)]">
+        <label className="flex items-center gap-2 text-[15px] text-[var(--lg-text)]">
           Search:
           <input
             type="search"
@@ -115,21 +115,21 @@ export function LegacyCustomerTable({ rows }: { rows: LegacyCustomerRow[] }) {
               setQuery(e.target.value);
               setPage(1);
             }}
-            className="h-[29px] w-[160px] rounded border px-2 text-[14px] outline-none focus:border-[var(--lg-link)]"
+            className="h-[29px] w-[160px] rounded border px-2 text-[15px] outline-none focus:border-[var(--lg-link)]"
             style={{ borderColor: "var(--lg-ctrl-line)", background: "var(--lg-surface)" }}
           />
         </label>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-[14px]">
+        <table className="w-full border-collapse text-[15px]">
           <thead>
             <tr style={{ background: "var(--lg-thead)" }}>
               {COLUMNS.map((column) => (
                 <th
                   key={column}
                   scope="col"
-                  className="lg-sort whitespace-nowrap px-3 py-2 text-left text-[14px] font-bold text-[var(--lg-on-thead)]"
+                  className="lg-sort whitespace-nowrap px-3 py-2 text-left text-[15px] font-bold text-[var(--lg-on-thead)]"
                 >
                   {column}
                 </th>
@@ -193,7 +193,7 @@ export function LegacyCustomerTable({ rows }: { rows: LegacyCustomerRow[] }) {
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-        <p className="text-[14px] text-[var(--lg-text)]">
+        <p className="text-[15px] text-[var(--lg-text)]">
           Showing {firstShown} to {lastShown} of {filtered.length} entries
         </p>
         <nav className="flex" aria-label="Pagination">

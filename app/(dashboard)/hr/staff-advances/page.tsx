@@ -78,7 +78,7 @@ export default async function StaffAdvancesPage() {
 
       {listUnavailable && (
         <div
-          className="flex items-start gap-2 rounded-[var(--st-radius-sm)] border px-4 py-3 text-[13px]"
+          className="flex items-start gap-2 rounded-[var(--st-radius-sm)] border px-4 py-3 text-[14px]"
           style={{
             borderColor: "color-mix(in oklab, var(--st-warning, #fab219) 40%, transparent)",
             background: "color-mix(in oklab, var(--st-warning, #fab219) 12%, transparent)",
@@ -109,7 +109,7 @@ export default async function StaffAdvancesPage() {
             {advanceRows.map((a) => (
               <li
                 key={a.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--st-radius-sm)] border p-3 text-[13px]"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--st-radius-sm)] border p-3 text-[14px]"
                 style={{ borderColor: "var(--st-line-strong)" }}
               >
                 <div>
@@ -119,7 +119,7 @@ export default async function StaffAdvancesPage() {
                   >
                     {a.staffName ?? a.staffProfileId}
                   </Link>
-                  <p className="mt-0.5 text-[12px] text-[var(--st-ink-soft)]">
+                  <p className="mt-0.5 text-[12.5px] text-[var(--st-ink-soft)]">
                     Requested {new Date(a.requestedAt).toLocaleDateString()}
                   </p>
                 </div>
@@ -149,7 +149,7 @@ export default async function StaffAdvancesPage() {
             {loanRows.map((l) => (
               <li
                 key={l.id}
-                className="flex items-center justify-between rounded-[var(--st-radius-sm)] border p-3 text-[13px]"
+                className="flex items-center justify-between rounded-[var(--st-radius-sm)] border p-3 text-[14px]"
                 style={{ borderColor: "var(--st-line-strong)" }}
               >
                 <div>
@@ -159,7 +159,7 @@ export default async function StaffAdvancesPage() {
                   >
                     {l.staffName ?? l.staffProfileId}
                   </Link>
-                  <p className="mt-0.5 text-[12px] text-[var(--st-ink-soft)]">Disbursed {l.disbursedAt}</p>
+                  <p className="mt-0.5 text-[12.5px] text-[var(--st-ink-soft)]">Disbursed {l.disbursedAt}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="font-tabular text-[var(--st-ink)]">{formatMoney(l.amount)}</span>

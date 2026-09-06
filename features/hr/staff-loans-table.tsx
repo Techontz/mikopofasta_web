@@ -52,7 +52,7 @@ export function StaffLoansTable({ loans }: { loans: StaffLoanWithName[] }) {
       accessorKey: "reference",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Reference" />,
       cell: ({ row }) => (
-        <span className="font-tabular text-[13px] text-[var(--st-ink-soft)]">
+        <span className="font-tabular text-[14px] text-[var(--st-ink-soft)]">
           {row.original.reference}
         </span>
       ),
@@ -63,7 +63,7 @@ export function StaffLoansTable({ loans }: { loans: StaffLoanWithName[] }) {
       cell: ({ row }) => (
         <div>
           <Money strong>{formatMoney(row.original.amount)}</Money>
-          <p className="mt-0.5 text-right text-[11.5px] text-[var(--st-ink-faint)]">
+          <p className="mt-0.5 text-right text-[12px] text-[var(--st-ink-faint)]">
             over {row.original.recoveryPeriods} payslip
             {row.original.recoveryPeriods === 1 ? "" : "s"}
           </p>
@@ -88,7 +88,7 @@ export function StaffLoansTable({ loans }: { loans: StaffLoanWithName[] }) {
             {row.original.outstanding === 0 ? "—" : formatMoney(row.original.outstanding)}
           </Money>
           {row.original.nextRecovery > 0 && (
-            <p className="mt-0.5 text-right text-[11.5px] text-[var(--st-ink-faint)]">
+            <p className="mt-0.5 text-right text-[12px] text-[var(--st-ink-faint)]">
               next {formatMoney(row.original.nextRecovery)}
             </p>
           )}
@@ -121,7 +121,7 @@ export function StaffLoansTable({ loans }: { loans: StaffLoanWithName[] }) {
       /* Every staff loan posts to the ledger on disbursement, so the entry id
          is the audit trail back to that posting. */
       cell: ({ row }) => (
-        <span className="font-tabular text-[12px] text-[var(--st-ink-faint)]">
+        <span className="font-tabular text-[12.5px] text-[var(--st-ink-faint)]">
           {row.original.journalEntryId ?? "—"}
         </span>
       ),

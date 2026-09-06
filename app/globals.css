@@ -8,8 +8,33 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* The platform's own monospace, rather than a second web-delivered family
+     for the two dozen reference codes that use it. See app/layout.tsx. */
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   --font-heading: var(--font-geist-sans);
+
+  /*
+   * ---------------------------------------------------------------------
+   * The two Tailwind type steps this application actually runs on.
+   *
+   * `text-sm` and `text-xs` account for roughly 350 of the ~410 type
+   * utilities in the codebase — `text-sm` is this app's body text and
+   * `text-xs` is its caption. At Tailwind's defaults that put the body at
+   * 14px and captions at 12px, which is a size for a marketing page, not for
+   * a ledger somebody reads for eight hours.
+   *
+   * Raising them here rather than rewriting 350 call sites is the whole point
+   * of having a scale: one edit moves the body of the product, every screen
+   * moves together, and nothing drifts because nothing was copied.
+   *
+   * The larger steps are left at Tailwind's values — they were already in the
+   * right range, and they are used for headings where the defaults are sound.
+   * ---------------------------------------------------------------------
+   */
+  --text-xs: 13px;
+  --text-xs--line-height: 1.45;
+  --text-sm: 15px;
+  --text-sm--line-height: 1.5;
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
@@ -87,7 +112,12 @@
   --chart-3: oklch(0.75 0.15 85);
   --chart-4: oklch(0.58 0.12 225);
   --chart-5: oklch(0.55 0.02 258);
-  --radius: 0.625rem;
+  /* 0.625rem put cards and dialogs at 14px and controls at 10px, which reads
+     as a slightly boxy 2020 admin panel. 0.7rem lands cards at ~16px and
+     controls at ~11px — the same family as the .st-* surface's 14px, which is
+     what the two have to agree on for a dialog to sit inside a page without
+     announcing that it came from somewhere else. */
+  --radius: 0.7rem;
   --sidebar: oklch(0.99 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.4 0.13 258);
@@ -156,8 +186,11 @@
   html {
     @apply font-sans;
   }
+  /* Page title. 24px on a phone, 30px from the small breakpoint up — matching
+     the PageHeader used by the .st-scope screens, so a title is the same size
+     whichever surface it is on. */
   h1 {
-    @apply text-2xl font-semibold tracking-tight text-balance;
+    @apply text-2xl font-semibold tracking-tight text-balance sm:text-3xl;
   }
   h2 {
     @apply text-xl font-semibold tracking-tight text-balance;
@@ -228,8 +261,19 @@
     --lg-brand-b: #4a9d2f;
     --lg-dot: #2fa84f;
     color-scheme: light;
-    /* Bootstrap 4 default stack — the old app never loaded a webfont. */
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    /*
+     * No font-family here any more.
+     *
+     * It used to pin the shell to Bootstrap 4's system stack, faithfully to the
+     * old app. But `.lg-shell` wraps every screen, so that one line decided the
+     * typeface for the entire product — while dialogs, dropdowns and toasts
+     * portal to <body>, escape this scope, and drew in the webfont instead. The
+     * application and its own modals were set in different families, and the
+     * webfont being downloaded was rendering almost nothing.
+     *
+     * Removing it lets the root `font-sans` reach here, so there is now one
+     * typeface across the shell, the pages and the overlays.
+     */
     color: var(--lg-text);
   }
 
@@ -359,12 +403,63 @@
 
     --st-skeleton: #e9ebef;
 
-    --st-radius: 12px;
+    /*
+     * ---------------------------------------------------------------------
+     * The type scale.
+     *
+     * Declared here, once, rather than as a literal px value at each use.
+     * The surface was drawn a step and a half too small for the work it is
+     * used for — 13.5px body on a 36px control, read all day by people
+     * checking figures — and correcting that meant finding every literal.
+     * Naming the steps means the next adjustment is seven lines, not seventy.
+     *
+     * The steps are deliberately few. Seven sizes is enough to build a clear
+     * hierarchy and few enough that two things at the same level cannot drift
+     * a half-pixel apart.
+     * ---------------------------------------------------------------------
+     */
+    /* Uppercase eyebrows, column labels, badge text. */
+    --st-text-xs: 12px;
+    /* Helper text, captions, descriptions under a title. */
+    --st-text-sm: 13.5px;
+    /* Table cells — a touch tighter than body, because a table is scanned
+       rather than read, and the row count is what pays for it. */
+    --st-text-table: 14.5px;
+    /* Body, form controls, buttons, menu items. The default. */
+    --st-text-base: 15px;
+    /* Card title. */
+    --st-text-lg: 17px;
+    /* Section title. */
+    --st-text-xl: 20px;
+    /* Page title. */
+    --st-text-2xl: 30px;
+
+    /*
+     * Control metrics.
+     *
+     * 44px is the height of a comfortable touch target, and it is the same for
+     * a button and a field so that the two still sit on one baseline when they
+     * share a row — the property the old 36px pair had, kept.
+     */
+    --st-control-h: 44px;
+    --st-btn-h: 44px;
+    /* A square icon button. Slightly under the full height so a row of them
+       beside a labelled button does not read as heavier than it. */
+    --st-btn-icon: 40px;
+
+    /* Card and row padding. The mobile step is applied at the breakpoint. */
+    --st-pad-card: 24px;
+    --st-pad-card-sm: 18px;
+    --st-pad-cell-y: 16px;
+    /* 16px, equal to the primitive's px-4 — see the note on .st-table. */
+    --st-pad-cell-x: 16px;
+
+    --st-radius: 14px;
     /* Between --st-radius and --st-radius-sm: for a photo or avatar block,
        which reads as over-rounded at the card radius and boxy below it. */
-    --st-radius-md: 10px;
-    --st-radius-sm: 8px;
-    --st-radius-xs: 6px;
+    --st-radius-md: 12px;
+    --st-radius-sm: 10px;
+    --st-radius-xs: 8px;
 
     /*
      * Two-layer shadows: a hairline contact shadow to seat the card on the
@@ -458,21 +553,23 @@
 
   .st-field-label {
     display: block;
-    font-size: 13px;
-    font-weight: 500;
+    /* Semibold, not medium: a label sitting above a 15px field needs to read
+       as the field's name at a glance rather than as more content. */
+    font-size: 13.5px;
+    font-weight: 600;
     letter-spacing: -0.005em;
     color: var(--st-ink);
   }
   .st-field-help {
-    font-size: 12.5px;
+    font-size: var(--st-text-sm);
     line-height: 1.5;
     color: var(--st-ink-faint);
   }
   .st-field-error {
     display: flex;
     align-items: center;
-    gap: 5px;
-    font-size: 12.5px;
+    gap: 6px;
+    font-size: var(--st-text-sm);
     line-height: 1.5;
     color: var(--st-danger-ink);
   }
@@ -484,14 +581,16 @@
   /*
    * One input treatment, shared by input/select/textarea inside Settings.
    *
-   * 36px matches .st-btn exactly, so a field and the button beside it sit on
-   * the same baseline without either being nudged.
+   * --st-control-h matches --st-btn-h exactly, so a field and the button beside
+   * it sit on the same baseline without either being nudged. Both are 44px:
+   * the height of a comfortable touch target, and enough room that a 15px value
+   * is not pressed against the border.
    */
   .st-control {
     width: 100%;
-    height: 36px;
-    padding: 0 11px;
-    font-size: 13.5px;
+    height: var(--st-control-h);
+    padding: 0 14px;
+    font-size: var(--st-text-base);
     color: var(--st-ink);
     background: var(--st-card);
     border: 1px solid var(--st-line-strong);
@@ -500,8 +599,8 @@
   }
   textarea.st-control {
     height: auto;
-    min-height: 76px;
-    padding: 8px 11px;
+    min-height: 96px;
+    padding: 11px 14px;
     line-height: 1.55;
     resize: vertical;
   }
@@ -552,10 +651,10 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    height: 36px;
-    padding: 0 13px;
-    font-size: 13.5px;
+    gap: 7px;
+    height: var(--st-btn-h);
+    padding: 0 18px;
+    font-size: var(--st-text-base);
     font-weight: 500;
     letter-spacing: -0.005em;
     white-space: nowrap;
@@ -617,8 +716,8 @@
     color: var(--st-ink);
   }
   .st-btn-icon {
-    width: 34px;
-    height: 34px;
+    width: var(--st-btn-icon);
+    height: var(--st-btn-icon);
     padding: 0;
   }
   /* A row of icon actions is dense; the icon itself carries the hover. */
@@ -633,9 +732,9 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    height: 22px;
-    padding: 0 9px;
-    font-size: 12px;
+    height: 24px;
+    padding: 0 10px;
+    font-size: 12.5px;
     font-weight: 500;
     line-height: 1;
     border: 1px solid transparent;
@@ -751,11 +850,11 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 7px 12px;
-    font-size: 13.5px;
+    padding: 9px 14px;
+    font-size: var(--st-text-base);
     font-weight: 500;
     color: var(--st-ink-soft);
-    border-radius: 8px;
+    border-radius: var(--st-radius-sm);
     white-space: nowrap;
     transition: background-color 0.14s ease, color 0.14s ease;
   }
@@ -775,13 +874,33 @@
    * one lets rows slide visibly underneath the labels — so the background is a
    * solid token, and the bottom rule doubles as the seam.
    */
+  /*
+   * NOTE ON PADDING — it is set in TWO places, and both are load-bearing.
+   *
+   * There are two kinds of table in this application. Thirty-one screens write
+   * plain `<td>` inside a `.st-table`; eight go through shadcn's <TableCell>,
+   * which ships `px-4 py-4` as Tailwind utilities. Cascade layers resolve
+   * before specificity and the utilities layer comes after @layer components,
+   * so for those eight the utility wins and the rule here is inert — the same
+   * trap documented further down this file for the header colour.
+   *
+   * For the other thirty-one there is no competing utility, and this block is
+   * the ONLY thing giving their cells any padding at all. A browser audit
+   * caught that the hard way: removing the declaration on the theory that it
+   * never applied collapsed the loan, treasury, payroll and salary-advance
+   * tables to zero padding and 40px rows.
+   *
+   * So both carry the same metrics — 16px, matching `px-4 py-4` — and a cell
+   * lands on the same height whichever kind of table it is in. Change one and
+   * you must change the other; components/ui/table.tsx points back here.
+   */
   .st-table thead th {
     position: sticky;
     top: 0;
     z-index: 1;
     background: var(--st-subtle);
     border-bottom: 1px solid var(--st-line);
-    padding: 10px 16px;
+    padding: 14px var(--st-pad-cell-x);
     text-align: left;
     white-space: nowrap;
   }
@@ -795,9 +914,9 @@
   .st-table thead th,
   .st-table thead th button,
   .st-table thead th > div {
-    font-size: 12px;
+    font-size: 12.5px;
     font-weight: 600;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.03em;
     text-transform: uppercase;
   }
   .st-table thead th button {
@@ -810,9 +929,17 @@
     background: transparent;
     color: var(--st-ink);
   }
+  /*
+   * Row height comes from the cell padding, not from a fixed height, so a row
+   * that wraps grows instead of clipping. 16px above and below a 14.5px line
+   * lands a single-line row at about 53px — enough that a row of figures reads
+   * as a line rather than a band, and that an icon action inside it has a real
+   * target.
+   */
   .st-table tbody td {
-    padding: 12px 16px;
-    font-size: 13.5px;
+    padding: var(--st-pad-cell-y) var(--st-pad-cell-x);
+    font-size: var(--st-text-table);
+    line-height: 1.45;
     border-bottom: 1px solid var(--st-line-soft);
     vertical-align: middle;
   }
@@ -929,7 +1056,7 @@
   .st-scope .st-section-nav a {
     color: var(--st-ink-soft);
     border-radius: var(--st-radius-xs);
-    font-size: 13px;
+    font-size: 14px;
     box-shadow: none;
   }
   .st-scope .st-section-nav a:hover {
@@ -1034,8 +1161,8 @@
     display: flex;
     align-items: flex-start;
     gap: 12px;
-    padding: 9px 10px 9px 26px;
-    font-size: 12.5px;
+    padding: 10px 12px 10px 24px;
+    font-size: 13.5px;
     line-height: 1.5;
     color: var(--lg-ink-sub);
     border-left: 3px solid transparent;
@@ -1107,9 +1234,9 @@
   .lg-menu-item {
     display: flex;
     align-items: center;
-    gap: 18px;
-    padding: 17px 10px 17px 25px;
-    font-size: 13px;
+    gap: 16px;
+    padding: 15px 12px 15px 22px;
+    font-size: 14px;
     color: var(--lg-ink-menu);
     border-left: 3px solid transparent;
   }
@@ -1127,8 +1254,8 @@
 
   /* Bootstrap nav-tabs: active tab lifts out of the bottom rule. */
   .lg-tab {
-    padding: 9px 18px;
-    font-size: 14px;
+    padding: 11px 20px;
+    font-size: 14.5px;
     color: var(--lg-ink-tab);
     border: 1px solid transparent;
     border-radius: 4px 4px 0 0;
@@ -1151,8 +1278,8 @@
   .lg-badge {
     display: inline-block;
     min-width: 30px;
-    padding: 1px 8px;
-    font-size: 12px;
+    padding: 2px 9px;
+    font-size: 12.5px;
     text-align: center;
     border: 1px solid var(--lg-badge-line);
     border-radius: 3px;
@@ -1162,8 +1289,8 @@
 
   .lg-status {
     display: inline-block;
-    padding: 3px 10px;
-    font-size: 11px;
+    padding: 4px 11px;
+    font-size: 11.5px;
     letter-spacing: 0.4px;
     text-transform: uppercase;
     border-radius: 3px;
@@ -1171,9 +1298,11 @@
   }
 
   .lg-page {
-    min-width: 42px;
-    padding: 4px 14px;
-    font-size: 14px;
+    min-width: 44px;
+    /* 10px above and below a 14.5px line clears the ~44px touch minimum; the
+       old 4px left these at roughly 26px, which is a miss on a phone. */
+    padding: 10px 15px;
+    font-size: 14.5px;
     border: 1px solid var(--lg-page-line);
     background: var(--lg-surface);
     color: var(--lg-link);

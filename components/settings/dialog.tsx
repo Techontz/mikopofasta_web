@@ -152,7 +152,7 @@ export function ConfirmDialog({
         </ActionButtons>
       }
     >
-      <p className="text-[13px] leading-relaxed text-[var(--st-ink-soft)]">{consequence}</p>
+      <p className="text-[14px] leading-relaxed text-[var(--st-ink-soft)]">{consequence}</p>
     </SettingsDialog>
   );
 }

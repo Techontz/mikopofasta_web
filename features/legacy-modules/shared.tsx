@@ -36,7 +36,7 @@ export function AwaitingBackendNote({ module: moduleName }: { module: string }) 
   return (
     <div
       role="note"
-      className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[var(--st-radius-sm)] border border-dashed border-[var(--st-line-strong)] bg-[var(--st-subtle)] px-4 py-3 text-[13px] text-[var(--st-ink-soft)]"
+      className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[var(--st-radius-sm)] border border-dashed border-[var(--st-line-strong)] bg-[var(--st-subtle)] px-4 py-3 text-[14px] text-[var(--st-ink-soft)]"
     >
       <span className="font-medium text-[var(--st-ink)]">Awaiting backend.</span>
       <span>

@@ -59,7 +59,7 @@ export default async function HrPage() {
 
       {blockedPools.length > 0 && (
         <div
-          className="flex items-center gap-2 rounded-[var(--st-radius-sm)] border px-4 py-3 text-[13px]"
+          className="flex items-center gap-2 rounded-[var(--st-radius-sm)] border px-4 py-3 text-[14px]"
           style={{
             borderColor: "color-mix(in oklab, var(--st-warning, #fab219) 40%, transparent)",
             background: "color-mix(in oklab, var(--st-warning, #fab219) 12%, transparent)",
@@ -80,7 +80,7 @@ export default async function HrPage() {
             {runs.map((run) => (
               <li
                 key={run.id}
-                className="flex items-center justify-between rounded-[var(--st-radius-sm)] border p-3 text-[13px]"
+                className="flex items-center justify-between rounded-[var(--st-radius-sm)] border p-3 text-[14px]"
                 style={{ borderColor: "var(--st-line-strong)" }}
               >
                 <div>
@@ -90,7 +90,7 @@ export default async function HrPage() {
                   >
                     {run.period}
                   </Link>
-                  <p className="mt-0.5 text-[12px] text-[var(--st-ink-soft)]">
+                  <p className="mt-0.5 text-[12.5px] text-[var(--st-ink-soft)]">
                     {run.lineCount} staff · {formatMoney(run.netTotal)} net
                   </p>
                 </div>
@@ -107,12 +107,12 @@ export default async function HrPage() {
             {loans.map((l) => (
               <li
                 key={l.id}
-                className="flex items-center justify-between rounded-[var(--st-radius-sm)] border p-3 text-[13px]"
+                className="flex items-center justify-between rounded-[var(--st-radius-sm)] border p-3 text-[14px]"
                 style={{ borderColor: "var(--st-line-strong)" }}
               >
                 <div>
                   <p className="font-medium text-[var(--st-ink)]">{l.staffName ?? l.staffProfileId}</p>
-                  <p className="mt-0.5 text-[12px] text-[var(--st-ink-soft)]">
+                  <p className="mt-0.5 text-[12.5px] text-[var(--st-ink-soft)]">
                     Staff loan · {l.disbursedAt}
                   </p>
                 </div>
@@ -122,12 +122,12 @@ export default async function HrPage() {
             {openAdvances.map((a) => (
               <li
                 key={a.id}
-                className="flex items-center justify-between rounded-[var(--st-radius-sm)] border p-3 text-[13px]"
+                className="flex items-center justify-between rounded-[var(--st-radius-sm)] border p-3 text-[14px]"
                 style={{ borderColor: "var(--st-line-strong)" }}
               >
                 <div>
                   <p className="font-medium text-[var(--st-ink)]">{a.staffName ?? a.staffProfileId}</p>
-                  <p className="mt-0.5 text-[12px] capitalize text-[var(--st-ink-soft)]">
+                  <p className="mt-0.5 text-[12.5px] capitalize text-[var(--st-ink-soft)]">
                     Advance · {a.status}
                   </p>
                 </div>

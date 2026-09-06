@@ -63,9 +63,9 @@ export function initialsOf(name: string): string {
 }
 
 const SIZES = {
-  xs: "size-6 text-[10px]",
-  sm: "size-8 text-[11.5px]",
-  md: "size-10 text-[13px]",
+  xs: "size-6 text-[11px]",
+  sm: "size-8 text-[12px]",
+  md: "size-10 text-[14px]",
   lg: "size-16 text-[18px]",
   xl: "size-24 text-[26px]",
 } as const;
@@ -150,7 +150,7 @@ export function CustomerCell({
       <div className="min-w-0">
         <p className="truncate font-medium text-[var(--st-ink)]">{name}</p>
         {secondary !== undefined && secondary !== null && secondary !== "" && (
-          <p className="truncate text-[12px] text-[var(--st-ink-faint)]">{secondary}</p>
+          <p className="truncate text-[12.5px] text-[var(--st-ink-faint)]">{secondary}</p>
         )}
       </div>
     </div>

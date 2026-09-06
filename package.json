@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:wizard": "tsx --tsconfig tsconfig.json --test 'features/customers/registration-wizard/__tests__/*.test.ts'"
+    "test:wizard": "tsx --tsconfig tsconfig.json --test 'features/customers/registration-wizard/__tests__/*.test.ts'",
+    "test:api": "tsx --tsconfig tsconfig.json --test 'lib/api/__tests__/*.test.ts'"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

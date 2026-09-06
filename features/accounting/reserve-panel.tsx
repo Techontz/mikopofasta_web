@@ -348,7 +348,7 @@ export function ReserveTable({
         <div className="space-y-0.5">
           <p className="text-[var(--st-ink)]">{row.original.purposeLabel}</p>
           {row.original.targetBranchName && (
-            <p className="text-[12px] text-[var(--st-ink-faint)]">{row.original.targetBranchName}</p>
+            <p className="text-[12.5px] text-[var(--st-ink-faint)]">{row.original.targetBranchName}</p>
           )}
         </div>
       ),
@@ -364,7 +364,7 @@ export function ReserveTable({
       accessorKey: "narrative",
       header: "Narrative",
       cell: ({ row }) => (
-        <p className="max-w-[26rem] text-[13px] text-[var(--st-ink-soft)]">{row.original.narrative}</p>
+        <p className="max-w-[26rem] text-[14px] text-[var(--st-ink-soft)]">{row.original.narrative}</p>
       ),
     },
     {
@@ -374,7 +374,7 @@ export function ReserveTable({
         <div className="space-y-1">
           <ReserveStatusBadge status={row.original.status} />
           {row.original.decisionReason && (
-            <p className="max-w-[18rem] text-[12px] text-[var(--st-ink-faint)]">{row.original.decisionReason}</p>
+            <p className="max-w-[18rem] text-[12.5px] text-[var(--st-ink-faint)]">{row.original.decisionReason}</p>
           )}
         </div>
       ),
@@ -383,7 +383,7 @@ export function ReserveTable({
       id: "audit",
       header: "Audit",
       cell: ({ row }) => (
-        <div className="space-y-0.5 text-[12px] text-[var(--st-ink-faint)]">
+        <div className="space-y-0.5 text-[12.5px] text-[var(--st-ink-faint)]">
           <p>Raised by {row.original.requesterName ?? "—"}</p>
           <p>{formatDateTime(row.original.createdAt)}</p>
           {row.original.approverName && (
@@ -417,7 +417,7 @@ export function ReserveTable({
           />
         ) : (
           <div className="flex justify-end">
-            <span className="text-[12px] text-[var(--st-ink-faint)]">Decided</span>
+            <span className="text-[12.5px] text-[var(--st-ink-faint)]">Decided</span>
           </div>
         ),
     },

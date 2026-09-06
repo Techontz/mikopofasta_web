@@ -60,7 +60,7 @@ export default async function RolesPage() {
               style={{ background: "var(--st-subtle)", borderColor: "var(--st-line)" }}
             >
               <Info className="mt-0.5 size-4 shrink-0 text-[var(--st-ink-faint)]" strokeWidth={1.9} aria-hidden />
-              <p className="text-[13px] leading-relaxed text-[var(--st-ink-soft)]">
+              <p className="text-[14px] leading-relaxed text-[var(--st-ink-soft)]">
                 View-only — only a Super Admin can edit the permission matrix.
               </p>
             </div>

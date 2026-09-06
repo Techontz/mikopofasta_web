@@ -256,8 +256,8 @@ function Fact({
 }) {
   return (
     <div className="space-y-0.5">
-      <dt className="text-[12px] text-[var(--st-ink-faint)]">{label}</dt>
-      <dd className={`text-[13.5px] font-medium text-[var(--st-ink)] ${mono ? "font-tabular" : ""}`}>
+      <dt className="text-[12.5px] text-[var(--st-ink-faint)]">{label}</dt>
+      <dd className={`text-[14px] font-medium text-[var(--st-ink)] ${mono ? "font-tabular" : ""}`}>
         {children}
       </dd>
     </div>

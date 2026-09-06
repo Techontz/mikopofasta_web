@@ -156,7 +156,7 @@ export function CashDepositDialog({
               {payments.map((payment) => (
                 <label
                   key={payment.id}
-                  className="flex cursor-pointer items-center gap-3 px-3 py-2.5 text-[13px]"
+                  className="flex cursor-pointer items-center gap-3 px-3 py-2.5 text-[14px]"
                 >
                   <Checkbox
                     checked={selected.has(payment.id)}
@@ -167,7 +167,7 @@ export function CashDepositDialog({
                     <span className="block truncate text-[var(--st-ink)]">
                       {payment.customerName ?? payment.paymentReference}
                     </span>
-                    <span className="block truncate text-[12px] text-[var(--st-ink-faint)]">
+                    <span className="block truncate text-[12.5px] text-[var(--st-ink-faint)]">
                       {payment.loanNumber ?? payment.paymentReference} · {formatDateTime(payment.receivedAt)}
                     </span>
                   </span>
@@ -183,7 +183,7 @@ export function CashDepositDialog({
             className="st-card flex items-center justify-between px-4 py-3"
             style={{ background: "var(--st-subtle)" }}
           >
-            <span className="text-[12px] font-semibold uppercase tracking-wide text-[var(--st-ink-faint)]">
+            <span className="text-[12.5px] font-semibold uppercase tracking-wide text-[var(--st-ink-faint)]">
               Amount banked
             </span>
             <span className="font-tabular text-[15px] font-semibold text-[var(--st-ink)]">
@@ -209,7 +209,7 @@ function ReconcileAction({ deposit, canReconcile }: { deposit: CashDeposit; canR
   const [pending, startTransition] = useTransition();
 
   if (deposit.status === "confirmed") {
-    return <span className="text-[12px] text-[var(--st-ink-faint)]">Confirmed</span>;
+    return <span className="text-[12.5px] text-[var(--st-ink-faint)]">Confirmed</span>;
   }
 
   function onConfirm() {
@@ -253,7 +253,7 @@ function ReconcileAction({ deposit, canReconcile }: { deposit: CashDeposit; canR
         </ActionButtons>
       }
     >
-      <p className="text-[13px] text-[var(--st-ink-soft)]">
+      <p className="text-[14px] text-[var(--st-ink-soft)]">
         No income is recognised here — that happened when the teller took the money. This entry only moves it from
         the branch till to the bank.
       </p>
@@ -282,7 +282,7 @@ export function CashDepositTable({
       cell: ({ row }) => (
         <div className="space-y-0.5">
           <p className="font-medium text-[var(--st-ink)]">{row.original.branchName ?? "—"}</p>
-          <p className="text-[12px] text-[var(--st-ink-faint)]">
+          <p className="text-[12.5px] text-[var(--st-ink-faint)]">
             Banked by {row.original.tellerName ?? "—"}
           </p>
         </div>
@@ -314,9 +314,9 @@ export function CashDepositTable({
       header: "Slip",
       cell: ({ row }) =>
         row.original.hasSlip ? (
-          <span className="text-[12px] text-[var(--st-ink-soft)]">Attached</span>
+          <span className="text-[12.5px] text-[var(--st-ink-soft)]">Attached</span>
         ) : (
-          <span className="text-[12px] text-[var(--st-ink-faint)]">None</span>
+          <span className="text-[12.5px] text-[var(--st-ink-faint)]">None</span>
         ),
     },
     {
@@ -328,7 +328,7 @@ export function CashDepositTable({
       id: "audit",
       header: "Audit",
       cell: ({ row }) => (
-        <div className="space-y-0.5 text-[12px] text-[var(--st-ink-faint)]">
+        <div className="space-y-0.5 text-[12.5px] text-[var(--st-ink-faint)]">
           <p>Banked {formatDateTime(row.original.createdAt)}</p>
           {row.original.reconciledAt && <p>Confirmed {formatDateTime(row.original.reconciledAt)}</p>}
         </div>

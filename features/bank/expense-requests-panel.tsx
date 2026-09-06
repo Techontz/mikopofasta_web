@@ -92,7 +92,7 @@ export function ExpenseRequestsPanel({
       cell: ({ row }) => (
         <div className="min-w-0">
           <p className="text-[var(--st-ink)]">{row.original.category}</p>
-          <p className="mt-0.5 text-[12px] text-[var(--st-ink-faint)]">{row.original.branch}</p>
+          <p className="mt-0.5 text-[12.5px] text-[var(--st-ink-faint)]">{row.original.branch}</p>
         </div>
       ),
     },
@@ -132,7 +132,7 @@ export function ExpenseRequestsPanel({
         if (request.status !== "pending") {
           return (
             <div className="flex justify-end">
-              <span className="text-[12.5px] capitalize text-[var(--st-ink-faint)]">{request.status}</span>
+              <span className="text-[13px] capitalize text-[var(--st-ink-faint)]">{request.status}</span>
             </div>
           );
         }

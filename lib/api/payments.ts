@@ -4,6 +4,7 @@ import { getApiToken } from "@/lib/auth/session";
 import type { ApiPagination } from "@/lib/api/types";
 import type { Payment, PaymentAllocation, SuspenseItem } from "@/types/repayment";
 import type { PaymentChannel } from "@/types/enums";
+import { collectPages } from "@/lib/api/paginate";
 
 /**
  * Repayments & Collections — backend §2.6, §7, §15.3.
@@ -209,27 +210,13 @@ const PER_PAGE = 100;
 const PAGE_LIMIT = 100;
 
 export async function getAllPayments(filters: PaymentFilters = {}): Promise<PaymentListItem[]> {
-  const all: PaymentListItem[] = [];
-  let page = 1;
-
-  for (;;) {
-    const { payments, pagination } = await getPayments({ ...filters, page, perPage: PER_PAGE });
-    all.push(...payments);
-
-    const lastPage = pagination?.lastPage ?? page;
-    if (page >= lastPage) break;
-
-    if (page >= PAGE_LIMIT) {
-      console.warn(
-        `getAllPayments stopped at ${PAGE_LIMIT} pages (${all.length} of ${pagination?.total ?? "?"} payments).`
-      );
-      break;
-    }
-
-    page += 1;
-  }
-
-  return all;
+  return collectPages(
+    async (page, perPage) => {
+      const { payments, pagination } = await getPayments({ ...filters, page, perPage });
+      return { items: payments, pagination };
+    },
+    { pageLimit: PAGE_LIMIT, perPage: PER_PAGE, label: "getAllPayments" }
+  );
 }
 
 /** `show` eager-loads allocations and the journal entry. */
