@@ -9,6 +9,7 @@ import { z } from "zod";
 import { requiredText } from "@/lib/forms/required-text";
 import { Pencil, Plus } from "lucide-react";
 import { SettingsDialog } from "@/components/settings/dialog";
+import { SectionDivider } from "@/components/settings";
 import { Button, Field, FieldGrid, IconButton, Select, TextInput } from "@/components/settings/form";
 import { LoanProductSchema, type LoanProduct, type InterestFormula, type RepaymentSchedule } from "@/types/loan-product";
 import { createLoanProduct, updateLoanProduct, type ProductInputValues } from "@/features/admin/loan-products/actions";
@@ -139,7 +140,9 @@ export function ProductFormDialog({ product, formulas, schedules, customerTypes,
   const {
     register,
     handleSubmit,
+    setError,
     setValue,
+    setFocus,
     control,
     reset,
     formState: { errors },
@@ -177,7 +180,17 @@ export function ProductFormDialog({ product, formulas, schedules, customerTypes,
 
     return {
       ...rest,
-      code: product?.code ?? deriveCode(values.name),
+      /*
+       * The code the officer can now see and edit, not one re-derived here.
+       *
+       * This line used to overwrite whatever was in `values.code` with
+       * `deriveCode(values.name)`, which made the Reference Code field
+       * decorative — a typed code was discarded, and a duplicate could not even
+       * be produced deliberately. An existing product keeps its own code
+       * regardless: it identifies the product to every loan already written
+       * under it, so renaming must never renumber it.
+       */
+      code: product?.code ?? (values.code.trim() || deriveCode(values.name)),
       minTenureDays: Math.max(1, cadenceDays * lo),
       maxTenureDays: Math.max(1, cadenceDays * hi),
       penaltyType: product?.penaltyType ?? "percentage_of_overdue",
@@ -195,14 +208,63 @@ export function ProductFormDialog({ product, formulas, schedules, customerTypes,
 
     startTransition(async () => {
       const result = isEdit ? await updateLoanProduct(product!.id, payload) : await createLoanProduct(payload);
+
       if (result.ok) {
-        toast.success(result.message);
+        toast.success(result.message ?? "Loan product saved.");
         setOpen(false);
-      } else {
-        toast.error(result.message);
+        return;
       }
+
+      /*
+       * A rejected save keeps the form open with everything the officer typed,
+       * and puts each server message under the input it belongs to. Previously
+       * a 422 became one toast reading "the given data was invalid", which does
+       * not say which of fifteen fields to look at.
+       */
+      const fieldErrors = result.fieldErrors ?? {};
+      const named = Object.keys(fieldErrors).filter((k): k is keyof FormValues => k in values);
+
+      for (const key of named) {
+        setError(key, { type: "server", message: fieldErrors[key]?.[0] });
+      }
+
+      /* Anything the server objected to that this form has no input for. It
+         must still be readable — see the unmapped-error banner below. */
+      const unmapped = Object.entries(fieldErrors)
+        .filter(([k]) => !named.includes(k as keyof FormValues))
+        .map(([k, msgs]) => `${k}: ${msgs[0]}`);
+
+      setServerErrors(unmapped);
+      toast.error(result.message ?? "Something went wrong while saving this loan product. Please try again.");
+
+      if (named.length > 0) setFocus(named[0]);
     });
   }
+
+  /**
+   * Validation the form cannot show against an input.
+   *
+   * THE BUG THIS EXISTS TO PREVENT. `code` was required by the schema, defaulted
+   * to "" on a new product, and had no input and no error slot anywhere — so
+   * pressing Save ran validation, failed, rendered nothing, and issued no
+   * request. The button did nothing at all, silently, every time. Code now has
+   * a field of its own; this banner is the backstop for the next one.
+   */
+  const invisibleErrors = React.useMemo(() => {
+    const rendered = new Set([
+      "name", "code", "interestFormulaId", "interestRate", "minAmount", "maxAmount",
+      "minRepayments", "maxRepayments", "repaymentScheduleIds", "allowsDeduction",
+      "allowsPenalty", "approvalStageId", "topupPercent", "takeHomePercent",
+      "customerTypeIds", "status",
+    ]);
+    return Object.entries(errors)
+      .filter(([key]) => !rendered.has(key))
+      .map(([key, err]) => `${key}: ${(err as { message?: string })?.message ?? "is invalid"}`);
+  }, [errors]);
+
+  const [serverErrors, setServerErrors] = React.useState<string[]>([]);
+  /* Once the officer edits the code themselves, the name stops overwriting it. */
+  const [codeTouched, setCodeTouched] = React.useState(false);
 
   const selectedSchedules = useWatch({ control, name: "repaymentScheduleIds" }) ?? [];
   const interestFormulaId = useWatch({ control, name: "interestFormulaId" });
@@ -262,37 +324,137 @@ export function ProductFormDialog({ product, formulas, schedules, customerTypes,
       description="The commercial terms of this loan product."
       formId="loan-product-form"
       onSubmit={handleSubmit(onSubmit)}
-      submitLabel="Save"
+      submitLabel={isEdit ? "Save changes" : "Save Loan Product"}
+      pendingLabel={isEdit ? "Saving…" : "Creating loan product…"}
       pending={pending}
       size="lg"
     >
       {/*
-        * EXACTLY the fields the Loan Category screen shows, and no others.
-        *
-        * The product table holds more than this — a code, a tenure in days, the
-        * penalty rate and grace, fee rates, the mandate flag. None of them is
-        * asked for here: an administrator creating a loan category states its
-        * commercial terms, and the rest is either derived from those terms or
-        * left as it was. See `internalDefaults` below for exactly what is
-        * filled in and how.
+        * The commercial terms of a loan category. The product table holds more
+        * — a tenure in days, the penalty rate and grace, fee rates, the mandate
+        * flag — and those are either derived from these terms or left as they
+        * were. See `internalDefaults` below for exactly what is filled in.
         */}
+
+      {/*
+        * Validation with nowhere to render, made visible.
+        *
+        * This banner is the reason Save can no longer do nothing: if any rule
+        * fails against a field this form does not draw, it is listed here
+        * instead of silently blocking the submit. The `code` field is the case
+        * that made it necessary — required, invisible, and failing on every
+        * create.
+        */}
+      {invisibleErrors.length > 0 && (
+        <div
+          role="alert"
+          className="rounded-[var(--st-radius-sm)] border px-4 py-3"
+          style={{
+            background: "var(--st-danger-soft, var(--st-subtle))",
+            borderColor: "var(--st-danger)",
+            color: "var(--st-danger-ink)",
+          }}
+        >
+          <p className="text-[14px] font-semibold">This form could not be saved.</p>
+          <ul className="mt-1.5 list-disc space-y-0.5 pl-5 text-[13.5px]">
+            {invisibleErrors.map((e) => (
+              <li key={e}>{e}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Server objections to fields this form has no input for. Same principle,
+          the other direction: the API's answer is never swallowed. */}
+      {serverErrors.length > 0 && (
+        <div
+          role="alert"
+          className="rounded-[var(--st-radius-sm)] border px-4 py-3"
+          style={{
+            background: "var(--st-danger-soft, var(--st-subtle))",
+            borderColor: "var(--st-danger)",
+            color: "var(--st-danger-ink)",
+          }}
+        >
+          <p className="text-[14px] font-semibold">The server rejected this loan product.</p>
+          <ul className="mt-1.5 list-disc space-y-0.5 pl-5 text-[13.5px]">
+            {serverErrors.map((e) => (
+              <li key={e}>{e}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <SectionDivider label="Product" />
       <FieldGrid>
-        <Field label="Loan Product name" htmlFor="prod-name" required error={errors.name?.message}>
-          <TextInput id="prod-name" placeholder="Loan Category product name" invalid={!!errors.name} {...register("name")} />
+        <Field label="Loan Product Name" htmlFor="prod-name" required error={errors.name?.message}>
+          <TextInput
+            id="prod-name"
+            placeholder="e.g. Public Servant Loan"
+            invalid={!!errors.name}
+            {...register("name", {
+              /*
+               * Fills the reference code from the name, until somebody edits
+               * the code themselves. An existing product keeps its own code —
+               * it identifies the product to every loan already written under
+               * it, so renaming the product must never renumber it.
+               */
+              onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                if (isEdit || codeTouched) return;
+                setValue("code", deriveCode(e.target.value), { shouldValidate: true });
+              },
+            })}
+          />
         </Field>
-        <Field label="From" htmlFor="prod-min-amount" required error={errors.minAmount?.message}>
-          <TextInput id="prod-min-amount" type="number" placeholder="eg.1000" {...register("minAmount", { valueAsNumber: true })} />
-        </Field>
-        <Field label="To" htmlFor="prod-max-amount" required error={errors.maxAmount?.message}>
-          <TextInput id="prod-max-amount" type="number" placeholder="eg.10000" {...register("maxAmount", { valueAsNumber: true })} />
-        </Field>
-        <Field label="Loan Interest(%)" htmlFor="prod-rate" required error={errors.interestRate?.message}>
-          <TextInput id="prod-rate" type="number" step="0.001" placeholder="Loan Interest(%)" {...register("interestRate", { valueAsNumber: true })} />
+        {/*
+          * THE FIELD WHOSE ABSENCE BROKE SAVE.
+          *
+          * `code` was required by the schema, defaulted to "" on a new product,
+          * and was rendered nowhere. Validation failed on it every time, had no
+          * slot to report into, and blocked the submit — so Save did nothing at
+          * all and said nothing about why. It is also UNIQUE on the API, so a
+          * reused name produces "The code has already been taken" against it;
+          * without an input there was no way to see or fix that either.
+          */}
+        <Field
+          label="Reference Code"
+          htmlFor="prod-code"
+          required
+          error={errors.code?.message}
+          help="Identifies the product internally. Filled from the name; edit it if you need a different one."
+        >
+          <TextInput
+            id="prod-code"
+            placeholder="e.g. PUBLIC_SERVANT_LOAN"
+            invalid={!!errors.code}
+            disabled={isEdit}
+            {...register("code", { onChange: () => setCodeTouched(true) })}
+          />
         </Field>
       </FieldGrid>
 
+      <SectionDivider label="Loan amount and pricing" />
       <FieldGrid>
-        <Field label="Interest Formular" htmlFor="prod-formula" required error={errors.interestFormulaId?.message}>
+        <Field label="Minimum Amount (TZS)" htmlFor="prod-min-amount" required error={errors.minAmount?.message}>
+          <TextInput id="prod-min-amount" type="number" placeholder="100,000" {...register("minAmount", { valueAsNumber: true })} />
+        </Field>
+        <Field label="Maximum Amount (TZS)" htmlFor="prod-max-amount" required error={errors.maxAmount?.message}>
+          <TextInput id="prod-max-amount" type="number" placeholder="1,000,000" {...register("maxAmount", { valueAsNumber: true })} />
+        </Field>
+        <Field
+          label="Interest Rate (%)"
+          htmlFor="prod-rate"
+          required
+          error={errors.interestRate?.message}
+          help="Applied using the formula selected below."
+        >
+          <TextInput id="prod-rate" type="number" step="0.001" placeholder="10" {...register("interestRate", { valueAsNumber: true })} />
+        </Field>
+      </FieldGrid>
+
+      <SectionDivider label="Repayment" />
+      <FieldGrid>
+        <Field label="Interest Formula" htmlFor="prod-formula" required error={errors.interestFormulaId?.message}>
           {/*
             * FIXED LABELS, resolved to real rows by CODE.
             *
@@ -313,7 +475,7 @@ export function ProductFormDialog({ product, formulas, schedules, customerTypes,
           </Select>
         </Field>
 
-        <Field label="Select Loan Duration" htmlFor="prod-duration" required error={errors.repaymentScheduleIds?.message}>
+        <Field label="Repayment Frequency" htmlFor="prod-duration" required error={errors.repaymentScheduleIds?.message}>
           <Select
             id="prod-duration"
             value={selectedSchedules[0] ?? ""}
@@ -339,7 +501,7 @@ export function ProductFormDialog({ product, formulas, schedules, customerTypes,
       </FieldGrid>
 
       <FieldGrid>
-        <Field label="You Allow Deduction?" htmlFor="prod-deduction">
+        <Field label="Deduction" htmlFor="prod-deduction">
           <Select
             id="prod-deduction"
             value={allowsDeduction === null ? "" : allowsDeduction ? "yes" : "no"}
@@ -351,7 +513,7 @@ export function ProductFormDialog({ product, formulas, schedules, customerTypes,
           </Select>
         </Field>
 
-        <Field label="You Allow Penarty?" htmlFor="prod-penalty">
+        <Field label="Penalty" htmlFor="prod-penalty">
           {/* The reference screen's own spelling, kept deliberately: this is
               the word the officers using it recognise. */}
           <Select
@@ -365,7 +527,7 @@ export function ProductFormDialog({ product, formulas, schedules, customerTypes,
           </Select>
         </Field>
 
-        <Field label="Aprove status" htmlFor="prod-stage" error={errors.approvalStageId?.message}>
+        <Field label="Approval Stage" htmlFor="prod-stage" error={errors.approvalStageId?.message}>
           {/*
             * FIXED LABELS, resolved to real stages by CODE.
             *
@@ -388,12 +550,13 @@ export function ProductFormDialog({ product, formulas, schedules, customerTypes,
         </Field>
       </FieldGrid>
 
+      <SectionDivider label="Limits and eligibility" />
       <FieldGrid>
-        <Field label="Topup percent(%)" htmlFor="prod-topup" error={errors.topupPercent?.message}>
-          <TextInput id="prod-topup" type="number" step="0.01" placeholder="topup percent" {...register("topupPercent", { setValueAs: numberOrNull })} />
+        <Field label="Top-up Ceiling (%)" htmlFor="prod-topup" error={errors.topupPercent?.message}>
+          <TextInput id="prod-topup" type="number" step="0.01" placeholder="40" {...register("topupPercent", { setValueAs: numberOrNull })} />
         </Field>
-        <Field label="Take home Percent(%)" htmlFor="prod-takehome" error={errors.takeHomePercent?.message}>
-          <TextInput id="prod-takehome" type="number" step="0.01" placeholder="Take home percent" {...register("takeHomePercent", { setValueAs: numberOrNull })} />
+        <Field label="Take-home Limit (%)" htmlFor="prod-takehome" error={errors.takeHomePercent?.message}>
+          <TextInput id="prod-takehome" type="number" step="0.01" placeholder="60" {...register("takeHomePercent", { setValueAs: numberOrNull })} />
         </Field>
 
         <Field

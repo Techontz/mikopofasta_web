@@ -8,7 +8,7 @@ import {
   deleteLoanProductRequest,
   updateLoanProductRequest,
 } from "@/lib/api/loans";
-import { describeError } from "@/lib/api/errors";
+import { ApiError, describeError } from "@/lib/api/errors";
 import { apiData } from "@/lib/api/client";
 import { getApiToken } from "@/lib/auth/session";
 import { getCategoryEligibility } from "@/lib/api/loans";
@@ -125,6 +125,26 @@ async function syncAvailability(productId: string, chosen: string[]): Promise<st
   }
 }
 
+/**
+ * A create/update failure, with the server's field errors carried through.
+ *
+ * `code` is the one worth naming: it is derived from the product name and is
+ * unique, so re-using a name produces "The code has already been taken" —
+ * against a field the officer never typed into. Passing the errors up lets the
+ * form show that on the Reference Code input, where it can actually be fixed.
+ */
+function productFailure(error: unknown): ActionResult {
+  if (error instanceof ApiError && error.isValidation && error.fieldErrors) {
+    return {
+      ok: false,
+      message: "Please check the highlighted fields.",
+      fieldErrors: error.fieldErrors,
+    };
+  }
+
+  return { ok: false, message: describeError(error) };
+}
+
 export async function createLoanProduct(input: ProductInputValues): Promise<ActionResult> {
   const parsed = ProductInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid input." };
@@ -135,7 +155,7 @@ export async function createLoanProduct(input: ProductInputValues): Promise<Acti
   try {
     created = await createLoanProductRequest(product);
   } catch (error) {
-    return { ok: false, message: describeError(error) };
+    return productFailure(error);
   }
 
   const warning = customerTypeIds === undefined ? null : await syncAvailability(created.id, customerTypeIds);
@@ -154,7 +174,7 @@ export async function updateLoanProduct(id: string, input: ProductInputValues): 
   try {
     await updateLoanProductRequest(id, product);
   } catch (error) {
-    return { ok: false, message: describeError(error) };
+    return productFailure(error);
   }
 
   const warning = customerTypeIds === undefined ? null : await syncAvailability(id, customerTypeIds);

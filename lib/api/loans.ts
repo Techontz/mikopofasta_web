@@ -819,7 +819,23 @@ export interface LoanProductInput {
   repaymentScheduleIds: string[];
 }
 
-function productBody(input: LoanProductInput) {
+/**
+ * The wire body for a create or update.
+ *
+ * ## Why the exhaustiveness type
+ *
+ * This was a hand-written allowlist, and it silently dropped SEVEN fields the
+ * form collects and the API accepts: `minRepayments`, `maxRepayments`,
+ * `allowsDeduction`, `approvalStageId`, `topupPercent` and `takeHomePercent`.
+ * An officer set a repayment range and a top-up ceiling, the save succeeded,
+ * and none of it was stored — no error, because every one of those fields is
+ * `sometimes|nullable` on the API. It is the same defect the registration
+ * payload had, and the same cure: a type that fails the build when a key of
+ * `LoanProductInput` has no line here.
+ */
+type ProductBody = Record<keyof Omit<LoanProductInput, "customerTypeIds">, unknown>;
+
+function productBody(input: LoanProductInput): ProductBody {
   return {
     name: input.name,
     code: input.code,
@@ -838,6 +854,19 @@ function productBody(input: LoanProductInput) {
     requiresMandate: input.requiresMandate,
     status: input.status,
     repaymentScheduleIds: input.repaymentScheduleIds.map((id) => toId(id)).filter((id) => id !== null),
+
+    /* The Loan Category screen's own terms — collected by the form, accepted
+       by the API, and until now thrown away in this function. */
+    minRepayments: input.minRepayments ?? null,
+    maxRepayments: input.maxRepayments ?? null,
+    allowsDeduction: input.allowsDeduction ?? false,
+    approvalStageId: toId(input.approvalStageId ?? null),
+    topupPercent: input.topupPercent === null || input.topupPercent === undefined
+      ? null
+      : input.topupPercent.toFixed(2),
+    takeHomePercent: input.takeHomePercent === null || input.takeHomePercent === undefined
+      ? null
+      : input.takeHomePercent.toFixed(2),
   };
 }
 

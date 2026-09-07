@@ -63,25 +63,37 @@ export function SettingsDialog({
   /** Replaces the default Cancel/Submit pair when a dialog needs its own. */
   footer?: React.ReactNode;
 }) {
+  /*
+   * Three bands: a fixed header, a scrolling body, a footer that never moves.
+   *
+   * The panel used to scroll as one piece, which put Save below the fold on any
+   * form long enough to need scrolling — the officer scrolled, found no button,
+   * and had no way to know the form had one. Now only the middle band scrolls,
+   * so the actions are in the same place whatever the form's length.
+   */
   const body = (
     <>
-      <DialogHeader>
+      <DialogHeader className="shrink-0">
         <DialogTitle>{title}</DialogTitle>
         {description && <DialogDescription>{description}</DialogDescription>}
       </DialogHeader>
 
-      <div className="space-y-5">{children}</div>
+      {/* `min-h-0` is what lets a flex child actually shrink and scroll; without
+          it the body claims its full content height and the panel overflows. */}
+      <div className="-mx-1 min-h-0 flex-1 space-y-5 overflow-y-auto px-1">{children}</div>
 
-      {footer ?? (
-        <ActionButtons>
-          <Button type="button" tone="secondary" onClick={() => onOpenChange(false)} disabled={pending}>
-            Cancel
-          </Button>
-          <Button type="submit" form={formId} tone="primary" loading={pending}>
-            {pending ? pendingLabel : submitLabel}
-          </Button>
-        </ActionButtons>
-      )}
+      <div className="shrink-0">
+        {footer ?? (
+          <ActionButtons>
+            <Button type="button" tone="secondary" onClick={() => onOpenChange(false)} disabled={pending}>
+              Cancel
+            </Button>
+            <Button type="submit" form={formId} tone="primary" loading={pending}>
+              {pending ? pendingLabel : submitLabel}
+            </Button>
+          </ActionButtons>
+        )}
+      </div>
     </>
   );
 
@@ -89,10 +101,15 @@ export function SettingsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       {trigger && <DialogTrigger render={trigger} />}
       <DialogContent
-        className={cn("st-scope max-h-[85vh] overflow-y-auto", size === "lg" && "sm:max-w-2xl")}
+        className={cn(
+          "st-scope flex max-h-[88svh] flex-col overflow-hidden",
+          /* A form of this complexity needs room for two comfortable columns;
+             672px forced everything into one. */
+          size === "lg" && "sm:max-w-[min(1000px,calc(100vw-4rem))]",
+        )}
       >
         {onSubmit ? (
-          <form id={formId} noValidate onSubmit={onSubmit} className="space-y-5">
+          <form id={formId} noValidate onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col gap-5">
             {body}
           </form>
         ) : (
