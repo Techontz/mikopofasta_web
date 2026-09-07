@@ -37,11 +37,14 @@ async function token(): Promise<string | undefined> {
 
 interface BankAccountWire {
   id: string;
+  accountType: BankAccountRecord["accountType"];
+  usage: BankAccountRecord["usage"];
   bankName: string;
+  channelLabel: string;
+  bankId: string | null;
+  mobileMoneyProviderId: string | null;
   accountName: string;
   accountNumber: string;
-  branch: string;
-  branchId: string | null;
   currency: BankAccountRecord["currency"];
   openingBalance: string;
   balance: string;
@@ -55,7 +58,6 @@ interface BankAccountWire {
 
 /** `BankAccountRecord` plus the ledger account behind it. */
 export interface BankAccountWithLedger extends BankAccountRecord {
-  branchId: string | null;
   chartAccountId: string | null;
   chartAccountCode: string | null;
 }
@@ -63,11 +65,14 @@ export interface BankAccountWithLedger extends BankAccountRecord {
 function toAccount(wire: BankAccountWire): BankAccountWithLedger {
   return {
     id: wire.id,
+    accountType: wire.accountType,
+    usage: wire.usage,
     bankName: wire.bankName,
+    channelLabel: wire.channelLabel,
+    bankId: wire.bankId,
+    mobileMoneyProviderId: wire.mobileMoneyProviderId,
     accountName: wire.accountName,
     accountNumber: wire.accountNumber,
-    branch: wire.branch,
-    branchId: wire.branchId,
     currency: wire.currency,
     // DECIMAL strings on the wire so money never rides on a float between the
     // two systems; the tables want numbers.
@@ -89,7 +94,12 @@ export interface BankAccountList {
 
 export async function getBankAccounts(options?: {
   status?: AccountStatus;
-  branchId?: string;
+  /**
+   * Narrows to accounts money may come INTO (`collection`) or go OUT of
+   * (`disbursement`). Both include `both`, and both exclude inactive accounts —
+   * a selector must never offer an account nobody reconciles.
+   */
+  usage?: "collection" | "disbursement";
   /**
    * Adds today's movement per account. Opt-in because it costs a grouped
    * query over the day's journal lines, and only Account Balance shows it.
@@ -100,7 +110,7 @@ export async function getBankAccounts(options?: {
     token: await token(),
     query: {
       status: options?.status,
-      branch_id: options?.branchId,
+      usage: options?.usage,
       with_movement: options?.withMovement ? 1 : undefined,
     },
   });

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -12,9 +12,13 @@ import { ConfirmDialog, SettingsDialog } from "@/components/settings/dialog";
 import { Button, Field, FieldGrid, IconButton, Select, TextArea, TextInput } from "@/components/settings/form";
 import { formatMoney } from "@/lib/domain/money";
 import {
+  ACCOUNT_CHANNEL_TYPES,
   ACCOUNT_STATUSES,
+  ACCOUNT_USAGE_HELP,
+  ACCOUNT_USAGES,
   BankAccountInputSchema,
   CURRENCIES,
+  type AccountUsage,
   type BankAccountInput,
   type BankAccountRecord,
 } from "@/types/bank";
@@ -22,11 +26,20 @@ import { saveBankAccount } from "@/features/bank/actions";
 import type { ActionResult } from "@/lib/domain/action-result";
 import { ACCOUNT_TONE, FactGrid, formatDate, type Fact } from "@/features/bank/shared";
 
+/** How each usage reads in a table cell and on the detail sheet. */
+const USAGE_LABEL: Record<AccountUsage, string> = {
+  collection: "Collection",
+  disbursement: "Disbursement",
+  both: "Both",
+};
+
 const EMPTY: BankAccountInput = {
-  bankName: "",
+  accountType: "bank",
+  usage: "both",
+  bankId: null,
+  mobileMoneyProviderId: null,
   accountName: "",
   accountNumber: "",
-  branch: "",
   currency: "TZS",
   openingBalance: 0,
   status: "active",
@@ -45,17 +58,21 @@ const EMPTY: BankAccountInput = {
  * account posts an opening balance to the ledger, and a row showing a balance
  * this component invented would disagree with the one the ledger holds.
  *
- * `bankNames` and `branches` are passed in rather than read from a constant, so
- * the two selects offer what the company actually has.
+ * NO BRANCH. A company's financial channel is not a branch's property. The
+ * field is gone rather than hidden — see types/bank.ts.
+ *
+ * `banks` and `providers` come from the master data the institution maintains,
+ * never from a constant in this file: which banks a company uses is its own
+ * decision, and hardcoding a list here would make adding one a code change.
  */
 export function RegisterAccountPanel({
   accounts,
-  bankNames,
-  branches,
+  banks,
+  providers,
 }: {
   accounts: BankAccountRecord[];
-  bankNames: string[];
-  branches: string[];
+  banks: { id: string; name: string }[];
+  providers: { id: string; name: string }[];
 }) {
   const rows = accounts;
   const [pending, startTransition] = React.useTransition();
@@ -65,10 +82,12 @@ export function RegisterAccountPanel({
 
   const defaults: BankAccountInput = editing
     ? {
-        bankName: editing.bankName,
+        accountType: editing.accountType,
+        usage: editing.usage,
+        bankId: editing.bankId,
+        mobileMoneyProviderId: editing.mobileMoneyProviderId,
         accountName: editing.accountName,
         accountNumber: editing.accountNumber,
-        branch: editing.branch,
         currency: editing.currency,
         openingBalance: editing.openingBalance,
         status: editing.status,
@@ -80,8 +99,24 @@ export function RegisterAccountPanel({
     register,
     handleSubmit,
     reset,
+    setValue,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<BankAccountInput>({ resolver: zodResolver(BankAccountInputSchema), defaultValues: defaults });
+
+  /*
+   * Which channel is selected decides which provider field the form shows — a
+   * bank account has no wallet provider and a wallet has no bank.
+   *
+   * `useWatch` rather than `watch()`: the latter returns a function the React
+   * Compiler cannot memoise, so it bails out of optimising the whole component
+   * and says so as a lint warning. `useWatch` is a hook and subscribes the same
+   * way, which is why the loan product form already uses it.
+   */
+  const accountType = useWatch({ control, name: "accountType" });
+  const usage = useWatch({ control, name: "usage" });
+  const bankId = useWatch({ control, name: "bankId" });
+  const providerId = useWatch({ control, name: "mobileMoneyProviderId" });
 
   // Selecting a different account to edit must repopulate the fields.
   React.useEffect(() => {
@@ -127,10 +162,12 @@ export function RegisterAccountPanel({
     run(() =>
       saveBankAccount(
         {
-          bankName: account.bankName,
+          accountType: account.accountType,
+          usage: account.usage,
+          bankId: account.bankId,
+          mobileMoneyProviderId: account.mobileMoneyProviderId,
           accountName: account.accountName,
           accountNumber: account.accountNumber,
-          branch: account.branch,
           currency: account.currency,
           openingBalance: account.openingBalance,
           status,
@@ -158,7 +195,15 @@ export function RegisterAccountPanel({
       header: "Account Number",
       cell: ({ row }) => <span className="font-tabular whitespace-nowrap">{row.original.accountNumber}</span>,
     },
-    { accessorKey: "branch", header: "Branch" },
+    {
+      accessorKey: "usage",
+      header: "Usage",
+      cell: ({ row }) => (
+        <StatusBadge tone={row.original.usage === "both" ? "default" : "neutral"} dot={false}>
+          {USAGE_LABEL[row.original.usage]}
+        </StatusBadge>
+      ),
+    },
     {
       accessorKey: "currency",
       header: "Currency",
@@ -231,27 +276,118 @@ export function RegisterAccountPanel({
             </>
           }
         >
-          <form id="bank-account-form" noValidate onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <form id="bank-account-form" noValidate onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {/* Account type first: it decides which provider field follows, so
+                asking anything else before it invites re-entry. */}
+            <Field
+              label="Account Type"
+              htmlFor="ba-type"
+              required
+              error={errors.accountType?.message}
+              help="A bank account, or a mobile money wallet. Cash is a payment method, not a registered account."
+            >
+              {/*
+                * Registered, even though nothing types into it.
+                *
+                * The channel is chosen with the two buttons below and written
+                * with `setValue`. Registering it makes the field one React
+                * Hook Form actually tracks rather than a value it merely
+                * holds, which is what the library documents for state that has
+                * no input of its own — and it means the chosen channel is
+                * submitted with the form rather than depending on the watcher
+                * alone.
+                */}
+              <input type="hidden" {...register("accountType")} />
+              <div className="flex flex-wrap gap-2" id="ba-type">
+                {ACCOUNT_CHANNEL_TYPES.map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => {
+                      setValue("accountType", type, { shouldDirty: true, shouldValidate: true });
+                      /* Clear the provider that no longer applies, so a wallet
+                         cannot keep pointing at a bank — which the uniqueness
+                         key reads. */
+                      setValue(type === "bank" ? "mobileMoneyProviderId" : "bankId", null, { shouldDirty: true });
+                    }}
+                    className="st-btn"
+                    data-active={accountType === type}
+                    style={{
+                      background: accountType === type ? "var(--st-accent-soft)" : "var(--st-card)",
+                      borderColor: accountType === type ? "var(--st-accent)" : "var(--st-line-strong)",
+                      color: accountType === type ? "var(--st-accent-ink)" : "var(--st-ink)",
+                      fontWeight: accountType === type ? 600 : 500,
+                    }}
+                    aria-pressed={accountType === type}
+                  >
+                    {type === "bank" ? "Bank" : "Mobile Money"}
+                  </button>
+                ))}
+              </div>
+            </Field>
+
             <FieldGrid columns={3}>
-              <Field label="Bank Name" htmlFor="ba-bank" required error={errors.bankName?.message}>
-                <Select id="ba-bank" invalid={!!errors.bankName} {...register("bankName")}>
-                  <option value="">Select bank</option>
-                  {bankNames.map((b) => (
-                    <option key={b} value={b}>
-                      {b}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
+              {accountType === "bank" ? (
+                <Field label="Bank" htmlFor="ba-bank" required error={errors.bankId?.message}>
+                  <Select
+                    id="ba-bank"
+                    invalid={!!errors.bankId}
+                    value={bankId ?? ""}
+                    onChange={(e) =>
+                      setValue("bankId", e.target.value === "" ? null : e.target.value, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
+                  >
+                    <option value="">Select bank</option>
+                    {banks.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              ) : (
+                <Field
+                  label="Mobile Money Provider"
+                  htmlFor="ba-provider"
+                  required
+                  error={errors.mobileMoneyProviderId?.message}
+                >
+                  <Select
+                    id="ba-provider"
+                    invalid={!!errors.mobileMoneyProviderId}
+                    value={providerId ?? ""}
+                    onChange={(e) =>
+                      setValue("mobileMoneyProviderId", e.target.value === "" ? null : e.target.value, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
+                  >
+                    <option value="">Select provider</option>
+                    {providers.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              )}
               <Field label="Account Name" htmlFor="ba-name" required error={errors.accountName?.message}>
                 <TextInput id="ba-name" invalid={!!errors.accountName} {...register("accountName")} />
               </Field>
               <Field
-                label="Account Number"
+                label={accountType === "bank" ? "Account Number" : "Phone / Wallet Number"}
                 htmlFor="ba-number"
                 required
                 error={errors.accountNumber?.message}
-                help="Digits and dashes, as printed on the statement."
+                help={
+                  accountType === "bank"
+                    ? "As printed on the statement. Spacing does not matter."
+                    : "The wallet's phone number. Spacing does not matter."
+                }
               >
                 <TextInput
                   id="ba-number"
@@ -263,12 +399,17 @@ export function RegisterAccountPanel({
             </FieldGrid>
 
             <FieldGrid columns={3}>
-              <Field label="Branch" htmlFor="ba-branch" required error={errors.branch?.message}>
-                <Select id="ba-branch" invalid={!!errors.branch} {...register("branch")}>
-                  <option value="">Select branch</option>
-                  {branches.map((b) => (
-                    <option key={b} value={b}>
-                      {b}
+              <Field
+                label="Account Usage"
+                htmlFor="ba-usage"
+                required
+                error={errors.usage?.message}
+                help={ACCOUNT_USAGE_HELP[usage]}
+              >
+                <Select id="ba-usage" invalid={!!errors.usage} {...register("usage")}>
+                  {ACCOUNT_USAGES.map((u) => (
+                    <option key={u} value={u}>
+                      {USAGE_LABEL[u]}
                     </option>
                   ))}
                 </Select>
@@ -326,13 +467,13 @@ export function RegisterAccountPanel({
 
       <SettingsCard
         title={`Registered Accounts (${rows.length})`}
-        description="Every bank account the company holds, across all branches."
+        description="Every bank account and mobile money wallet the company holds."
         bodyClassName="pt-0 sm:pt-0"
       >
         <SettingsTable
           columns={columns}
           data={rows}
-          searchFields={["bankName", "accountName", "accountNumber", "branch"]}
+          searchFields={["bankName", "accountName", "accountNumber", "channelLabel"]}
           searchPlaceholder="Search bank or account…"
           emptyState={{
             icon: Landmark,
@@ -402,7 +543,8 @@ function ViewAccountDialog({
     { label: "Bank", value: account.bankName },
     { label: "Account name", value: account.accountName },
     { label: "Account number", value: account.accountNumber, mono: true },
-    { label: "Branch", value: account.branch },
+    { label: "Account Type", value: account.accountType === "bank" ? "Bank" : "Mobile Money" },
+    { label: "Usage", value: USAGE_LABEL[account.usage] },
     { label: "Currency", value: account.currency },
     { label: "Opening balance", value: formatMoney(account.openingBalance), mono: true },
     { label: "Current balance", value: formatMoney(account.balance), mono: true },
@@ -419,7 +561,7 @@ function ViewAccountDialog({
       open
       onOpenChange={(next) => !next && onClose()}
       title={account.accountName}
-      description={`${account.bankName} · ${account.branch}`}
+      description={account.channelLabel}
       footer={
         <Button type="button" tone="secondary" onClick={onClose}>
           Close

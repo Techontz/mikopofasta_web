@@ -21,12 +21,39 @@ export type Currency = (typeof CURRENCIES)[number];
 export const ACCOUNT_STATUSES = ["active", "inactive"] as const;
 export type AccountStatus = (typeof ACCOUNT_STATUSES)[number];
 
+/** What kind of channel an account is. Cash is a payment METHOD, not an
+ *  account — it posts to the ledger's existing teller cash accounts, so there
+ *  is nothing to register and no case for it here. */
+export const ACCOUNT_CHANNEL_TYPES = ["bank", "mno"] as const;
+export type AccountChannelType = (typeof ACCOUNT_CHANNEL_TYPES)[number];
+
+/**
+ * Which direction(s) an account may be selected for.
+ *
+ * Two directions rather than four purposes, because Collection and Capital are
+ * both money arriving and a bank cannot tell them apart. What the money MEANS
+ * is recorded on the transaction, against the chart of accounts.
+ */
+export const ACCOUNT_USAGES = ["collection", "disbursement", "both"] as const;
+export type AccountUsage = (typeof ACCOUNT_USAGES)[number];
+
+export const ACCOUNT_USAGE_HELP: Record<AccountUsage, string> = {
+  collection: "Money received by the company",
+  disbursement: "Money paid out by the company",
+  both: "Account can receive and send money",
+};
+
 export const BankAccountRecordSchema = z.object({
   id: z.string(),
+  accountType: z.enum(ACCOUNT_CHANNEL_TYPES),
+  usage: z.enum(ACCOUNT_USAGES),
   bankName: z.string(),
+  /** "NMB Bank — 2011098765400", as the API composes it for a selector. */
+  channelLabel: z.string(),
+  bankId: z.string().nullable(),
+  mobileMoneyProviderId: z.string().nullable(),
   accountName: z.string(),
   accountNumber: z.string(),
-  branch: z.string(),
   currency: z.enum(CURRENCIES),
   openingBalance: z.number(),
   balance: z.number(),
@@ -38,21 +65,51 @@ export const BankAccountRecordSchema = z.object({
 });
 export type BankAccountRecord = z.infer<typeof BankAccountRecordSchema>;
 
-/** Mirrors the Register Account form, in the order the screen lists the fields. */
-export const BankAccountInputSchema = z.object({
-  bankName: z.string().trim().min(2, "Enter the bank name."),
-  accountName: z.string().trim().min(2, "Enter the account name."),
-  accountNumber: z
-    .string()
-    .trim()
-    .min(6, "An account number is at least 6 characters.")
-    .regex(/^[0-9-]+$/, "Digits and dashes only."),
-  branch: z.string().min(1, "Choose a branch."),
-  currency: z.enum(CURRENCIES),
-  openingBalance: z.number().nonnegative("An opening balance cannot be negative."),
-  status: z.enum(ACCOUNT_STATUSES),
-  description: z.string().trim().max(500, "Keep the description under 500 characters."),
-});
+/**
+ * Mirrors the Register Account form, in the order the screen lists the fields.
+ *
+ * NO BRANCH. A company's financial channel is not a branch's property — the
+ * money sits with the bank in the company's name, and any branch's collections
+ * may land in it. Branch remains everywhere it is genuinely organizational.
+ *
+ * The provider is required, and which one depends on the channel: a superRefine
+ * rather than two optional fields, because an account naming no provider cannot
+ * be reconciled against anything.
+ */
+export const BankAccountInputSchema = z
+  .object({
+    accountType: z.enum(ACCOUNT_CHANNEL_TYPES),
+    usage: z.enum(ACCOUNT_USAGES),
+    bankId: z.string().nullable(),
+    mobileMoneyProviderId: z.string().nullable(),
+    accountName: z.string().trim().min(2, "Enter the account name."),
+    accountNumber: z
+      .string()
+      .trim()
+      .min(6, "An account number is at least 6 characters.")
+      .regex(/^[0-9 +-]+$/, "Digits, spaces and dashes only."),
+    currency: z.enum(CURRENCIES),
+    openingBalance: z.number().nonnegative("An opening balance cannot be negative."),
+    status: z.enum(ACCOUNT_STATUSES),
+    description: z.string().trim().max(500, "Keep the description under 500 characters."),
+  })
+  .superRefine((value, ctx) => {
+    if (value.accountType === "bank" && !value.bankId) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["bankId"],
+        message: "Choose the bank this account is held with.",
+      });
+    }
+
+    if (value.accountType === "mno" && !value.mobileMoneyProviderId) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["mobileMoneyProviderId"],
+        message: "Choose the mobile money provider.",
+      });
+    }
+  });
 export type BankAccountInput = z.infer<typeof BankAccountInputSchema>;
 
 // ---------------------------------------------------------------------------

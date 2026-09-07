@@ -23,32 +23,32 @@ const ALL = "__all__";
 export function AccountBalancePanel({
   accounts,
   bankNames,
-  branches,
 }: {
   accounts: BankAccountRecord[];
   /** Filter options. Derived from the rows when not supplied. */
   bankNames?: string[];
-  branches?: string[];
 }) {
   const bankOptions = React.useMemo(
     () => bankNames ?? [...new Set(accounts.map((a) => a.bankName).filter(Boolean))].sort(),
     [bankNames, accounts]
   );
-  const branchOptions = React.useMemo(
-    () => branches ?? [...new Set(accounts.map((a) => a.branch).filter(Boolean))].sort(),
-    [branches, accounts]
-  );
-
   const [bank, setBank] = React.useState(ALL);
-  const [branch, setBranch] = React.useState(ALL);
+  /* Replaces the branch filter. A company money account has no branch; what a
+     finance officer asks of this screen is which accounts take money in and
+     which pay it out. */
+  const [usage, setUsage] = React.useState(ALL);
   const [date, setDate] = React.useState("");
 
   const filtered = React.useMemo(
     () =>
       accounts.filter(
-        (a) => (bank === ALL || a.bankName === bank) && (branch === ALL || a.branch === branch)
+        (a) =>
+          (bank === ALL || a.bankName === bank) &&
+          /* `both` satisfies either direction — one physical account used for
+             everything is registered once, not twice. */
+          (usage === ALL || a.usage === usage || a.usage === "both")
       ),
-    [accounts, bank, branch]
+    [accounts, bank, usage]
   );
 
   const totals = React.useMemo(
@@ -61,7 +61,7 @@ export function AccountBalancePanel({
     [filtered]
   );
 
-  const active = bank !== ALL || branch !== ALL || date !== "";
+  const active = bank !== ALL || usage !== ALL || date !== "";
 
   const columns: ColumnDef<BankAccountRecord>[] = [
     {
@@ -71,7 +71,7 @@ export function AccountBalancePanel({
         <div className="min-w-0">
           <p className="font-medium text-[var(--st-ink)]">{row.original.accountName}</p>
           <p className="font-tabular mt-0.5 text-[12.5px] text-[var(--st-ink-faint)]">
-            {row.original.accountNumber} · {row.original.branch}
+            {row.original.accountNumber} · {row.original.accountType === "bank" ? "Bank" : "Mobile Money"}
           </p>
         </div>
       ),
@@ -166,7 +166,7 @@ export function AccountBalancePanel({
             active={active}
             onReset={() => {
               setBank(ALL);
-              setBranch(ALL);
+              setUsage(ALL);
               setDate("");
             }}
           >
@@ -180,14 +180,11 @@ export function AccountBalancePanel({
                 ))}
               </Select>
             </Filter>
-            <Filter label="Branch" htmlFor="ab-branch">
-              <Select id="ab-branch" value={branch} onChange={(e) => setBranch(e.target.value)}>
-                <option value={ALL}>All branches</option>
-                {branchOptions.map((b) => (
-                  <option key={b} value={b}>
-                    {b}
-                  </option>
-                ))}
+            <Filter label="Usage" htmlFor="ab-usage">
+              <Select id="ab-usage" value={usage} onChange={(e) => setUsage(e.target.value)}>
+                <option value={ALL}>All accounts</option>
+                <option value="collection">Receives money</option>
+                <option value="disbursement">Pays money out</option>
               </Select>
             </Filter>
             <Filter label="As at" htmlFor="ab-date">
@@ -198,7 +195,7 @@ export function AccountBalancePanel({
           <SettingsTable
             columns={columns}
             data={filtered}
-            searchFields={["accountName", "accountNumber", "bankName", "branch"]}
+            searchFields={["accountName", "accountNumber", "bankName", "channelLabel"]}
             searchPlaceholder="Search account or bank…"
             emptyState={{
               icon: Landmark,

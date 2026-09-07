@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/settings";
 import { SectionNav } from "@/features/ledger/section-nav";
 import { treasuryNavFor } from "@/features/ledger/nav-items";
 import { getBankAccounts } from "@/lib/api/bank";
-import { getBranches } from "@/lib/api/organization";
+import { getRegistrationLookups } from "@/lib/api/master-data";
 import { RegisterAccountPanel } from "@/features/bank/register-account-panel";
 
 export default async function RegisterAccountPage() {
@@ -16,29 +16,32 @@ export default async function RegisterAccountPage() {
   if (!user) redirect("/login");
   if (!hasPermission(user, PERMISSIONS.TREASURY_VIEW)) return <AccessDeniedState />;
 
-  const [{ accounts }, branches] = await Promise.all([getBankAccounts(), getBranches()]);
+  /*
+   * Both reads start together — neither depends on the other, and the
+   * lookups call carries every master-data list in ONE request rather than one
+   * per dropdown. Branches are no longer fetched here at all: a company money
+   * account has no branch.
+   */
+  const [{ accounts }, lookups] = await Promise.all([getBankAccounts(), getRegistrationLookups()]);
 
   /*
-   * The bank select offers the banks the company already deals with, taken from
-   * the accounts themselves rather than a fixed list — a fixed one would
-   * eventually be missing whichever bank someone needs next.
+   * Banks and mobile money providers come from the master data the institution
+   * maintains — never from a list in this file. Adding a bank is an
+   * administrator's job, not a deploy.
    */
-  const bankNames = [...new Set(accounts.map((a) => a.bankName))].sort();
+  const banks = lookups.banks.map((b) => ({ id: b.id, name: b.name }));
+  const providers = lookups["mobile-money-providers"].map((p) => ({ id: p.id, name: p.name }));
 
   return (
     <>
       <PageHeader
         icon={Landmark}
         title="Register Account"
-        description="The bank accounts the company holds. Registering one here makes it available to every screen that moves money."
+        description="Register the company\u2019s bank and mobile money accounts used to receive collections, make disbursements and manage company funds."
         breadcrumb={[{ label: "Bank", href: "/treasury" }, { label: "Register Account" }]}
       />
       <SectionNav items={treasuryNavFor(user)} />
-      <RegisterAccountPanel
-        accounts={accounts}
-        bankNames={bankNames}
-        branches={branches.map((b) => b.name)}
-      />
+      <RegisterAccountPanel accounts={accounts} banks={banks} providers={providers} />
     </>
   );
 }
