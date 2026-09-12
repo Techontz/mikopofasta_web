@@ -110,7 +110,7 @@ export const FACE_STEP_INDEX = WIZARD_STEPS.findIndex((s) => s.id === "face");
  * instead — see `missingDynamicAnswers`.
  */
 export const STEP_FIELDS: Record<WizardStepId, (keyof WizardValues)[]> = {
-  basic: ["firstName", "lastName", "dob", "gender", "branchId", "phone"],
+  basic: ["firstName", "lastName", "dob", "gender", "branchId", "phone", "maritalStatusId"],
   details: ["guarantors", "nextOfKin"],
   /* Nothing validated by the form: whether the documents are mandatory is the
      account type's answer, given by the API, and enforcing it here would let
@@ -143,6 +143,12 @@ const BASIC_STEP_FIELDS = new Set<string>([
   "dob",
   "gender",
   "phone",
+  /* Asked on step one, so a message about it must route to step one — this set
+     is what `stepOwning` reads, and it is hand-written rather than derived from
+     STEP_FIELDS, so adding a field to one without the other sends the officer
+     to the wrong screen looking for a control that is not there. */
+  "maritalStatusId",
+  "maritalStatus",
   "branchId",
   "employeeId",
   "idTypeId",
@@ -319,6 +325,26 @@ export function validateStepAgainstProfile(
   }
 
   /*
+   * Marital status is asked on step one, so the rule is checked on step one.
+   *
+   * It used to be enforced against step two while no step drew the field at
+   * all: an account type with `requiresMaritalStatus` refused to advance and
+   * highlighted nothing, because the message was attached to an input that did
+   * not exist. That is the failure the note above STEP_FIELDS describes, and it
+   * is the reason the identity rule sits where it does.
+   *
+   * ONE FACT, TWO COLUMNS. `maritalStatusId` is the admin-managed list the form
+   * now offers; `maritalStatus` is the older enum some records still carry. A
+   * customer answered either way has answered, so a record created before the
+   * list existed is not asked again.
+   */
+  if (step === "basic" && profile.requiresMaritalStatus) {
+    if (!filled(values.maritalStatusId) && !values.maritalStatus) {
+      errors.maritalStatusId = "Marital status is required for this account type.";
+    }
+  }
+
+  /*
    * The customer type is asked on step two, because it is what step two is
    * FOR: everything else on that step is the form this answer selects.
    *
@@ -333,10 +359,6 @@ export function validateStepAgainstProfile(
   }
 
   if (step === "details") {
-    if (profile.requiresMaritalStatus && !filled(values.maritalStatusId) && !values.maritalStatus) {
-      errors.maritalStatusId = "Marital status is required for this account type.";
-    }
-
     /*
      * Employment, business and income under an account type that demands them.
      *

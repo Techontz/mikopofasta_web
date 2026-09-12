@@ -94,6 +94,7 @@ export function BasicInformationStep({
   employees,
   canAssignOfficer,
   idTypes,
+  maritalStatuses,
   profile,
 }: {
   branches: Branch[];
@@ -103,6 +104,8 @@ export function BasicInformationStep({
   canAssignOfficer: boolean;
   /** Which identity documents the institution accepts. Admin-managed. */
   idTypes: MasterDataOption[];
+  /** The civil statuses the institution records. Admin-managed, never hardcoded. */
+  maritalStatuses: MasterDataOption[];
   profile: AccountTypeRequirementProfile;
 }) {
   const {
@@ -263,7 +266,7 @@ export function BasicInformationStep({
         </Field>
       </div>
 
-      {/* Row 3 — identity: which document, and what it says */}
+      {/* Row 3 — which document, what it says, and civil status */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Field label="ID Type" required={profile.requiresIdentityDocument} error={errors.idTypeId?.message}>
           <Combobox
@@ -278,6 +281,33 @@ export function BasicInformationStep({
         </Field>
         <Field label="ID Number" required={profile.requiresIdentityDocument} error={errors.idNumber?.message}>
           <Input id="idNumber" placeholder="Number shown on the document" {...register("idNumber")} />
+        </Field>
+
+        {/*
+          Marital status. Asked here because it was asked nowhere: the rule for
+          it was enforced against step two while no step drew the field, so an
+          account type that requires it refused to advance and highlighted
+          nothing. The rule moved to this step with the field — see
+          wizard-schema.
+
+          The options are the institution's own list, from master data. There is
+          no hardcoded set of statuses here: an institution that records
+          "separated" adds it under Administration and the form offers it.
+        */}
+        <Field
+          label="Marital Status"
+          required={profile.requiresMaritalStatus}
+          error={errors.maritalStatusId?.message}
+        >
+          <Combobox
+            id="maritalStatusId"
+            value={watch("maritalStatusId") || null}
+            onChange={(v) => setValue("maritalStatusId", v ?? "", { shouldValidate: true })}
+            options={asOptions(maritalStatuses)}
+            placeholder="Select marital status"
+            emptyMessage="No marital statuses are configured. Add them under Administration → Master Data."
+            invalid={!!errors.maritalStatusId}
+          />
         </Field>
       </div>
 

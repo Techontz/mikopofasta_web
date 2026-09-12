@@ -802,6 +802,7 @@ export function RegistrationWizard({
                 employees={employees}
                 canAssignOfficer={canAssignOfficer}
                 idTypes={lookups["id-types"]}
+                maritalStatuses={lookups["marital-statuses"]}
                 profile={profile}
               />
             )}
