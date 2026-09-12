@@ -12,6 +12,7 @@ import type { MasterDataOption } from "@/lib/api/master-data";
 import type { AccountTypeRequirementProfile } from "@/lib/api/registration";
 import type { Branch } from "@/types/branch";
 import { loadDistricts, loadRegions } from "@/features/customers/geography-actions";
+import { ageInYears, formatAge } from "@/lib/domain/age";
 
 /**
  * Step 1 — Basic Information. Who the person is, and where to find them.
@@ -113,6 +114,14 @@ export function BasicInformationStep({
 
   const regionId = watch("regionId");
   const employeeId = watch("employeeId");
+
+  /* The age the date of birth says, written under it as soon as one is picked.
+     Officers were reading a birth year and doing the subtraction in their head
+     against the product's minimum age; the form can just say it. Derived on
+     every render rather than stored in a field, because an age that is captured
+     once is wrong on the next birthday — see lib/domain/age. */
+  const dob = watch("dob");
+  const ageLabel = formatAge(ageInYears(dob));
 
   const regionLoader = React.useCallback(() => loadRegions(), []);
   const districtLoader = React.useCallback(() => loadDistricts(regionId ?? ""), [regionId]);
@@ -226,7 +235,7 @@ export function BasicInformationStep({
             invalid={!!errors.gender}
           />
         </Field>
-        <Field label="Date of Birth" required error={errors.dob?.message}>
+        <Field label="Date of Birth" required error={errors.dob?.message} help={ageLabel ?? undefined}>
           <Input id="dob" type="date" {...register("dob")} />
         </Field>
         <Field label="Phone Number" required error={errors.phone?.message}>

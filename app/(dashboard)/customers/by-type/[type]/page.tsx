@@ -5,6 +5,7 @@ import { PERMISSIONS } from "@/types/auth";
 import { AccessDeniedState } from "@/components/feedback/access-denied-state";
 import { getAllCustomers } from "@/lib/api/customers";
 import { getAllLoans, getRepaymentSchedules } from "@/lib/api/loans";
+import { ageInYears } from "@/lib/domain/age";
 import { LegacyBreadcrumb } from "@/components/legacy/legacy-primitives";
 import {
   LegacyCustomerTable,
@@ -16,18 +17,6 @@ import {
  * type. A customer's type is the repayment schedule of the loan they hold —
  * the same derivation the dashboard's rows use.
  */
-
-/** Whole years elapsed, in the operator's timezone. */
-function ageFrom(dob: string | null): number | null {
-  if (!dob) return null;
-  const born = new Date(dob);
-  if (Number.isNaN(born.getTime())) return null;
-  const now = new Date();
-  let age = now.getFullYear() - born.getFullYear();
-  const monthDelta = now.getMonth() - born.getMonth();
-  if (monthDelta < 0 || (monthDelta === 0 && now.getDate() < born.getDate())) age -= 1;
-  return age;
-}
 
 function text(value: string | number | boolean | undefined): string | null {
   return value === undefined || value === "" ? null : String(value);
@@ -75,7 +64,7 @@ export default async function CustomersByTypePage({
       checkNumber: text(customer.dynamicFormData?.check_number),
       accountNumber: text(customer.dynamicFormData?.account_number),
       dob: customer.dob,
-      age: ageFrom(customer.dob),
+      age: ageInYears(customer.dob),
       gender: customer.gender,
       phone: customer.phone,
       loanStatus: latestLoan.get(customer.id)?.status ?? null,
