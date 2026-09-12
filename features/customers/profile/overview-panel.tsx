@@ -1,15 +1,53 @@
+import { isPresent } from "@/features/customers/profile/field-presence";
 import type { Customer, CustomerBankDetails, CustomerCategory } from "@/types/customer";
 import type { Branch, District, Region, Street, Ward } from "@/types/branch";
 import type { MasterDataOption } from "@/types/master-data";
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+/**
+ * One fact on the summary.
+ *
+ * `value` is the raw answer and decides whether the fact exists at all;
+ * `render` is only how a present one is worded. Keeping those apart matters —
+ * a capitalised enum or a formatted date is still a string, so presence
+ * checked after formatting would find something in every empty row.
+ */
+interface Fact {
+  label: string;
+  value: unknown;
+  render?: (value: NonNullable<unknown>) => React.ReactNode;
+}
+
+/**
+ * A block of facts, which does not exist when none of them do.
+ *
+ * The summary used to print every fact it knew of and an em dash for each one
+ * the record did not hold, so a customer with a phone number and a district
+ * showed two answers among eleven dashes. A dash is not information; it is the
+ * absence of information taking up the space where information goes.
+ */
+function Facts({ title, facts }: { title: string; facts: Fact[] }) {
+  const shown = facts.filter((f) => isPresent(f.value));
+  if (shown.length === 0) return null;
+
   return (
-    <div className="space-y-0.5">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-sm font-medium">{children}</p>
-    </div>
+    <section className="space-y-3">
+      <h3 className="text-sm font-semibold">{title}</h3>
+      {/* Two answers get two columns, not three with a hole in the third. */}
+      <div className={shown.length === 1 ? "grid gap-4" : shown.length === 2 ? "grid gap-4 sm:grid-cols-2" : "grid gap-4 sm:grid-cols-2 lg:grid-cols-3"}>
+        {shown.map((fact) => (
+          <div key={fact.label} className="space-y-0.5">
+            <p className="text-xs text-muted-foreground">{fact.label}</p>
+            <p className="text-sm font-medium">
+              {fact.render ? fact.render(fact.value as NonNullable<unknown>) : String(fact.value)}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
+
+const capitalised = (value: NonNullable<unknown>) => <span className="capitalize">{String(value)}</span>;
 
 export function OverviewPanel({
   customer,
@@ -73,67 +111,80 @@ export function OverviewPanel({
     idTypeName && customer.idNumber
       ? `${idTypeName} · ${customer.idNumber}`
       : (customer.nidaNumber ?? null);
+
+  /*
+   * The type's own questions, and only the ones that were answered.
+   *
+   * A category may configure a dozen fields of which a customer answers three;
+   * the other nine were rendered as dashes under a heading that then described
+   * mostly nothing.
+   */
+  const dynamicFacts: Fact[] = (category?.dynamicFormSchema ?? []).map((field) => ({
+    label: field.label,
+    value: customer.dynamicFormData?.[field.key] ?? null,
+    /* A yes/no answer is a real answer and must not read as the string
+       "false" — or, worse, be mistaken for an empty one. */
+    render: (value) => (typeof value === "boolean" ? (value ? "Yes" : "No") : String(value)),
+  }));
+
   return (
     <div className="space-y-6">
-      <section className="space-y-3">
-        <h3 className="text-sm font-semibold">Personal Details</h3>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="Identity Document">{identityDocument ?? "—"}</Field>
-          <Field label="Date of Birth">{customer.dob}</Field>
-          <Field label="Gender">
-            <span className="capitalize">{customer.gender}</span>
-          </Field>
-          <Field label="Marital Status">
-            <span className="capitalize">{maritalStatus ?? "—"}</span>
-          </Field>
-          <Field label="Branch">{branch?.name ?? "—"}</Field>
-          <Field label="Category">{category?.name ?? "Uncategorized"}</Field>
-        </div>
-      </section>
+      <Facts
+        title="Personal Details"
+        facts={[
+          { label: "Identity Document", value: identityDocument },
+          { label: "Date of Birth", value: customer.dob },
+          { label: "Gender", value: customer.gender, render: capitalised },
+          { label: "Marital Status", value: maritalStatus, render: capitalised },
+          { label: "Branch", value: branch?.name ?? null },
+          /* The classification itself, when the record carries one. An
+             unclassified customer is a fact about the record rather than a
+             blank, and the header already says so. */
+          { label: "Category", value: category?.name ?? null },
+        ]}
+      />
 
-      <section className="space-y-3">
-        <h3 className="text-sm font-semibold">Contact & Address</h3>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="Phone">{customer.phone}</Field>
-          <Field label="Residence Type">
-            <span className="capitalize">{customer.residenceType ?? "—"}</span>
-          </Field>
-          <Field label="Region">{region?.name ?? "—"}</Field>
-          <Field label="District">{district?.name ?? "—"}</Field>
-          {/*
+      <Facts
+        title="Contact & Address"
+        facts={[
+          { label: "Phone", value: customer.phone },
+          { label: "Residence Type", value: customer.residenceType, render: capitalised },
+          { label: "Region", value: region?.name ?? null },
+          { label: "District", value: district?.name ?? null },
+          /*
             The typed name first, the reference row as a fallback.
             Registrations before the 2026_08_26 migration hold only an id, and
             that migration copied the names down — so this reads the column for
             everybody and falls back only if a record somehow has one without
             the other.
-          */}
-          <Field label="Ward">{customer.wardName ?? ward?.name ?? "—"}</Field>
-          <Field label="Street">{customer.streetName ?? street?.name ?? "—"}</Field>
-        </div>
-      </section>
+          */
+          { label: "Ward", value: customer.wardName ?? ward?.name ?? null },
+          { label: "Street", value: customer.streetName ?? street?.name ?? null },
+        ]}
+      />
 
       {bankDetails && (
-        <section className="space-y-3">
-          <h3 className="text-sm font-semibold">Bank Details</h3>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="Bank">{bankDetails.bankName}</Field>
-            <Field label="Account Number">{bankDetails.accountNumber}</Field>
-            <Field label="Account Name">{bankDetails.accountName}</Field>
-          </div>
-        </section>
+        <Facts
+          title="Bank Details"
+          facts={[
+            { label: "Bank", value: bankDetails.bankName },
+            { label: "Account Number", value: bankDetails.accountNumber },
+            { label: "Account Name", value: bankDetails.accountName },
+          ]}
+        />
       )}
 
-      {category && customer.dynamicFormData && Object.keys(customer.dynamicFormData).length > 0 && (
-        <section className="space-y-3">
-          <h3 className="text-sm font-semibold">{category.sector === "employment" ? "Employment Details" : category.sector === "business" ? "Business Information" : "Additional Information"}</h3>
-          <div className="grid gap-4 sm:grid-cols-3">
-            {category.dynamicFormSchema.map((field) => (
-              <Field key={field.key} label={field.label}>
-                {String(customer.dynamicFormData?.[field.key] ?? "—")}
-              </Field>
-            ))}
-          </div>
-        </section>
+      {category && (
+        <Facts
+          title={
+            category.sector === "employment"
+              ? "Employment Details"
+              : category.sector === "business"
+                ? "Business Information"
+                : "Additional Information"
+          }
+          facts={dynamicFacts}
+        />
       )}
 
       {customer.status === "suspended" && (

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Combobox } from "@/components/settings/combobox";
 import { updateCustomer } from "@/features/customers/actions";
+import { isPresent } from "@/features/customers/profile/field-presence";
 
 /**
  * One editable block of the customer profile.
@@ -19,6 +20,21 @@ import { updateCustomer } from "@/features/customers/actions";
  * them and one big form would mean an officer correcting a phone number also
  * re-submits every other value, overwriting whatever a colleague changed while
  * they had the page open.
+ *
+ * ## Reading and editing show different things, on purpose
+ *
+ * Closed, a section shows ONLY the fields that hold an answer, and a section
+ * holding no answers at all does not render — no card, no heading, no Edit
+ * button, no row of em dashes. A customer record has around seventy optional
+ * columns and a typical customer fills a dozen; printing the other sixty as
+ * dashes is a database dump, not a profile.
+ *
+ * Open, it shows every field the section OFFERS — which is how a blank one
+ * gets filled in. Offering is decided by the caller (`relevant`), because
+ * whether an employer is worth asking for depends on the customer's type and
+ * this component does not know the type. A field that already holds a value is
+ * always both shown and offered, so hiding can never hide real data or make it
+ * uneditable.
  *
  * Behaviour a banking form is expected to have, all of it here rather than
  * repeated per section:
@@ -45,6 +61,21 @@ export interface EditableField {
   placeholder?: string;
   /** Rendered instead of the raw value when the section is closed. */
   display?: (value: unknown) => React.ReactNode;
+  /**
+   * Whether this field is worth ASKING this customer for. Default true.
+   *
+   * False means "do not offer it": a business-only question on a salaried
+   * customer, a superseded column kept for records that still hold one. It
+   * never hides an answer — a field with a value is shown and stays editable
+   * whatever this says.
+   */
+  relevant?: boolean;
+  /**
+   * Shown when present, never turned into an input — for values this form
+   * cannot legitimately write (a card's last four is derived from a number
+   * nothing here holds).
+   */
+  readOnly?: boolean;
 }
 
 type Values = Record<string, string | number | null>;
@@ -56,6 +87,8 @@ export function EditableSection({
   values,
   canEdit,
   columns = 3,
+  autoEdit = false,
+  onDismiss,
 }: {
   title: string;
   customerId: string;
@@ -64,8 +97,19 @@ export function EditableSection({
   values: Values;
   canEdit: boolean;
   columns?: 2 | 3;
+  /**
+   * Mount already open. Set when the officer asked for a section that holds
+   * nothing yet — there is no other way into it, because an empty section does
+   * not render a card to click Edit on.
+   */
+  autoEdit?: boolean;
+  /**
+   * Cancelled out of a section that still holds nothing. The caller put this
+   * section on screen and is the only one who can take it back off.
+   */
+  onDismiss?: () => void;
 }) {
-  const [editing, setEditing] = React.useState(false);
+  const [editing, setEditing] = React.useState(autoEdit && canEdit);
   const [draft, setDraft] = React.useState<Values>(values);
   const [saving, setSaving] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
@@ -83,9 +127,24 @@ export function EditableSection({
     setDraft(values);
   }
 
+  /* What the record actually holds — the closed section, and the test for
+     whether there is a section at all. */
+  const answered = React.useMemo(
+    () => fields.filter((f) => isPresent(values[f.name])),
+    [fields, values]
+  );
+
+  /* What the open section asks for: everything relevant, plus anything
+     already answered, so no existing value is ever left unreachable. */
+  const offered = React.useMemo(
+    () => fields.filter((f) => isPresent(values[f.name]) || (f.relevant ?? true)),
+    [fields, values]
+  );
+
   const changed = React.useMemo(() => {
     const out: Values = {};
-    for (const f of fields) {
+    for (const f of offered) {
+      if (f.readOnly) continue;
       const before = values[f.name] ?? null;
       const after = draft[f.name] ?? null;
       // "" from a cleared input means null to the API, not an empty string.
@@ -93,7 +152,7 @@ export function EditableSection({
       if (norm(before) !== norm(after)) out[f.name] = norm(after) as string | number | null;
     }
     return out;
-  }, [draft, values, fields]);
+  }, [draft, values, offered]);
 
   const isDirty = Object.keys(changed).length > 0;
 
@@ -111,6 +170,9 @@ export function EditableSection({
     setDraft(values);
     setErrors({});
     setEditing(false);
+    /* Nothing was ever recorded here, so closing means the section goes away
+       again rather than standing as an empty card. */
+    if (answered.length === 0) onDismiss?.();
   }
 
   async function save() {
@@ -147,6 +209,12 @@ export function EditableSection({
     toast.error(result.message ?? "Could not save.");
   }
 
+  /* No answers and not being filled in: there is nothing to show and nothing
+     to edit, so the card does not exist. */
+  if (!editing && answered.length === 0) return null;
+
+  const rendered = editing ? offered : answered;
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
@@ -172,19 +240,20 @@ export function EditableSection({
       </CardHeader>
 
       <CardContent>
-        <div
-          ref={formRef}
-          className={columns === 2 ? "grid gap-4 sm:grid-cols-2" : "grid gap-4 sm:grid-cols-3"}
-        >
-          {fields.map((field) => {
+        {/* Closed, a section of two answers gets two columns rather than three
+            with a hole in it; open, the grid keeps the section's own width so
+            the inputs stay where the officer expects them. */}
+        <div ref={formRef} className={gridClass(editing ? columns : Math.min(columns, rendered.length))}>
+          {rendered.map((field) => {
             const value = draft[field.name];
             const error = errors[field.name];
+            const readingOnly = !editing || field.readOnly;
 
             return (
               <div key={field.name} data-field={field.name} className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">{field.label}</Label>
 
-                {!editing ? (
+                {readingOnly ? (
                   <p className="min-h-[1.5rem] text-sm font-medium">
                     {field.display
                       ? field.display(values[field.name])
@@ -229,9 +298,19 @@ export function EditableSection({
   );
 }
 
-/** An em dash for absent, the option's label for a select, the value otherwise. */
+/** Tailwind needs the class written out, so no template string here. */
+function gridClass(columns: number): string {
+  if (columns <= 1) return "grid gap-4";
+  if (columns === 2) return "grid gap-4 sm:grid-cols-2";
+  return "grid gap-4 sm:grid-cols-2 lg:grid-cols-3";
+}
+
+/** The option's label for a select, a grouped number, the value otherwise. */
 function formatted(value: unknown, field: EditableField): React.ReactNode {
-  if (value === null || value === undefined || value === "") {
+  /* Only reachable while a section is open — a closed one never renders a
+     field without an answer. An open one does, and a blank read-only value
+     still needs something to occupy its line. */
+  if (!isPresent(value)) {
     return <span className="text-muted-foreground">—</span>;
   }
   if (field.kind === "select") {

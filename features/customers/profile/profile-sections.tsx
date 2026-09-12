@@ -1,9 +1,16 @@
 "use client";
 
-import { GENDERS, RESIDENCE_TYPES } from "@/types/enums";
+import * as React from "react";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EditableSection } from "@/features/customers/profile/editable-section";
-import type { MasterDataList, MasterDataOption } from "@/lib/api/master-data";
-import type { Customer } from "@/types/customer";
+import {
+  buildProfileSections,
+  sectionHasAnswers,
+  type Lookups,
+} from "@/features/customers/profile/profile-section-specs";
+import type { Customer, CustomerCategory } from "@/types/customer";
 
 /**
  * The editable blocks of the customer profile.
@@ -11,31 +18,45 @@ import type { Customer } from "@/types/customer";
  * One section per group the registration wizard captures, in the same order,
  * so an officer correcting a record finds the field where they entered it.
  * Every list is the same admin-managed master data the wizard reads — nothing
- * here knows a dropdown value in advance.
+ * here knows a dropdown value in advance. Which blocks exist and which
+ * questions each one asks is `buildProfileSections`; this file puts them on
+ * the screen.
  *
- * `Identity Documents` is deliberately its own section rather than part of
- * Personal: those five numbers are the KYC evidence, they carry uniqueness
- * constraints, and an officer editing them is doing something different from
- * fixing a spelling.
+ * ## What a profile shows
+ *
+ * This screen used to render every column the customer resource carries,
+ * printing an em dash wherever one was null. A customer registered with a
+ * name, a phone and an address scrolled through seven cards and about sixty
+ * dashes to reach them — the record read as a database table rather than as a
+ * person, and the handful of real answers were the hardest part to find.
+ *
+ * Two questions decide what exists now:
+ *
+ *   1. IS THERE AN ANSWER? `isPresent` — not falsiness, because `0` dependants
+ *      and a `0` take-home are answers. A field with no answer is not rendered
+ *      when its section is closed, and a section where nothing is answered
+ *      does not render at all: no card, no heading, no Edit button.
+ *
+ *   2. IS IT WORTH ASKING? The customer's TYPE. This only decides what an OPEN
+ *      section offers and which empty blocks the officer is invited to add —
+ *      it can never hide an answer, because rule one has already put every
+ *      answered field on screen.
+ *
+ * Sections with nothing in them stay reachable: `Add information` at the foot
+ * of the tab opens one, empty, ready to fill in. Hiding a card must not mean
+ * losing the only way to record what belongs in it.
  */
-
-type Lookups = Record<MasterDataList, MasterDataOption[]>;
-
-/** Master-data rows in the shape the combobox wants. */
-const opts = (rows: MasterDataOption[] | undefined) =>
-  (rows ?? []).map((r) => ({ value: r.id, label: r.name }));
-
-/** A plain string enum in the same shape. */
-const enumOpts = (values: readonly string[]) => values.map((v) => ({ value: v, label: v }));
-
 export function ProfileSections({
   customer,
+  category,
   lookups,
   branches,
   employees,
   canEdit,
 }: {
   customer: Customer;
+  /** The customer's TYPE — see `buildProfileSections`, which reads it. */
+  category: CustomerCategory | undefined;
   lookups: Lookups;
   branches: { id: string; name: string }[];
   employees: { id: string; name: string }[];
@@ -44,153 +65,71 @@ export function ProfileSections({
   /* Read once into a plain bag — every section reads its own keys out of it. */
   const v = customer as unknown as Record<string, string | number | null>;
 
+  const sections = React.useMemo(
+    () => buildProfileSections({ values: v, category, lookups, branches, employees }),
+    [v, category, lookups, branches, employees]
+  );
+
+  /*
+   * A section that holds nothing is off the screen, which would make it
+   * unrecordable — so the ones this customer's type asks for are offered at
+   * the foot of the tab instead, and open empty when chosen. Removed again if
+   * the officer cancels without entering anything (`onDismiss`), so a declined
+   * invitation does not leave an empty card behind.
+   */
+  const [revealed, setRevealed] = React.useState<string[]>([]);
+
+  const missing = sections.filter(
+    (s) => s.relevant && !sectionHasAnswers(s, v) && !revealed.includes(s.key)
+  );
+
   return (
     <div className="space-y-4">
-      <EditableSection
-        title="Basic Information"
-        customerId={customer.id}
-        canEdit={canEdit}
-        values={v}
-        fields={[
-          { name: "firstName", label: "First Name" },
-          { name: "middleName", label: "Middle name" },
-          { name: "lastName", label: "Last name" },
-          { name: "nickname", label: "Nick name" },
-          { name: "gender", label: "Gender", kind: "select", options: enumOpts(GENDERS) },
-          { name: "dob", label: "Date of Birth", kind: "date" },
-          { name: "phone", label: "Phone Number" },
-          { name: "alternativePhone", label: "Alternative Phone" },
-          { name: "email", label: "Email" },
-          { name: "nationality", label: "Nationality" },
-          { name: "branchId", label: "Branch", kind: "select", options: branches.map((b) => ({ value: b.id, label: b.name })) },
-          { name: "employeeId", label: "Employee", kind: "select", options: employees.map((e) => ({ value: e.id, label: e.name })) },
-        ]}
-      />
+      {sections.map((section) => {
+        const answered = sectionHasAnswers(section, v);
+        /* Nothing recorded and nobody asked for it: not mounted at all. */
+        if (!answered && !revealed.includes(section.key)) return null;
 
-      <EditableSection
-        title="Additional Detail"
-        customerId={customer.id}
-        canEdit={canEdit}
-        values={v}
-        fields={[
-          { name: "maritalStatusId", label: "Martial Status", kind: "select", options: opts(lookups["marital-statuses"]) },
-          { name: "accountTypeId", label: "Account Type", kind: "select", options: opts(lookups["account-types"]) },
-          /* Typed, not chosen — see the API's 2026_08_26 migration. The list
-             version is gone from the form; records that reference a list entry
-             still read correctly because the migration copied the name across. */
-          { name: "workType", label: "Work Type" },
-          /* Reads the `loan-types` lookup, which holds the names of the
-             institution's loan categories — not a customer classification.
-             The property keeps its name for API compatibility. */
-          { name: "loanTypeId", label: "Loan Category Name", kind: "select", options: opts(lookups["loan-types"]) },
-          /* The legacy `customer_types` master-data list, which is NOT the
-             Customer Type classification — that is `customerCategoryId`. Kept
-             for records captured before the two were told apart, and named
-             here so nobody reads it as the classification. */
-          { name: "customerTypeId", label: "Legacy customer list", kind: "select", options: opts(lookups["customer-types"]) },
-          { name: "dependentsCount", label: "Number of Dependents", kind: "number" },
-        ]}
-      />
+        return (
+          <EditableSection
+            key={section.key}
+            title={section.title}
+            customerId={customer.id}
+            canEdit={canEdit}
+            values={v}
+            fields={section.fields}
+            autoEdit={!answered}
+            onDismiss={() => setRevealed((r) => r.filter((k) => k !== section.key))}
+          />
+        );
+      })}
 
-      <EditableSection
-        title="Employment"
-        customerId={customer.id}
-        canEdit={canEdit}
-        values={v}
-        fields={[
-          { name: "employmentType", label: "Type of employment" },
-          { name: "occupationId", label: "Occupation", kind: "select", options: opts(lookups.occupations) },
-          { name: "employer", label: "Name of employer" },
-          { name: "department", label: "Department" },
-          { name: "councilNumber", label: "Council No" },
-          { name: "placeOfEmployment", label: "Place Employment" },
-          { name: "retirementDate", label: "Date of retirement", kind: "date" },
-          { name: "basicSalary", label: "Basic Salary", kind: "number" },
-          { name: "takeHome", label: "Take home", kind: "number" },
-          { name: "monthlyIncome", label: "Monthly Income", kind: "number" },
-        ]}
-      />
-
-      <EditableSection
-        title="Business"
-        customerId={customer.id}
-        canEdit={canEdit}
-        values={v}
-        fields={[
-          { name: "businessName", label: "Business Name" },
-          { name: "businessType", label: "Business Type" },
-          { name: "businessAddress", label: "Business Address" },
-        ]}
-      />
-
-      <EditableSection
-        title="Address"
-        customerId={customer.id}
-        canEdit={canEdit}
-        values={v}
-        fields={[
-          /* Region and district remain chosen from reference data; ward and
-             street are typed, because those tables do not cover the country. */
-          { name: "wardName", label: "Ward" },
-          { name: "streetName", label: "Street" },
-          { name: "village", label: "Village" },
-          { name: "houseNumber", label: "House Number" },
-          { name: "postalCode", label: "Postal Code" },
-          { name: "landmark", label: "Landmark" },
-          {
-            name: "residenceType",
-            label: "Residence Type",
-            kind: "select",
-            options: enumOpts(RESIDENCE_TYPES),
-          },
-        ]}
-      />
-
-      <EditableSection
-        title="Identity Documents"
-        customerId={customer.id}
-        canEdit={canEdit}
-        values={v}
-        fields={[
-          { name: "nationalIdNumber", label: "National ID (NIDA)" },
-          { name: "voterIdNumber", label: "Voter ID" },
-          { name: "driverLicenceNumber", label: "Driver's Licence" },
-          { name: "passportNumber", label: "Passport Number" },
-          { name: "tinNumber", label: "TIN Number" },
-          { name: "workIdNumber", label: "Work ID number" },
-        ]}
-      />
-
-      <EditableSection
-        title="Bank & Mobile Money"
-        customerId={customer.id}
-        canEdit={canEdit}
-        values={v}
-        fields={[
-          { name: "bankId", label: "Bank", kind: "select", options: opts(lookups.banks) },
-          { name: "bankBranch", label: "Bank Branch" },
-          { name: "accountName", label: "Account name" },
-          { name: "accountNumber", label: "Account Number" },
-          { name: "checkNumber", label: "Check Number" },
-          {
-            name: "mobileMoneyProviderId",
-            label: "Mobile Money Provider",
-            kind: "select",
-            options: opts(lookups["mobile-money-providers"]),
-          },
-          { name: "walletNumber", label: "Wallet Number" },
-          {
-            name: "cardLastFour",
-            label: "Card",
-            /* Read-only by omission from the update map: the last four are
-               derived from a number this form never holds. Re-entering a card
-               means re-entering it in full, which registration does. */
-            display: (value) => (value ? `•••• ${value}` : <span className="text-muted-foreground">—</span>),
-          },
-          { name: "cardExpiryMonth", label: "Expiry month", kind: "number" },
-          { name: "cardExpiryYear", label: "Expiry year", kind: "number" },
-        ]}
-      />
+      {canEdit && missing.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Add information</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Nothing is recorded for these yet. Open one to fill it in.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {missing.map((section) => (
+                <Button
+                  key={section.key}
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setRevealed((r) => [...r, section.key])}
+                >
+                  <Plus className="size-3.5" />
+                  {section.title}
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

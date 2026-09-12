@@ -283,6 +283,10 @@ export default async function CustomerProfilePage({
         <TabsContent value="details">
           <ProfileSections
             customer={customer}
+            /* The customer's TYPE, so the tab can leave out the blocks this
+               kind of customer is never asked for — a council number on a
+               trader, a business name on a public servant. */
+            category={category}
             lookups={lookups}
             branches={branches.map((b) => ({ id: b.id, name: b.name }))}
             employees={users.users.map((u) => ({ id: u.id, name: u.name }))}
