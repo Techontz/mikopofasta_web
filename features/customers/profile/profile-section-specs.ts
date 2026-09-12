@@ -240,6 +240,21 @@ export function buildProfileSections({
       title: "Bank & Mobile Money",
       relevant: true,
       fields: [
+        /* WHICH of the two this customer uses, as the officer chose it at
+           registration. First in the section because it is what the rest of
+           the rows are an answer to: the bank rows are filled for a bank
+           customer and the wallet rows for an MNO one, and reading the section
+           without it means inferring the choice from which boxes happen to
+           have something in them — the guess this column replaced. */
+        {
+          name: "paymentMethod",
+          label: "Pays by",
+          kind: "select",
+          options: [
+            { value: "mno", label: "Mobile Money" },
+            { value: "bank", label: "Bank Account" },
+          ],
+        },
         { name: "bankId", label: "Bank", kind: "select", options: opts(lookups.banks) },
         /* The typed bank name an older form wrote, before banks became a list. */
         { name: "bankName", label: "Bank (typed)", ...superseded },

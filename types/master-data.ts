@@ -43,6 +43,13 @@ export const MASTER_DATA_LISTS = [
      inside it and a company does not, and one list would offer a public
      servant a sugar mill to serve in. */
   "employers",
+  /* The roots of the five customer types' cascades — see the API's 2026_09_12
+     migration. Their children are parented and so are not flat lists. */
+  "government-bodies",
+  "private-sectors",
+  "business-sectors",
+  "colleges",
+  "pension-funds",
 ] as const;
 
 export type MasterDataList = (typeof MASTER_DATA_LISTS)[number];
@@ -63,6 +70,11 @@ export const MASTER_DATA_LIST_LABELS: Record<MasterDataList, string> = {
   "contract-types": "Contract Types",
   sectors: "Sectors",
   employers: "Employers",
+  "government-bodies": "Government Bodies (Wizara / Taasisi)",
+  "private-sectors": "Private Sectors (Sekta Binafsi)",
+  "business-sectors": "Business Sectors (Sekta ya Biashara)",
+  colleges: "Colleges (Vyuo)",
+  "pension-funds": "Pension Funds (Mifuko ya Hifadhi ya Jamii)",
 };
 
 export interface MasterDataOption {

@@ -81,6 +81,28 @@ export async function getRegistrationLookups(): Promise<Record<MasterDataList, M
  * An empty list when no sector is chosen, rather than the whole table: an
  * unfiltered request here has no meaningful answer.
  */
+/**
+ * One parented list, narrowed to its parent.
+ *
+ * `sector-categories` has a route of its own for historical reasons and keeps
+ * it; every other parented list is served by the generic endpoint, which takes
+ * the slug and resolves the table and the parent column from the registry. A
+ * ninth parented list needs nothing here.
+ */
+export async function getParentedOptions(
+  source: string,
+  parentId: string | null
+): Promise<MasterDataOption[]> {
+  if (!parentId) return [];
+
+  if (source === "sector-categories") return getSectorCategories(parentId);
+
+  return apiData<MasterDataOption[]>(`/api/v1/master-data/parented/${source}`, {
+    token: await token(),
+    query: { parent_id: parentId, active: 1 },
+  });
+}
+
 export async function getSectorCategories(sectorId: string | null): Promise<MasterDataOption[]> {
   if (!sectorId) return [];
 

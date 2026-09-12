@@ -1,6 +1,7 @@
 import { errorPathFor } from "@/features/customers/registration-wizard/structured-fields";
 import type { DynamicFormField } from "@/types/customer";
 import type { MasterDataList, MasterDataOption } from "@/types/master-data";
+import { isParentedSource } from "@/types/customer";
 
 /** Reads one field's current answer, wherever the form happens to store it. */
 export type ReadAnswer = (field: DynamicFormField) => unknown;
@@ -35,7 +36,10 @@ export function codeOfAnswer(
 
   const raw = String(value);
 
-  if (field.dataSource == null || field.dataSource === "sector-categories") return raw;
+  /* A parented list is not in `lookups` — it is fetched one parent at a time,
+     so there is no local table to resolve the code from and the raw id is
+     what the rule compares. */
+  if (field.dataSource == null || isParentedSource(field.dataSource)) return raw;
 
   const row = (lookups[field.dataSource] ?? []).find((r) => r.id === raw);
   return row?.code ?? raw;

@@ -144,12 +144,36 @@ export const DYNAMIC_FIELD_TYPE_LABELS: Record<DynamicFieldType, string> = {
  * flat lists because its rows belong to a parent sector, and is exactly the
  * source a dependent dropdown draws from.
  */
-export const DYNAMIC_DATA_SOURCES = [...MASTER_DATA_LISTS, "sector-categories"] as const;
+/**
+ * The parented lists: rows that belong to a parent and are loaded one parent
+ * at a time. Every one of them is a level of a cascade the customer types ask
+ * for — a ministry's departments, a department's cadres, a sector's companies
+ * and units, a unit's roles, a business sector's trades, a college's courses.
+ */
+export const PARENTED_DATA_SOURCE_SLUGS = [
+  "sector-categories",
+  "government-departments",
+  "government-cadres",
+  "private-employers",
+  "private-departments",
+  "private-cadres",
+  "business-types",
+  "courses",
+] as const;
+
+export const DYNAMIC_DATA_SOURCES = [...MASTER_DATA_LISTS, ...PARENTED_DATA_SOURCE_SLUGS] as const;
 export type DynamicDataSource = (typeof DYNAMIC_DATA_SOURCES)[number];
 
 export const DYNAMIC_DATA_SOURCE_LABELS: Record<DynamicDataSource, string> = {
   ...MASTER_DATA_LIST_LABELS,
   "sector-categories": "Sector Categories (depends on a Sector)",
+  "government-departments": "Government Departments (depends on a Government Body)",
+  "government-cadres": "Government Cadres (depends on a Government Department)",
+  "private-employers": "Companies (depends on a Private Sector)",
+  "private-departments": "Private Departments (depends on a Private Sector)",
+  "private-cadres": "Private Roles (depends on a Private Department)",
+  "business-types": "Business Types (depends on a Business Sector)",
+  courses: "Courses (depends on a College)",
 };
 
 /**
@@ -185,10 +209,38 @@ export const DYNAMIC_DATA_SOURCE_ORIGIN: Record<DynamicDataSource, { where: stri
     where: "Administration → Master Data → Sectors → open a sector → Categories",
     href: "/admin/master-data",
   },
+  "government-bodies": { where: "Administration → Master Data → Government Bodies", href: "/admin/master-data" },
+  "private-sectors": { where: "Administration → Master Data → Private Sectors", href: "/admin/master-data" },
+  "business-sectors": { where: "Administration → Master Data → Business Sectors", href: "/admin/master-data" },
+  colleges: { where: "Administration → Master Data → Colleges", href: "/admin/master-data" },
+  "pension-funds": { where: "Administration → Master Data → Pension Funds", href: "/admin/master-data" },
+  /* Each of these is created inside its parent, for the same reason a cadre is
+     created inside its sector: it has nowhere else to belong. */
+  "government-departments": { where: "Administration → Master Data → Government Bodies → open one → Departments", href: "/admin/master-data" },
+  "government-cadres": { where: "Administration → Master Data → Government Bodies → open a department → Cadres", href: "/admin/master-data" },
+  "private-employers": { where: "Administration → Master Data → Private Sectors → open one → Companies", href: "/admin/master-data" },
+  "private-departments": { where: "Administration → Master Data → Private Sectors → open one → Departments", href: "/admin/master-data" },
+  "private-cadres": { where: "Administration → Master Data → Private Sectors → open a department → Roles", href: "/admin/master-data" },
+  "business-types": { where: "Administration → Master Data → Business Sectors → open one → Business Types", href: "/admin/master-data" },
+  courses: { where: "Administration → Master Data → Colleges → open one → Courses", href: "/admin/master-data" },
 };
 
 /** The sources whose rows belong to a parent, and so can depend on another field. */
-export const PARENTED_DATA_SOURCES: readonly DynamicDataSource[] = ["sector-categories"];
+export const PARENTED_DATA_SOURCES: readonly DynamicDataSource[] = PARENTED_DATA_SOURCE_SLUGS;
+
+export type ParentedDataSource = (typeof PARENTED_DATA_SOURCE_SLUGS)[number];
+
+/**
+ * Whether a source is loaded one parent at a time.
+ *
+ * A type predicate rather than a bare `.includes`, because the callers need
+ * the narrowing: everything that is NOT parented is a flat `MasterDataList`
+ * and can be read straight out of the preloaded `Lookups` table, and TypeScript
+ * will only believe that if the check says so.
+ */
+export function isParentedSource(source: DynamicDataSource): source is ParentedDataSource {
+  return (PARENTED_DATA_SOURCE_SLUGS as readonly string[]).includes(source);
+}
 
 /**
  * One field on a customer type's registration form, as an administrator
@@ -292,6 +344,15 @@ export const CustomerCategorySchema = z.object({
   /** Offered a slot on the documents step, never blocking. */
   optionalDocuments: z.array(z.string()).optional(),
   dynamicFormSchema: z.array(DynamicFormFieldSchema),
+  /**
+   * Standard questions this type does not ask, by the standard field's key.
+   *
+   * Step two draws the type's own questions and then a standard block behind
+   * them; a retiree has no Place of Employment and a trader with their own
+   * "Jina la Biashara" does not need a second "Business Name". The exception
+   * belongs to the type, not to a list of category codes inside this app.
+   */
+  omittedStandardFields: z.array(z.string()).optional(),
   /*
    * Which of the FIRST-CLASS registration blocks this category asks for.
    *
@@ -458,6 +519,9 @@ export const CustomerSchema = z.object({
   accountNumber: z.string().nullable().optional(),
   mobileMoneyProvider: z.string().nullable().optional(),
   walletNumber: z.string().nullable().optional(),
+  /* How this customer is paid, as the officer chose it at registration —
+     stored rather than re-derived from whichever columns are filled. */
+  paymentMethod: z.enum(["mno", "bank"]).nullable().optional(),
   registrationSource: z.string().nullable().optional(),
 
   // ---- legacy registration form: master-data references + its own fields ----
@@ -712,6 +776,9 @@ export const RegisterCustomerInputSchema = z.object({
   accountNumber: z.string().nullable().optional(),
   mobileMoneyProvider: z.string().nullable().optional(),
   walletNumber: z.string().nullable().optional(),
+  /* Which of the two kinds of account the officer chose. See the API's
+     PaymentMethod enum and the 2026_09_12 migration. */
+  paymentMethod: z.enum(["mno", "bank"]).nullable().optional(),
   registrationSource: z.string().nullable().optional(),
 
   // ---- legacy registration form: master-data references + its own fields ----

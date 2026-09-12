@@ -79,6 +79,23 @@ export function Combobox({
   const inputRef = React.useRef<HTMLInputElement>(null);
   const listRef = React.useRef<HTMLUListElement>(null);
   const listId = React.useId();
+  /*
+   * A name the browser cannot classify.
+   *
+   * This box had no `name` and no `autocomplete`, so Chrome fell back to
+   * guessing from the `id` and the label beside it — and `id="branchId"` under
+   * a label reading "Branch", or `id="addr-street"` under "Street", guesses
+   * "address". It then dropped the user's saved postal addresses into the
+   * Branch dropdown, on top of the branches the API had returned.
+   *
+   * `autocomplete="off"` alone does not settle it: Chrome is documented to
+   * disregard it on fields it has decided are part of an address form. What it
+   * cannot do is classify a field whose name it has never seen, so the name is
+   * per-instance and meaningless. Nothing reads it — this input is controlled,
+   * the value reaches the form through `onChange`, and there is no <form> for a
+   * native submit to collect it from.
+   */
+  const autofillName = React.useId();
 
   const isAsync = typeof loadOptions === "function";
   const stale = isAsync && loaded?.key !== (loadKey ?? null);
@@ -185,6 +202,7 @@ export function Combobox({
         <input
           ref={inputRef}
           id={id}
+          name={`cb-${autofillName}`}
           type="text"
           role="combobox"
           aria-expanded={open}
@@ -192,6 +210,16 @@ export function Combobox({
           aria-autocomplete="list"
           aria-invalid={invalid || undefined}
           disabled={disabled}
+          /* The options come from the application. Anything the browser or a
+             password manager adds to them is, by definition, not one. */
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="none"
+          spellCheck={false}
+          data-form-type="other"
+          data-1p-ignore=""
+          data-lpignore="true"
+          data-bwignore=""
           /* When closed the box shows the chosen label as its value, so it
              reads exactly like a select. Typing replaces it with the query. */
           value={open ? query : (selected?.label ?? "")}

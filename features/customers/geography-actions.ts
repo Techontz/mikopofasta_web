@@ -1,7 +1,7 @@
 "use server";
 
 import { getDistricts, getRegions, getStreets, getWards } from "@/lib/api/organization";
-import { getSectorCategories } from "@/lib/api/master-data";
+import { getParentedOptions, getSectorCategories } from "@/lib/api/master-data";
 
 /**
  * The address cascade, fetched a level at a time.
@@ -72,6 +72,24 @@ export async function loadSectorCategories(sectorId: string): Promise<GeoOption[
   if (!sectorId) return [];
   try {
     return (await getSectorCategories(sectorId)).map((c) => ({ value: c.id, label: c.name }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Any parented lookup list, for the one parent that was chosen.
+ *
+ * The cadres action above is the two-level case of this; the customer types
+ * brought seven more chains of the same shape — ministry → department → cadre,
+ * sector → company, college → course — and they differ only in the slug. Fails
+ * soft to an empty list for the same reason everything else here does: a
+ * dropdown that cannot load says "none found" and stays usable.
+ */
+export async function loadParentedOptions(source: string, parentId: string): Promise<GeoOption[]> {
+  if (!source || !parentId) return [];
+  try {
+    return (await getParentedOptions(source, parentId)).map((r) => ({ value: r.id, label: r.name }));
   } catch {
     return [];
   }

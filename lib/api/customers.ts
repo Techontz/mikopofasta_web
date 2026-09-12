@@ -392,6 +392,11 @@ export async function registerCustomerRequest(input: RegisterCustomerInput): Pro
       customerTypeId: toId(input.customerTypeId),
       accountTypeId: toId(input.accountTypeId),
 
+      /* The officer's choice between a wallet and a bank account. The API
+         stores it rather than re-deriving it from which columns are filled —
+         a stale value in the other kind's boxes used to change the answer. */
+      paymentMethod: input.paymentMethod ?? null,
+
       accountName: blank(input.accountName),
       nationalIdNumber: blank(input.nationalIdNumber),
       voterIdNumber: blank(input.voterIdNumber),

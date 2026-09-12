@@ -3,11 +3,12 @@
 import * as React from "react";
 import { useFormContext } from "react-hook-form";
 import { Input } from "@/components/ui/input";
+import { NO_AUTOFILL } from "@/features/customers/registration-wizard/no-autofill";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Combobox, type ComboboxOption } from "@/components/settings/combobox";
-import { loadSectorCategories } from "@/features/customers/geography-actions";
+import { loadParentedOptions } from "@/features/customers/geography-actions";
 import { isFieldRequired, type Lookups } from "@/features/customers/registration-wizard/dynamic-form";
 import { toRecord } from "@/features/customers/registration-wizard/wizard-schema";
 import {
@@ -19,6 +20,7 @@ import type { WizardValues } from "@/features/customers/registration-wizard/wiza
 import {
   DYNAMIC_DATA_SOURCE_ORIGIN,
   PARENTED_DATA_SOURCES,
+  isParentedSource,
   type DynamicFormField,
 } from "@/types/customer";
 
@@ -112,7 +114,9 @@ export function DynamicFields({ fields, lookups }: { fields: DynamicFormField[];
   if (fields.length === 0) return null;
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    /* Two equal columns, at the same rhythm step one uses, so the two steps
+       read as one form rather than two. */
+    <div className="grid gap-x-3 gap-y-3 sm:grid-cols-2">
       {fields.map((field) => (
         <DynamicField
           key={field.key}
@@ -152,20 +156,36 @@ function DynamicField({
   const id = `cfg-${field.key}`;
   const parentId = parentValue == null || parentValue === "" ? null : String(parentValue);
 
-  /* The one parented source. Loaded on open through the same server action the
-     address cascade uses, keyed on the parent so choosing another sector
-     invalidates the list rather than showing the previous one's cadres. */
+  /* Whichever parented list this field names, loaded on open through the same
+     server action the address cascade uses and keyed on the parent — so
+     choosing another ministry invalidates the departments rather than showing
+     the previous one's. */
+  const source = field.dataSource ?? "";
   const loadDependent = React.useCallback(
     async (): Promise<ComboboxOption[]> =>
-      (await loadSectorCategories(parentId ?? "")).map((r) => ({ value: r.value, label: r.label })),
-    [parentId]
+      (await loadParentedOptions(source, parentId ?? "")).map((r) => ({ value: r.value, label: r.label })),
+    [source, parentId]
   );
 
   const isParented = field.dataSource != null && PARENTED_DATA_SOURCES.includes(field.dataSource);
 
   return (
     <div
-      className={field.fullWidth || field.type === "textarea" ? "sm:col-span-2 space-y-1.5" : "space-y-1.5"}
+      /*
+       * A FULL ROW ONLY FOR A LONG-FORM ANSWER.
+       *
+       * `fullWidth` used to be enough on its own, and the document sets it on
+       * several ordinary one-line boxes — the root of each cascade, "Mahali
+       * Biashara Ilipo". Each of those took a whole row and left the column
+       * beside it empty, so a form of fourteen short answers was read as a
+       * column of ten rows with holes in it.
+       *
+       * A textarea genuinely needs the width; a text box, select, number or
+       * date does not, whatever it was configured with. So the span is decided
+       * by what is being ANSWERED rather than by a flag set for a different
+       * layout.
+       */
+      className={field.type === "textarea" ? "sm:col-span-2 space-y-1" : "space-y-1"}
       /* The wizard's error focusing looks for this when a 422 names a field
          that has no stable input id of its own. */
       data-field={errorPathFor(field)}
@@ -177,6 +197,7 @@ function DynamicField({
 
       {field.type === "textarea" ? (
         <Textarea
+          {...NO_AUTOFILL}
           id={id}
           placeholder={field.placeholder ?? undefined}
           value={value == null ? "" : String(value)}
@@ -220,7 +241,7 @@ function DynamicField({
           invalid={Boolean(error)}
         />
       ) : (
-        <Input
+        <Input {...NO_AUTOFILL}
           id={id}
           type={field.type === "date" ? "date" : field.type === "text" ? "text" : "number"}
           inputMode={field.type === "currency" ? "decimal" : undefined}
@@ -281,7 +302,9 @@ function parentOf(
 
 /** The choices a select offers: an admin-managed list, or its fixed options. */
 function optionsFor(field: DynamicFormField, lookups: Lookups): ComboboxOption[] {
-  if (field.dataSource != null && field.dataSource !== "sector-categories") {
+  /* Parented lists are not here: they are fetched for the parent that was
+     chosen, by the loader above, rather than held whole in `lookups`. */
+  if (field.dataSource != null && !isParentedSource(field.dataSource)) {
     return (lookups[field.dataSource] ?? []).map((r) => ({
       value: r.id,
       label: r.name,

@@ -4,6 +4,7 @@ import { useFieldArray, useFormContext } from "react-hook-form";
 import { Plus, Trash2, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NO_AUTOFILL } from "@/features/customers/registration-wizard/no-autofill";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EmptyState } from "@/components/feedback/empty-state";
@@ -31,11 +32,11 @@ export function NextOfKinStep() {
           <div key={field.id} className="grid gap-3 rounded-lg border p-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Full Name</Label>
-              <Input {...register(`nextOfKin.${index}.name`)} />
+              <Input {...NO_AUTOFILL} {...register(`nextOfKin.${index}.name`)} />
             </div>
             <div className="space-y-1.5">
               <Label>Phone</Label>
-              <Input {...register(`nextOfKin.${index}.phone`)} />
+              <Input {...NO_AUTOFILL} {...register(`nextOfKin.${index}.phone`)} />
             </div>
             <div className="space-y-1.5">
               <Label>Relationship</Label>
@@ -57,7 +58,7 @@ export function NextOfKinStep() {
             </div>
             <div className="space-y-1.5">
               <Label>Address (optional)</Label>
-              <Input {...register(`nextOfKin.${index}.address`)} />
+              <Input {...NO_AUTOFILL} {...register(`nextOfKin.${index}.address`)} />
             </div>
             <div className="sm:col-span-2 flex justify-end">
               <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => remove(index)}>

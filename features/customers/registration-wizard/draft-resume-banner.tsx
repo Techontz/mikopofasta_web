@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import { FileClock, Loader2, Trash2 } from "lucide-react";
+import { ChevronDown, FileClock, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   discardRegistrationDraft,
@@ -47,6 +47,12 @@ export function DraftResumeBanner({
   const [busy, setBusy] = React.useState<string | null>(null);
   const [dismissedServer, setDismissedServer] = React.useState(false);
   const [drafts, setDrafts] = React.useState(serverDrafts);
+  /* Minimised by default, and not the same thing as dismissed. "Not now"
+     hides the offer for this visit; collapsed keeps the heading — and the
+     count — on screen, so an officer still sees that drafts are waiting
+     without the list pushing the registration form down the page. Opening it
+     is one click, and the count tells them whether it is worth one. */
+  const [expanded, setExpanded] = React.useState(false);
 
   const showServer = !dismissedServer && drafts.length > 0;
 
@@ -112,22 +118,37 @@ export function DraftResumeBanner({
       {showServer && (
         <div className="space-y-2 rounded-lg border p-4">
           <div className="flex items-start justify-between gap-3">
-            <div className="space-y-0.5">
-              <p className="flex items-center gap-2 text-sm font-medium">
-                <FileClock className="size-4 text-muted-foreground" aria-hidden />
-                Saved registrations ({drafts.length})
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Unfinished and waiting. These are held on the server, so they can be resumed from
-                any device.
-              </p>
-            </div>
+            <button
+              type="button"
+              onClick={() => setExpanded((open) => !open)}
+              aria-expanded={expanded}
+              aria-controls="saved-registrations-list"
+              className="-m-1 flex flex-1 items-start gap-2 rounded p-1 text-left hover:bg-muted/50"
+            >
+              <ChevronDown
+                className={`mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform ${
+                  expanded ? "" : "-rotate-90"
+                }`}
+                aria-hidden
+              />
+              <span className="block space-y-0.5">
+                <span className="flex items-center gap-2 text-sm font-medium">
+                  <FileClock className="size-4 text-muted-foreground" aria-hidden />
+                  Saved registrations ({drafts.length})
+                </span>
+                <span className="block text-xs text-muted-foreground">
+                  {expanded
+                    ? "Unfinished and waiting. These are held on the server, so they can be resumed from any device."
+                    : "Hidden — select to show them again."}
+                </span>
+              </span>
+            </button>
             <Button type="button" size="sm" variant="ghost" onClick={() => setDismissedServer(true)}>
               Not now
             </Button>
           </div>
 
-          <ul className="divide-y">
+          <ul id="saved-registrations-list" className="divide-y" hidden={!expanded}>
             {drafts.map((draft) => {
               const mine = draft.createdById === currentUserId;
               return (
@@ -176,8 +197,21 @@ export function DraftResumeBanner({
   );
 }
 
+/**
+ * A fixed locale, not the reader's.
+ *
+ * `toLocaleString(undefined, …)` asks the runtime for its own locale, and the
+ * two runtimes that render this banner do not agree: Node formats "Sep 12,
+ * 03:20 PM" and the browser "12 Sept, 15:20", so React reported a hydration
+ * mismatch on the draft list every time one was offered. The banner is now
+ * shown far more often — advancing a step writes a server draft — so the
+ * warning went from rare to routine.
+ *
+ * `en-GB` because it is the 24-hour, day-first form this deployment reads dates
+ * in, and because it is the same on both sides, which is the whole point.
+ */
 const when = (iso: string) =>
-  new Date(iso).toLocaleString(undefined, {
+  new Date(iso).toLocaleString("en-GB", {
     day: "2-digit",
     month: "short",
     hour: "2-digit",

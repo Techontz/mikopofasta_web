@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Check, ChevronLeft, ChevronRight, Loader2, Save, ScanFace } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Loader2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import {
-  FACE_STEP_INDEX,
   SAVE_STEP_INDEX,
+  FACE_STEP_INDEX,
   STEP_FIELDS,
   WIZARD_DRAFT_STORAGE_KEY,
   WIZARD_STEPS,
@@ -25,11 +25,12 @@ import {
   type WizardValues,
 } from "@/features/customers/registration-wizard/wizard-schema";
 import { BasicInformationStep } from "@/features/customers/registration-wizard/steps/basic-information-step";
-import { AdditionalDetailsStep } from "@/features/customers/registration-wizard/steps/additional-details-step";
-import { DocumentsStep } from "@/features/customers/registration-wizard/steps/documents-step";
+import { CustomerDetailsStep } from "@/features/customers/registration-wizard/steps/customer-details-step";
+import { KycAttachmentStep, KYC_ATTACHMENT_CODE } from "@/features/customers/registration-wizard/steps/kyc-attachment-step";
 import { FaceVerificationStep } from "@/features/customers/registration-wizard/steps/face-verification-step";
-import type { PendingDocument } from "@/features/customers/registration-wizard/steps/required-documents-step";
+import type { PendingDocument } from "@/features/customers/registration-wizard/steps/kyc-attachment-step";
 import { missingDynamicAnswers } from "@/features/customers/registration-wizard/dynamic-form";
+import { registrationFieldsFor } from "@/features/customers/registration-wizard/customer-type-fields";
 import { structuredNameFor } from "@/features/customers/registration-wizard/structured-fields";
 import { DraftResumeBanner } from "@/features/customers/registration-wizard/draft-resume-banner";
 import type { MasterDataList, MasterDataOption } from "@/types/master-data";
@@ -47,33 +48,40 @@ import type { Branch } from "@/types/branch";
 import type { CustomerCategory } from "@/types/customer";
 
 /**
- * Customer registration, in three steps.
+ * Customer registration, in four steps.
  *
- *     Basic Information → Additional Details → Documents → Face Verification
+ *     Basic Information → Customer Details → KYC Attachments → Face Verification
  *
  * Three things about the shape are load-bearing.
  *
- * STEP TWO IS NOT WRITTEN DOWN. It asks for the Customer Type and then renders
- * whatever that type's configured registration form declares — its fields,
- * their types, the lists they draw on, which of them depend on which, and what
- * makes each one mandatory. No customer type is named anywhere in this
- * directory, and adding one, or adding a question to one, is a save on an
- * administration screen rather than a deployment.
+ * THE CUSTOMER TYPE IS ASKED ON STEP ONE AND SHAPES STEP TWO. It used to be the
+ * first control on step two, which meant that step opened as an empty card with
+ * a single dropdown in it. It is now asked with the rest of the basic details,
+ * and step two is its consequence: the type's own configured form, plus the
+ * standard block for what kind of customer it is — employment questions for an
+ * employed customer, business questions for a trader. No customer type is named
+ * anywhere in this directory, and adding one, or adding a question to one, is a
+ * save on an administration screen rather than a deployment.
  *
- * THE CUSTOMER IS CREATED ON STEP THREE, BEFORE THE FACE SCAN. Everything
- * before Save is a draft — held on the server, so it survives the device — and
- * the save produces a real customer whose status reads "Awaiting face
- * verification". The scan then runs on the same page, or an hour later from a
- * phone, by whoever has the customer in front of them. The old wizard refused
- * to submit at all without a capture, which meant a registration could only
- * ever be completed in one sitting at a desk with a working camera, and any
- * interruption lost the whole form.
+ * THE CUSTOMER IS CREATED ON STEP THREE, AND STEP FOUR RUNS AGAINST THEM.
+ * Everything before Save is a draft — held on the server, so it survives the
+ * device — and the save produces a real customer whose status reads "Awaiting
+ * face verification". Face Verification is the fourth step and it is
+ * compulsory, but it is reached only BY that save: a biometric check needs a
+ * record to check against, so the wizard has no path to it from the Next
+ * button and the step cannot be opened early.
+ *
+ * Being compulsory is a rule about this FLOW, not about the record. The
+ * customer is already written by the time the camera appears, so an officer
+ * whose browser dies loses nothing and the same scan sits on the customer's
+ * profile for whoever next has them in front of a camera. What the wizard no
+ * longer does is offer to walk away from it.
  *
  * WHAT EACH STEP REQUIRES COMES FROM TWO PLACES AND NEITHER IS THIS FILE. The
  * account type's requirement profile — a row from `account_type_requirements`,
  * the same row `RegisterCustomerRequest` validates against — governs the
- * address, the identity document and the guarantors. The customer type's
- * configured form governs everything on step two. Both are read at runtime, so
+ * address, the identity document, the payment account and the guarantors. The
+ * customer type governs everything on step two. Both are read at runtime, so
  * the wizard is never a second opinion about the rules: it is an earlier report
  * of the same ones, delivered on the step that owns the field rather than at
  * Save.
@@ -117,8 +125,9 @@ export function RegistrationWizard({
   const [isSavingDraft, setIsSavingDraft] = React.useState(false);
   /*
    * The documents chosen for this registration, each already paired with the
-   * type code it will be filed under. One slot per code the category requires,
-   * plus anything extra the branch attached — see RequiredDocumentsStep.
+   * type code it will be filed under. One entry, in practice: registration
+   * takes the customer's KYC pack as a single attachment — see
+   * KycAttachmentStep.
    *
    * Held here rather than in the form because a File is not serialisable and
    * must never reach the draft that is saved to the server.
@@ -158,32 +167,6 @@ export function RegistrationWizard({
      rather than mirrored into state — an effect syncing it would be a
      setState in an effect body, and the value is already here. */
   const selectedCategory = categories.find((c) => c.id === methods.watch("customerCategoryId"));
-
-  /**
-   * The document that evidences the ID type the officer chose on step one.
-   *
-   * Two lookups and no knowledge: the ID type carries a `documentTypeId` an
-   * administrator set (Administration → Master Data → ID Types), and that names
-   * a row in the document types list. Change the ID type and this changes with
-   * it; link an ID type to a different document tomorrow and the form asks for
-   * that one, with nothing deployed.
-   *
-   * Null is an ordinary answer — no ID type chosen yet, none linked to a
-   * document, or the linked document type has since been deactivated. The
-   * documents step then shows the customer type's list alone, which is exactly
-   * what it did before this link existed.
-   */
-  const chosenIdTypeId = methods.watch("idTypeId");
-
-  const identityDocument = React.useMemo(() => {
-    const idType = lookups["id-types"].find((t) => t.id === chosenIdTypeId);
-    if (!idType?.documentTypeId) return null;
-
-    const document = lookups["document-types"].find((d) => d.id === idType.documentTypeId);
-    if (!document) return null;
-
-    return { code: document.code, name: document.name, idTypeName: idType.name };
-  }, [chosenIdTypeId, lookups]);
 
   const { watch, reset, trigger, getValues, setError, clearErrors } = methods;
 
@@ -373,15 +356,24 @@ export function RegistrationWizard({
 
     const values = getValues();
 
+    /*
+     * THE SAME LIST THE STEP DRAWS, composed by the same function.
+     *
+     * It used to be `selectedCategory.dynamicFormSchema` — the configured
+     * fields alone — while step two also rendered the standard block for the
+     * customer type's sector. Validating one list and rendering another is how
+     * a required answer goes unasked, or an answered question is reported
+     * missing.
+     */
     return missingDynamicAnswers(
-      selectedCategory.dynamicFormSchema,
+      registrationFieldsFor(selectedCategory, profile),
       (field) => {
         const name = structuredNameFor(field);
         return name === null ? values.dynamicFormData[field.key] : values[name];
       },
       lookups
     );
-  }, [selectedCategory, getValues, lookups]);
+  }, [selectedCategory, getValues, lookups, profile]);
 
   async function goNext() {
     /*
@@ -416,6 +408,22 @@ export function RegistrationWizard({
     }
 
     setStep((s) => Math.min(s + 1, WIZARD_STEPS.length - 1));
+
+    /*
+     * SAVE AND CONTINUE, WHERE THE BUTTON SAYS SO.
+     *
+     * The step buttons used to read "Next" over a form whose only persistence
+     * was a copy in this browser's localStorage — so an officer who moved to
+     * step two, then lost the tab, lost the registration, and nothing had ever
+     * suggested otherwise. Advancing now writes the server draft as well, which
+     * is what makes the same registration resumable from another desk.
+     *
+     * Not awaited: the officer is already on the next step and has nothing to
+     * wait for. Silent on success for the same reason — but never on failure,
+     * because somebody told their work was safe when it is not is worse off
+     * than somebody told nothing. See `saveDraft`.
+     */
+    void saveDraft(true);
   }
 
   function goBack() {
@@ -499,8 +507,8 @@ export function RegistrationWizard({
     const values = getValues();
 
     /* Narrowed once, so the check and the message cannot drift apart. */
-    const identityMissing =
-      identityDocument !== null && !documents.some((d) => d.code === identityDocument.code);
+    const attachmentMissing = !documents.some((d) => d.code === KYC_ATTACHMENT_CODE);
+    const ATTACHMENT_REQUIRED = "Attach the customer's KYC documents before saving.";
 
     const blocking = {
       ...validateStepAgainstProfile("basic", values, profile),
@@ -511,34 +519,25 @@ export function RegistrationWizard({
          judged here too, not only on the step that asked them. */
       ...categoryErrors(),
       /*
-       * THE IDENTITY DOCUMENT, CHECKED BEFORE THE CUSTOMER IS CREATED.
+       * THE KYC ATTACHMENT, CHECKED BEFORE THE CUSTOMER IS CREATED.
        *
        * It has to be checked here rather than by the API, and that is a
        * consequence of the order the work happens in: the upload endpoint is
        * keyed on a customer id, so the file cannot be sent until the record
-       * exists. Refusing at Save is therefore the only point at which "no
-       * identity document" can mean "no customer" rather than "a customer with
-       * a gap in their file".
+       * exists. Refusing at Save is therefore the only point at which "no KYC
+       * documents" can mean "no customer" rather than "a customer with an
+       * empty file".
        *
        * The rule is not weakened by living here. The server judges the same
-       * fact from the other side — KycEvaluator's `identityDocumentFile` marks
-       * a customer whose ID type calls for a document and lacks it as KYC
-       * incomplete, which is what stops them borrowing. This stops the
-       * registration; that stops the consequence.
+       * fact from the other side — KycEvaluator marks a customer whose file
+       * lacks what their ID type calls for as KYC incomplete, which is what
+       * stops them borrowing. This stops the registration; that stops the
+       * consequence.
        */
-      ...(identityMissing
-        ? {
-            [`documents.${identityDocument.code}`]:
-              `${identityDocument.name} is required. Upload the customer's ${identityDocument.idTypeName}.`,
-          }
-        : {}),
+      ...(attachmentMissing ? { [`documents.${KYC_ATTACHMENT_CODE}`]: ATTACHMENT_REQUIRED } : {}),
     };
 
-    setIdentityError(
-      identityMissing
-        ? `${identityDocument.name} is required. Upload the customer's ${identityDocument.idTypeName}.`
-        : null,
-    );
+    setIdentityError(attachmentMissing ? ATTACHMENT_REQUIRED : null);
 
     if (Object.keys(blocking).length > 0) {
       for (const [field, message] of Object.entries(blocking)) {
@@ -591,8 +590,47 @@ export function RegistrationWizard({
 
     setIsSubmitting(true);
 
+    /*
+     * THE BANK BLOCK, ASSEMBLED HERE rather than bound to the form.
+     *
+     * `bankDetails` is the API's record of account and its three strings are
+     * required together — binding inputs straight to them would mean a form
+     * whose schema refuses an officer who has chosen a mobile wallet, because
+     * the object would exist with empty members. So the officer fills in flat
+     * fields, the chooser guarantees only one kind of account holds anything
+     * (see PaymentDetailsStep), and the object is built once, here, from what
+     * they actually answered.
+     *
+     * Keyed on the account NUMBER, which is the same fact the API tests for
+     * (RegisterCustomerRequest::checkBankAccount): a bank chosen with no
+     * account number is not an account.
+     *
+     * `paymentMethod` IS SENT, and is the answer of record. It used to be
+     * stripped here as the form's own bookkeeping, on the reasoning that the
+     * API records accounts rather than preferences between them — but the
+     * preference is a fact the officer stated, and rebuilding it afterwards
+     * from whichever columns happen to be filled gets it wrong in both
+     * directions. "none" travels as null: it means no account was given, which
+     * is legitimate for an account type that requires none.
+     */
+    const { paymentMethod, ...payload } = values;
+
+    const bankDetails =
+      paymentMethod === "bank" && (values.accountNumber ?? "").trim() !== ""
+        ? {
+            bankName: values.bankName ?? "",
+            accountNumber: (values.accountNumber ?? "").trim(),
+            accountName: (values.accountName ?? "").trim(),
+            /* The customer's own number, so a payment can be traced back to a
+               person rather than to an account string alone. */
+            phoneNumber: values.phone,
+          }
+        : null;
+
     const result = await registerCustomer({
-      ...values,
+      ...payload,
+      paymentMethod: paymentMethod === "none" ? null : paymentMethod,
+      bankDetails,
       /*
        * All three left null, and null is the honest value: no NIDA registry
        * was queried, no SMS code was sent, and no face has been scanned yet.
@@ -666,12 +704,15 @@ export function RegistrationWizard({
       customerNumber: result.customerNumber ?? null,
     });
 
-    /* Straight on to the biometric step, against the record that now exists. */
+    /* THE FOURTH STEP OPENS HERE, and only here. Face Verification runs against
+       a customer who must already exist, so the save is what makes it
+       reachable — there is no path to it from the Next button. */
     setStep(FACE_STEP_INDEX);
+
     toast.success(
       result.customerNumber
-        ? `Saved as ${result.customerNumber}. One step left: face verification.`
-        : "Saved. One step left: face verification.",
+        ? `Saved as ${result.customerNumber}. Face verification completes the registration.`
+        : "Saved. Face verification completes the registration.",
     );
   }
 
@@ -702,14 +743,16 @@ export function RegistrationWizard({
   /*
    * Back stops at the save.
    *
-   * Before the customer exists the officer may walk the whole form. After it,
-   * the earlier steps describe a record that has already been written, and this
-   * screen can only create — so letting somebody back into "Basic Information"
-   * would offer an edit that silently does nothing. From step four they may
-   * still step back to Documents, which is where the "already saved" state and
-   * the route on to the scan both live.
+   * Before the customer exists the officer may walk the whole form freely, and
+   * nothing is lost either way — the wizard is one React Hook Form, so every
+   * value typed on step one is still there when they come back to it. After the
+   * save the earlier steps describe a record that has already been written and
+   * this screen can only create, so letting somebody back into "Basic
+   * Information" would offer an edit that silently does nothing. Corrections
+   * after that point are made on the customer's profile, which can actually
+   * apply them.
    */
-  const canGoBack = savedCustomer === null ? step > 0 : step > SAVE_STEP_INDEX;
+  const canGoBack = savedCustomer === null && step > 0;
 
   return (
     <FormProvider {...methods}>
@@ -731,42 +774,39 @@ export function RegistrationWizard({
         )}
 
         {/* ------------------------------------------------------ the stepper */}
-        <ol className="flex flex-wrap items-center gap-x-1 gap-y-2 text-xs">
+        {/*
+          Four steps, and the label is readable at every width — it used to be
+          hidden below `sm`, which left a phone showing numbered circles and no
+          way to tell what any of them were. The labels wrap instead.
+        */}
+        <ol className="flex flex-wrap items-center gap-x-1 gap-y-2 text-xs" aria-label="Registration steps">
           {WIZARD_STEPS.map((s, i) => {
-            /* Done means done: once the customer exists, the three steps that
-               produced them are finished facts, not places to go back to. */
-            const done = i < step || (savedCustomer !== null && i <= SAVE_STEP_INDEX);
+            /* Done means done. The three steps behind the current one are
+               finished facts once passed; the fourth is finished only when the
+               scan has passed, which is the whole point of numbering it. */
+            const done = s.id === "face" ? faceVerified : i < step;
             const current = i === step;
-            const biometric = s.id === "face";
 
             return (
-              <li key={s.id} className="flex items-center gap-1">
+              <li key={s.id} className="flex items-center gap-1.5">
                 <span
+                  aria-current={current ? "step" : undefined}
                   className={cn(
-                    "flex size-6 items-center justify-center rounded-full border font-medium",
+                    "flex size-6 shrink-0 items-center justify-center rounded-full border font-medium",
                     done
                       ? "border-primary bg-primary text-primary-foreground"
                       : current
-                        ? "border-primary text-primary"
+                        ? "border-primary text-primary ring-2 ring-primary/20"
                         : "border-muted-foreground/30 text-muted-foreground",
-                    /* The last step is a biometric check against a customer who
-                       already exists, which is a different kind of act from the
-                       three that precede it. Marked, so the stepper says so. */
-                    biometric && !done && current && "ring-2 ring-primary/25",
                   )}
                 >
-                  {done ? <Check className="size-3.5" /> : biometric ? <ScanFace className="size-3.5" /> : i + 1}
+                  {done ? <Check className="size-3.5" /> : i + 1}
                 </span>
-                <span
-                  className={cn(
-                    "hidden sm:inline",
-                    current ? "font-medium" : "text-muted-foreground",
-                  )}
-                >
+                <span className={cn(current ? "font-medium" : "text-muted-foreground")}>
                   {s.label}
                 </span>
                 {i < WIZARD_STEPS.length - 1 && (
-                  <ChevronRight className="mx-1 size-3.5 text-muted-foreground/50" aria-hidden />
+                  <ChevronRight className="mx-1 size-3.5 shrink-0 text-muted-foreground/50" aria-hidden />
                 )}
               </li>
             );
@@ -801,6 +841,7 @@ export function RegistrationWizard({
                 currentUser={currentUser}
                 employees={employees}
                 canAssignOfficer={canAssignOfficer}
+                categories={categories}
                 idTypes={lookups["id-types"]}
                 maritalStatuses={lookups["marital-statuses"]}
                 profile={profile}
@@ -808,67 +849,44 @@ export function RegistrationWizard({
             )}
 
             {currentStepId === "details" && (
-              <AdditionalDetailsStep categories={categories} lookups={lookups} profile={profile} />
+              <CustomerDetailsStep categories={categories} lookups={lookups} profile={profile} />
             )}
 
             {currentStepId === "documents" && (
-              <DocumentsStep
-                category={selectedCategory}
-                identity={identityDocument}
-                identityError={identityError ?? undefined}
-                documentTypes={lookups["document-types"]}
+              <KycAttachmentStep
                 documents={documents}
-                onDocumentsChange={(next) => {
+                error={identityError ?? undefined}
+                onChange={(next) => {
                   setDocuments(next);
                   /* Attaching it answers the complaint; keeping the red text
                      under a filled slot would be the form arguing with what is
                      in front of the officer. */
-                  if (identityDocument && next.some((d) => d.code === identityDocument.code)) {
-                    setIdentityError(null);
-                  }
+                  if (next.length > 0) setIdentityError(null);
                 }}
-                /* The API's answer, not a rule decided here. */
-                blocking={profile.requiresCategoryDocuments}
-                savedCustomer={savedCustomer}
               />
             )}
 
-            {currentStepId === "face" &&
-              (savedCustomer ? (
-                <FaceVerificationStep
-                  customerId={savedCustomer.id}
-                  customerName={savedCustomer.name}
-                  required={profile.requiresFaceVerification}
-                  verified={faceVerified}
-                  submitting={isSubmitting}
-                  onCapture={submitFace}
-                  onFinishLater={() => {
-                    toast.info(
-                      "Saved. The customer is awaiting face verification and can be found in the customer list.",
-                    );
-                    router.push(`/customers/${savedCustomer.id}`);
-                  }}
-                />
-              ) : (
-                /*
-                 * Reachable only by jumping the stepper: the button on step
-                 * three is what creates the customer, and this step operates
-                 * against that record. A camera keyed on nothing would produce
-                 * a capture with nowhere to go.
-                 */
-                <p className="text-sm text-muted-foreground">
-                  Save the registration on the previous step first. Face verification runs against
-                  the saved customer.
-                </p>
-              ))}
+            {currentStepId === "face" && savedCustomer && (
+              <FaceVerificationStep
+                customerId={savedCustomer.id}
+                customerName={savedCustomer.name}
+                required
+                verified={faceVerified}
+                submitting={isSubmitting}
+                onCapture={submitFace}
+                onDone={() => router.push(`/customers/${savedCustomer.id}`)}
+              />
+            )}
 
           </CardContent>
         </Card>
 
         {/* ------------------------------------------------------- the buttons */}
-        {/* Step four carries its own: capture, or finish later. A Next button
-            beside a camera would suggest the scan is skippable in place. */}
-        {currentStepId !== "face" && (
+        {/* Gone once the customer exists: step three then carries its own —
+            capture, or finish later. A Next button beside a camera would
+            suggest the scan is skippable in place, and a Save beside a record
+            that has already been written would offer to write it twice. */}
+        {!savedCustomer && (
           <div className="flex flex-wrap items-center justify-between gap-2">
             <Button type="button" variant="outline" onClick={goBack} disabled={!canGoBack}>
               <ChevronLeft className="size-4" />
@@ -888,26 +906,14 @@ export function RegistrationWizard({
               )}
 
               {step === SAVE_STEP_INDEX ? (
-                <Button
-                  type="button"
-                  /*
-                   * IDEMPOTENT BY CONSTRUCTION. Once the customer exists this
-                   * button stops being a save and becomes navigation — coming
-                   * back to this step and pressing it again moves on rather
-                   * than registering the same person twice. Nothing about
-                   * "have I already saved?" is left to the officer's memory or
-                   * to a double-click guard.
-                   */
-                  onClick={savedCustomer ? () => setStep(FACE_STEP_INDEX) : saveRegistration}
-                  disabled={isSubmitting}
-                >
+                <Button type="button" onClick={saveRegistration} disabled={isSubmitting}>
                   {isSubmitting && <Loader2 className="size-4 animate-spin" />}
-                  {savedCustomer ? "Continue to Face Verification" : "Save & Continue to Face Verification"}
-                  <ChevronRight className="size-4" />
+                  Complete Registration
+                  <Check className="size-4" />
                 </Button>
               ) : (
                 <Button type="button" onClick={goNext}>
-                  Next
+                  Save &amp; Continue
                   <ChevronRight className="size-4" />
                 </Button>
               )}

@@ -2,13 +2,13 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { BadgeCheck, Clock, Loader2, Smartphone } from "lucide-react";
+import { BadgeCheck, Loader2, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FaceScanner } from "@/features/customers/registration-wizard/face-scanner/face-scanner";
 import type { FaceScanReport } from "@/features/customers/registration-wizard/face-scanner/face-report";
 
 /**
- * Step 6 — Face Verification. The last step, and deliberately after the save.
+ * Step 4 — Face Verification. The last step, and deliberately after the save.
  *
  * THIS IS THE POINT OF THE WHOLE REDESIGN. The face capture used to sit in the
  * middle of the form, beside the bank card fields, and the wizard refused to
@@ -20,14 +20,14 @@ import type { FaceScanReport } from "@/features/customers/registration-wizard/fa
  *
  * By the time this step is reached the customer EXISTS. Everything is saved,
  * their record is in the list, and their status reads "Awaiting face
- * verification". So this screen has three honest exits:
+ * verification" until the scan passes.
  *
- *   1. Scan now, on this device.
- *   2. Leave it. The officer walks away and nothing is lost.
- *   3. Do it elsewhere — the same capability is on the customer's own profile,
- *      reachable by anyone signed in with the right to manage that customer,
- *      on any device with a camera. Nothing about it depends on this browser
- *      session still being open.
+ * COMPULSORY, AND WITH NO EXIT OF ITS OWN. The step used to offer "Finish
+ * later" beside the camera; registration now requires the scan, so the only
+ * way forward is a passing one. That is a rule about the FLOW, not about the
+ * record: the customer is already written, so closing the browser here loses
+ * nothing and their profile still carries the same scan for whoever has a
+ * camera. What has gone is the wizard inviting it.
  *
  * The scan is not faked, skipped or assumed. `face_verified_at` is written by
  * the API only when a liveness sequence actually passes, and a customer who
@@ -40,7 +40,7 @@ export function FaceVerificationStep({
   verified,
   submitting,
   onCapture,
-  onFinishLater,
+  onDone,
 }: {
   customerId: string;
   customerName: string;
@@ -49,7 +49,8 @@ export function FaceVerificationStep({
   verified: boolean;
   submitting: boolean;
   onCapture: (file: File, report: FaceScanReport) => void;
-  onFinishLater: () => void;
+  /** Where to go once the scan has passed. */
+  onDone: () => void;
 }) {
   const [capture, setCapture] = React.useState<File | null>(null);
   const [report, setReport] = React.useState<FaceScanReport | null>(null);
@@ -71,10 +72,9 @@ export function FaceVerificationStep({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button
-            nativeButton={false}
-            render={<Link href={`/customers/${customerId}`}>Open customer profile</Link>}
-          />
+          <Button type="button" onClick={onDone}>
+            Open customer profile
+          </Button>
           <Button
             variant="outline"
             nativeButton={false}
@@ -90,21 +90,24 @@ export function FaceVerificationStep({
       <div className="space-y-1">
         <h2 className="text-base font-semibold">Face Verification</h2>
         <p className="text-sm text-muted-foreground">
-          {customerName} is saved. This is the last step
-          {required ? " and the only one still outstanding." : ", and optional for this account type."}
+          {customerName} is saved. This is the last step, and the registration is not complete
+          until the scan passes.
         </p>
       </div>
 
-      {/* ------------------------------------------------ the other-device path */}
+      {/* ------------------------------------------------ where it can be run */}
+      {/* Not an invitation to skip: the step has no way past the scan. It says
+          where the same check lives if this desk has no working camera, which
+          is a fact about the deployment rather than a step in this flow. */}
       <div className="flex items-start gap-3 rounded-lg border border-dashed p-4">
         <Smartphone className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
         <div className="space-y-1 text-sm">
-          <p className="font-medium">You do not have to do this here.</p>
+          <p className="font-medium">This desk needs a camera.</p>
           <p className="text-muted-foreground">
-            The customer is already saved with the status{" "}
-            <span className="font-medium text-foreground">Awaiting face verification</span>. Anyone
-            signed in who can manage this customer — on a phone, a tablet, another desk — can open
-            their profile and run the scan there. Nothing depends on this window staying open.
+            {customerName} is saved and reads{" "}
+            <span className="font-medium text-foreground">Awaiting face verification</span> until
+            this passes. If this machine has no camera, the same scan is on their profile and can be
+            run by anyone signed in who may manage them.
           </p>
         </div>
       </div>
@@ -122,12 +125,10 @@ export function FaceVerificationStep({
         }}
       />
 
-      <div className="flex flex-wrap justify-between gap-2">
-        <Button type="button" variant="outline" onClick={onFinishLater} disabled={submitting}>
-          <Clock className="size-4" />
-          Finish later
-        </Button>
-
+      {/* One button. "Finish later" used to sit beside it, and this step is now
+          compulsory — an exit here would be the wizard offering to leave a
+          registration unfinished on the screen that exists to finish it. */}
+      <div className="flex flex-wrap justify-end gap-2">
         <Button
           type="button"
           disabled={

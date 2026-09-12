@@ -39,39 +39,67 @@ export const WizardSchema = RegisterCustomerInputSchema.omit({
       },
       { message: "Date of birth must be in the past." }
     ),
+
+  /**
+   * WHICH ACCOUNT THE MONEY MOVES THROUGH — the MNO/Bank switch on step two.
+   *
+   * A form field rather than component state, for the same reason every other
+   * answer is one: step two unmounts the moment the officer steps back to step
+   * one, and a choice held in `useState` would be forgotten by the time they
+   * returned — taking with it the reason half the payment boxes were on screen.
+   *
+   * IT IS NOT PART OF THE PAYLOAD, and it is the only field here that is not.
+   * The API records a bank account and a wallet; it has no opinion about which
+   * one an officer meant to capture. This exists so the other kind's boxes are
+   * not on screen to be half-answered — see `registerCustomerRequest`, which
+   * names every payload field explicitly and does not name this one.
+   */
+  paymentMethod: z.enum(["none", "mno", "bank"]),
 });
 export type WizardValues = z.infer<typeof WizardSchema>;
 
 /**
- * Four steps. The registration workflow, not a form split into pages.
+ * Three steps. The registration workflow, not a form split into pages.
  *
- *     Basic Information → Additional Details → Documents → Face Verification
+ *     Basic Information → Customer Details → KYC & Documents
  *
- * WHY DOCUMENTS AND FACE VERIFICATION ARE NOT ONE STEP. They were, and it hid
- * the most important fact about this workflow: THE CUSTOMER IS CREATED BETWEEN
- * THEM. Step three ends with a save that writes a permanent record and returns
- * a customer number; step four is a biometric check performed AGAINST that
- * record, by whoever has the customer in front of them, on whatever device has
- * a camera. One combined step made a save and a scan look like two halves of a
- * single button press, when in truth the officer may legitimately stop between
- * them for a day.
+ * WHAT SHAPES STEP TWO IS ANSWERED ON STEP ONE. Customer Type is asked with the
+ * rest of the basic details, because it is the first thing an officer knows
+ * about the person in front of them and because everything step two asks is
+ * that answer's consequence: a salaried customer is asked about their employer,
+ * a trader about their business, a type configured tomorrow about whatever its
+ * registration form declares. It used to be asked at the top of step two, which
+ * meant step two opened on a blank card with a dropdown in it and no way to
+ * know what was coming. Nothing in this directory names a customer type.
+ *
+ * STEP ONE IS WHO THEY ARE — names, gender, date of birth, the numbers they can
+ * be reached on, nationality, dependants, where they live (Region → District →
+ * Ward, chosen from the register), and who to call when they cannot be reached.
+ * NEXT OF KIN IS HERE, not somewhere the officer discovers after registering:
+ * it is an emergency contact, which is basic information about a person in
+ * every sense except where an older version of this form happened to put it.
+ *
+ * STEP TWO IS WHAT THEY DO AND WHERE THE MONEY GOES — the customer type's own
+ * questions, and one payment block that is either a mobile wallet or a bank
+ * account and never both.
+ *
+ * STEP THREE IS THE FILE. One KYC section, and the Save that creates the
+ * customer.
  *
  * SAVE IS NOT FINALISE.
  *
- *     step 3  →  customer exists, status "Awaiting face verification"
- *     step 4  →  face verification passes  →  KYC complete
+ *     save on step 3   →  customer exists, "Awaiting face verification"
+ *     face scan passes →  KYC complete
  *
- * Leaving after step three loses nothing and is a supported outcome, not a
- * failure: the customer is in the book, findable, and their profile offers the
- * same scan. Nothing here may declare KYC complete — `KycEvaluator` decides
- * that from what is actually on file, and a client that could assert it would
- * be able to assert a biometric check nobody performed.
- *
- * WHAT STEP TWO ASKS IS NOT WRITTEN DOWN. It shows one dropdown — Customer Type
- * — and then whatever that type's configured registration form declares. A new
- * customer type, a new question, a new cascade or a new conditional rule are
- * all saves on an administration screen. Nothing in this directory names a
- * customer type.
+ * FACE VERIFICATION IS NOT A FOURTH STEP, and was one. A step is somewhere the
+ * officer must go; this is a biometric check performed AGAINST the record step
+ * three creates, by whoever has the customer in front of them, on whatever
+ * device has a camera — legitimately a day later. Numbering it made a save and
+ * a scan look like two halves of one button press and made an interruption look
+ * like a failure. It now appears on step three once the record exists, where
+ * the officer can run it or leave: the customer is in the book either way,
+ * findable, and their profile offers the same scan. Nothing here may declare
+ * KYC complete — `KycEvaluator` decides that from what is actually on file.
  *
  * WHAT EACH STEP REQUIRES STILL COMES FROM THE ACCOUNT TYPE. `profile` is a row
  * from `account_type_requirements`, read from the API, and the same row is what
@@ -81,20 +109,25 @@ export type WizardValues = z.infer<typeof WizardSchema>;
  */
 export const WIZARD_STEPS = [
   { id: "basic", label: "Basic Information" },
-  { id: "details", label: "Additional Details" },
-  { id: "documents", label: "Documents" },
+  { id: "details", label: "Customer Details" },
+  { id: "documents", label: "KYC Attachments" },
   { id: "face", label: "Face Verification" },
 ] as const;
 export type WizardStepId = (typeof WIZARD_STEPS)[number]["id"];
 
 /**
- * The step at which the customer record is created — the end of Documents, not
- * the end of the wizard. Everything before it is a draft; everything after it
- * operates on a customer that already exists.
+ * The step at which the customer record is created — the third of four.
+ * Everything before it is a draft.
+ *
+ * FACE VERIFICATION IS THE FOURTH STEP, and it is reached only by completing
+ * this one. That ordering is not presentational: the scan is a biometric check
+ * against a customer who must already exist, so it cannot run until the record
+ * has been written. The wizard therefore cannot jump to it, and `goNext` stops
+ * here — the save is what opens it.
  */
 export const SAVE_STEP_INDEX = WIZARD_STEPS.findIndex((s) => s.id === "documents");
 
-/** The biometric step. Reachable only once the customer has been created. */
+/** The compulsory last step, available only once the save above has run. */
 export const FACE_STEP_INDEX = WIZARD_STEPS.findIndex((s) => s.id === "face");
 
 /**
@@ -105,20 +138,34 @@ export const FACE_STEP_INDEX = WIZARD_STEPS.findIndex((s) => s.id === "face");
  * nothing — which is precisely how this list gets out of date, so it is short
  * on purpose.
  *
- * Step two names none of its fields, and cannot: they are whatever the chosen
- * customer type declares. They are validated against that configuration
+ * Step two names almost none of its fields, and cannot: they are whatever the
+ * chosen customer type declares. They are validated against that configuration
  * instead — see `missingDynamicAnswers`.
  */
 export const STEP_FIELDS: Record<WizardStepId, (keyof WizardValues)[]> = {
-  basic: ["firstName", "lastName", "dob", "gender", "branchId", "phone", "maritalStatusId"],
-  details: ["guarantors", "nextOfKin"],
+  basic: [
+    "firstName",
+    "lastName",
+    "dob",
+    "gender",
+    "branchId",
+    "phone",
+    "maritalStatusId",
+    /* Asked here now, and so checked here. The customer type decides the whole
+       of step two; letting the officer walk past it would open step two on a
+       shape nobody had chosen. */
+    "customerCategoryId",
+    "nextOfKin",
+  ],
+  details: ["guarantors"],
   /* Nothing validated by the form: whether the documents are mandatory is the
      account type's answer, given by the API, and enforcing it here would let
      the two disagree. The identity document is the exception and is checked at
      Save, because it decides whether a customer is created at all. */
   documents: [],
-  /* Nothing. By this point the customer exists and the form is no longer the
-     source of truth about them — the scanner is, and the API judges it. */
+  /* Nothing on the form either: by the time this step is reached the customer
+     exists and the wizard's values have already been written. What it asks for
+     is a live camera, which no field can hold. */
   face: [],
 };
 
@@ -161,8 +208,24 @@ const BASIC_STEP_FIELDS = new Set<string>([
   "workIdNumber",
   "regionId",
   "districtId",
+  /* Chosen from the register again, so a rejection on either lands on the
+     control the officer chose it in rather than on a box that is gone. */
+  "wardId",
   "wardName",
+  "streetId",
   "streetName",
+  "residenceType",
+  /* The rest of the basic block: the other ways to reach somebody, who they
+     are to the state, and who depends on them. */
+  "nickname",
+  "alternativePhone",
+  "email",
+  "nationality",
+  "dependentsCount",
+  /* Asked on step one because it decides the whole of step two. */
+  "customerCategoryId",
+  /* Collected with the basic details rather than found later on the profile. */
+  "nextOfKin",
 ]);
 
 /**
@@ -271,6 +334,12 @@ const FIELD_LABELS: Record<string, string> = {
   guarantors: "Guarantors",
   nextOfKin: "Next of kin",
   bankDetails: "Bank details",
+  /* The MNO/Bank switch and the two boxes the API reads out of `bankDetails`
+     rather than off the top level — neither is a structured target, so neither
+     is named by the shared map `describeField` falls back to. */
+  paymentMethod: "Payment account",
+  accountName: "Account name",
+  accountNumber: "Account number",
 };
 
 /**
@@ -345,17 +414,29 @@ export function validateStepAgainstProfile(
   }
 
   /*
-   * The customer type is asked on step two, because it is what step two is
-   * FOR: everything else on that step is the form this answer selects.
+   * The customer type is asked on step ONE, so the rule is checked on step one.
+   *
+   * It decides the entire content of step two. Enforcing it from step two would
+   * mean refusing to advance from the screen the officer has already left, and
+   * sending them back a page to answer a question nothing had stopped them on —
+   * the same failure the note above STEP_FIELDS describes, one step later.
    *
    * The rule itself is the account type's and the wording is the API's. When
-   * the account type does not demand a customer type, the officer may continue
-   * without one and step two says so rather than inventing a requirement the
+   * the account type does not demand a customer type the officer may continue
+   * without one, and step one says so rather than inventing a requirement the
    * server does not have.
    */
-  if (step === "details" && profile.requiresCustomerCategory && !filled(values.customerCategoryId)) {
+  if (step === "basic" && profile.requiresCustomerCategory && !filled(values.customerCategoryId)) {
     errors.customerCategoryId =
       "A customer type is required for this account type — it decides which loan products the customer may take.";
+  }
+
+  /* Next of kin is collected with the basic details, so it is judged where the
+     officer can see the list and add to it. */
+  if (step === "basic" && values.nextOfKin.length < profile.minNextOfKin) {
+    errors.nextOfKin = `At least ${profile.minNextOfKin} next of kin ${
+      profile.minNextOfKin === 1 ? "is" : "are"
+    } required for this account type.`;
   }
 
   if (step === "details") {
@@ -392,10 +473,38 @@ export function validateStepAgainstProfile(
       } required for this account type.`;
     }
 
-    if (values.nextOfKin.length < profile.minNextOfKin) {
-      errors.nextOfKin = `At least ${profile.minNextOfKin} next of kin ${
-        profile.minNextOfKin === 1 ? "is" : "are"
-      } required for this account type.`;
+    /*
+     * WHERE THE MONEY GOES — one account, of one kind, complete.
+     *
+     * The API wants a bank account OR a mobile wallet and is indifferent to
+     * which (RegisterCustomerRequest::checkBankAccount). The form asks the
+     * officer to say which they are capturing so the other kind's boxes are
+     * not on screen to be half-answered — and then holds them to that answer,
+     * because a bank chosen with no account number arrives at the API as no
+     * account at all, and the officer would learn that only at Save, on a
+     * screen showing a bank name they had certainly filled in.
+     */
+    if (values.paymentMethod === "mno") {
+      if (!filled(values.mobileMoneyProviderId)) {
+        errors.mobileMoneyProviderId = "Choose the mobile money provider.";
+      }
+      if (!filled(values.walletNumber)) {
+        errors.walletNumber = "Enter the number the wallet is registered on.";
+      }
+    }
+
+    if (values.paymentMethod === "bank") {
+      if (!filled(values.bankId)) errors.bankId = "Choose the bank.";
+      if (!filled(values.accountName)) errors.accountName = "Enter the name the account is held in.";
+      if (!filled(values.accountNumber)) errors.accountNumber = "Enter the account number.";
+    }
+
+    /* The account type's own rule, in the API's words. Reported against the
+       chooser rather than against a box that is not on screen until one of the
+       two has been picked. */
+    if (profile.requiresBankAccount && values.paymentMethod === "none") {
+      errors.paymentMethod =
+        "A bank account or a mobile money wallet number is required for this account type.";
     }
   }
 
@@ -446,9 +555,24 @@ export function defaultWizardValues(
     businessName: "",
     businessType: "",
     businessAddress: "",
+
+    /*
+     * The payment block, empty and of no kind yet.
+     *
+     * `bankName` and `accountNumber` are bound to inputs on step two and were
+     * missing from these defaults entirely — optional in the schema, so nothing
+     * complained, but an <input> given `undefined` is uncontrolled and React
+     * warns the first time somebody types in it. They are sent to the API
+     * inside `bankDetails`, which step two's save assembles from them; the
+     * top-level copies are deliberately not sent (see registerCustomerRequest).
+     */
+    bankName: "",
     bankBranch: "",
+    accountName: "",
+    accountNumber: "",
     mobileMoneyProvider: "",
     walletNumber: "",
+    paymentMethod: "none",
 
     // Registration form. Empty strings for text/select ids (bound to inputs),
     // null for numbers so an untouched box is absent rather than 0.
@@ -503,7 +627,14 @@ export function defaultWizardValues(
  * server saves this is what survives an accidental refresh, and it costs
  * nothing. It is never restored silently — see the wizard's draft banner.
  */
-export const WIZARD_DRAFT_STORAGE_KEY = "mikopofasta.customer-wizard-draft.v3";
+/*
+ * v4: three steps instead of four, and `step` therefore means something
+ * different. A v3 draft saved on the old step 3 (face verification) would
+ * restore onto the new step 3 (KYC & Documents) and offer a Save for a customer
+ * who already exists. `repairDraft` clamps the index and fills the new field,
+ * but the key is bumped as well so nothing depends on that being right.
+ */
+export const WIZARD_DRAFT_STORAGE_KEY = "mikopofasta.customer-wizard-draft.v4";
 
 /**
  * Repairs a draft written by an older shape of this form.
@@ -608,6 +739,31 @@ export function repairDraft(values: Partial<WizardValues>): Partial<WizardValues
   /* Both are arrays in the contract and neither is optional. */
   if (!Array.isArray(repaired.guarantors)) repaired.guarantors = [];
   if (!Array.isArray(repaired.nextOfKin)) repaired.nextOfKin = [];
+
+  /*
+   * The MNO/Bank switch, which a draft saved before it existed does not carry —
+   * and `z.enum` refuses undefined, so the whole save would be refused over a
+   * field the officer never saw.
+   *
+   * Inferred from what the draft actually holds rather than reset to "none":
+   * a resumed registration that already has a wallet number should come back
+   * showing the wallet, not an unanswered question above boxes with answers in
+   * them. The bank is recognised by its account number for the same reason the
+   * API does — it is the one part of a bank account that means nothing is
+   * missing.
+   */
+  if (repaired.paymentMethod !== "mno" && repaired.paymentMethod !== "bank" && repaired.paymentMethod !== "none") {
+    const held = (name: string) => {
+      const value = repaired[name];
+      return typeof value === "string" && value.trim() !== "";
+    };
+
+    repaired.paymentMethod = held("walletNumber") || held("mobileMoneyProviderId")
+      ? "mno"
+      : held("accountNumber") || held("bankId")
+        ? "bank"
+        : "none";
+  }
 
   return repaired as Partial<WizardValues>;
 }
