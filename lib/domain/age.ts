@@ -57,13 +57,15 @@ export function ageInYears(dob: string | null | undefined, today: Date = new Dat
 }
 
 /**
- * The age as the officer reads it, or null when there is nothing to say.
+ * The age as it reads in a field already labelled "Age", or null when there is
+ * nothing to say.
  *
- * An infant is "Under 1 year" rather than "0 years", which reads like a missing
- * value rather than a newborn.
+ * The unit is carried in the value rather than only in the label, so the number
+ * cannot be read as months by somebody skimming. An infant is "Under 1 year"
+ * rather than "0 years", which looks like a field nobody filled in.
  */
 export function formatAge(age: number | null): string | null {
   if (age === null) return null;
   if (age === 0) return "Under 1 year";
-  return `${age} ${age === 1 ? "year" : "years"} old`;
+  return `${age} ${age === 1 ? "year" : "years"}`;
 }

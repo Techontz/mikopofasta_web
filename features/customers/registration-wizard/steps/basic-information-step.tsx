@@ -223,8 +223,8 @@ export function BasicInformationStep({
         </Field>
       </div>
 
-      {/* Row 2 — Gender | Date of Birth | Phone Number */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      {/* Row 2 — Gender | Date of Birth | Age | Phone Number */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Field label="Gender" required error={errors.gender?.message}>
           <Combobox
             id="gender"
@@ -235,8 +235,28 @@ export function BasicInformationStep({
             invalid={!!errors.gender}
           />
         </Field>
-        <Field label="Date of Birth" required error={errors.dob?.message} help={ageLabel ?? undefined}>
+        <Field label="Date of Birth" required error={errors.dob?.message}>
           <Input id="dob" type="date" {...register("dob")} />
+        </Field>
+        {/*
+          Age is READ, not entered. It is deliberately NOT registered with the
+          form: nothing about age is sent to the API, because an age that is
+          captured is wrong on the next birthday while the date of birth beside
+          it stays right. `readOnly` rather than `disabled` so the value is
+          still selectable and still reaches assistive technology, and out of
+          the tab order so it does not interrupt typing between the date and
+          the phone number.
+        */}
+        <Field label="Age" help={ageLabel ? undefined : "Fills in from the date of birth."}>
+          <Input
+            id="age"
+            readOnly
+            aria-readonly="true"
+            tabIndex={-1}
+            value={ageLabel ?? ""}
+            placeholder="—"
+            className="cursor-default bg-muted font-medium"
+          />
         </Field>
         <Field label="Phone Number" required error={errors.phone?.message}>
           <Input id="phone" placeholder="0754000000" {...register("phone")} />

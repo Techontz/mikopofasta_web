@@ -72,8 +72,8 @@ test("accepts a full timestamp, reading only the calendar part", () => {
 });
 
 test("reads as an officer would say it", () => {
-  assert.equal(formatAge(28), "28 years old");
-  assert.equal(formatAge(1), "1 year old");
+  assert.equal(formatAge(28), "28 years");
+  assert.equal(formatAge(1), "1 year");
   assert.equal(formatAge(0), "Under 1 year");
   assert.equal(formatAge(null), null);
 });
