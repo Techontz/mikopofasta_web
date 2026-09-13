@@ -13,6 +13,13 @@ export default async function ShareholdersPage() {
   if (!user) redirect("/login");
   if (!hasPermission(user, PERMISSIONS.TREASURY_VIEW)) return <AccessDeniedState />;
 
+  /*
+   * Register, edit and delete are `treasury.manage` — CapitalPolicy::manage on
+   * the API. A read-only treasury role (Admin, Auditor, …) sees the register
+   * but is not offered forms the server would refuse.
+   */
+  const canManage = hasPermission(user, PERMISSIONS.TREASURY_MANAGE);
+
   const shareholders = await getShareholders();
 
   return (
@@ -23,7 +30,7 @@ export default async function ShareholdersPage() {
         description="The people holding equity in the company."
         breadcrumb={[{ label: "Capital", href: "/capital/shareholders" }, { label: "Share Holder" }]}
       />
-      <ShareholdersPanel shareholders={shareholders} />
+      <ShareholdersPanel shareholders={shareholders} canManage={canManage} />
     </div>
   );
 }

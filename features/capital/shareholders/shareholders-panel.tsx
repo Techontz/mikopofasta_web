@@ -17,6 +17,7 @@ import { ActionButtons, Button, IconButton } from "@/components/settings/form";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { ShareholderForm } from "@/features/capital/shareholders/shareholder-form";
 import { deleteShareholder } from "@/features/capital/shareholders/actions";
+import { formatMoney } from "@/lib/domain/money";
 import type { Shareholder } from "@/types/capital";
 
 /**
@@ -27,7 +28,14 @@ import type { Shareholder } from "@/types/capital";
  * legacy screen has no separate edit page, and a dialog would put the same
  * five fields somewhere they aren't already.
  */
-export function ShareholdersPanel({ shareholders }: { shareholders: Shareholder[] }) {
+export function ShareholdersPanel({
+  shareholders,
+  canManage,
+}: {
+  shareholders: Shareholder[];
+  /** `treasury.manage` — the permission the API enforces on register, edit and delete. */
+  canManage: boolean;
+}) {
   const [editing, setEditing] = React.useState<Shareholder | null>(null);
   const formRef = React.useRef<HTMLDivElement>(null);
 
@@ -64,6 +72,23 @@ export function ShareholdersPanel({ shareholders }: { shareholders: Shareholder[
       cell: ({ row }) => <span className="font-tabular whitespace-nowrap">{row.original.dateOfBirth}</span>,
     },
     {
+      accessorKey: "totalContributed",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Capital contributed" />,
+      cell: ({ row }) => (
+        <span className="font-tabular whitespace-nowrap">{formatMoney(row.original.totalContributed)}</span>
+      ),
+    },
+    {
+      // Cumulative contributions ÷ all contributions. Spending, lending or
+      // profit never move it — the API computes it from contributions only.
+      id: "ownershipPercentage",
+      accessorFn: (s) => Number(s.ownershipPercentage),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Ownership" />,
+      cell: ({ row }) => (
+        <span className="font-tabular whitespace-nowrap font-medium">{row.original.ownershipPercentage}%</span>
+      ),
+    },
+    {
       id: "actions",
       header: "Action",
       /*
@@ -86,21 +111,33 @@ export function ShareholdersPanel({ shareholders }: { shareholders: Shareholder[
     },
   ];
 
+  // Without manage, no form and no row actions: nothing on screen that the API would refuse.
+  const visibleColumns = canManage ? columns : columns.filter((c) => c.id !== "actions");
+
   return (
     <div className="space-y-6">
-      <div ref={formRef}>
-        <ShareholderForm editing={editing} onDone={() => setEditing(null)} />
-      </div>
+      {canManage ? (
+        <div ref={formRef}>
+          <ShareholderForm editing={editing} onDone={() => setEditing(null)} />
+        </div>
+      ) : (
+        <p className="st-field-help" role="note">
+          You can view shareholders. Registering, editing or deleting them requires the “Record capital &amp;
+          dividends” permission.
+        </p>
+      )}
 
       <SettingsTable
-        columns={columns}
+        columns={visibleColumns}
         data={shareholders}
         searchFields={["fullName", "phone", "email"]}
         searchPlaceholder="Search shareholders…"
         emptyState={{
           icon: Users,
           title: "No shareholders yet",
-          description: "Register the first one using the form above.",
+          description: canManage
+            ? "Register the first one using the form above."
+            : "None have been registered yet.",
         }}
       />
     </div>

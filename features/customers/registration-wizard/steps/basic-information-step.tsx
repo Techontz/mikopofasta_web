@@ -126,7 +126,6 @@ export function BasicInformationStep({
   const districtId = watch("districtId");
   const employeeId = watch("employeeId");
   const categoryId = watch("customerCategoryId");
-  const category = categories.find((c) => c.id === categoryId);
 
   /* The age the date of birth says, written under it as soon as one is picked.
      Officers were reading a birth year and doing the subtraction in their head

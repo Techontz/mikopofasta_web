@@ -311,9 +311,13 @@ export async function runTelcoVerification(loanId: string, pass: boolean): Promi
 // Disbursement — Finance only (backend §14)
 // ---------------------------------------------------------------------------
 
-export async function prepareDisbursement(loanId: string, channel: DisbursementChannel): Promise<ActionResult> {
+export async function prepareDisbursement(
+  loanId: string,
+  channel: DisbursementChannel,
+  funding = "default"
+): Promise<ActionResult> {
   try {
-    await prepareDisbursementRequest(loanId, channel);
+    await prepareDisbursementRequest(loanId, channel, funding);
   } catch (error) {
     return { ok: false, message: describeError(error) };
   }

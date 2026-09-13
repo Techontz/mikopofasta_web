@@ -37,6 +37,8 @@ interface ShareholderWire {
   gender: Shareholder["gender"];
   dateOfBirth: string;
   contributionCount?: number;
+  totalContributed?: string;
+  ownershipPercentage?: string;
 }
 
 function toShareholder(wire: ShareholderWire): Shareholder {
@@ -48,6 +50,8 @@ function toShareholder(wire: ShareholderWire): Shareholder {
     gender: wire.gender,
     dateOfBirth: wire.dateOfBirth,
     contributionCount: wire.contributionCount ?? 0,
+    totalContributed: num(wire.totalContributed),
+    ownershipPercentage: wire.ownershipPercentage ?? "0.00",
   };
 }
 
@@ -103,6 +107,12 @@ interface ContributionWire {
   receiptNo: string | null;
   chequeNo: string | null;
   createdAt: string | null;
+  reference: string;
+  receivedAccountName?: string | null;
+  sourceAccountName: string | null;
+  sourceAccountNumber: string | null;
+  journalEntryNumber?: string | null;
+  recordedByName?: string | null;
 }
 
 function toContribution(wire: ContributionWire): CapitalContribution {
@@ -116,6 +126,12 @@ function toContribution(wire: ContributionWire): CapitalContribution {
     receiptNo: wire.receiptNo,
     chequeNo: wire.chequeNo,
     createdAt: wire.createdAt,
+    reference: wire.reference,
+    receivedAccountName: wire.receivedAccountName ?? null,
+    sourceAccountName: wire.sourceAccountName,
+    sourceAccountNumber: wire.sourceAccountNumber,
+    journalEntryNumber: wire.journalEntryNumber ?? null,
+    recordedByName: wire.recordedByName ?? null,
   };
 }
 
@@ -147,6 +163,11 @@ export async function recordCapitalRequest(input: CapitalContributionInput): Pro
         payMethod: input.payMethod,
         receiptNo: input.receiptNo || null,
         chequeNo: input.chequeNo || null,
+        // Cash lands in the head-office till, so no account is named for it.
+        bankAccountId: input.payMethod === "cash" || !input.bankAccountId ? null : toId(input.bankAccountId),
+        reference: input.reference.trim() || null,
+        sourceAccountName: input.sourceAccountName.trim() || null,
+        sourceAccountNumber: input.sourceAccountNumber.trim() || null,
       },
     })
   );

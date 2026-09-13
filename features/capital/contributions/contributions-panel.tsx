@@ -38,6 +38,10 @@ const EMPTY: CapitalContributionInput = {
   payMethod: "cash",
   receiptNo: "",
   chequeNo: "",
+  bankAccountId: "",
+  reference: "",
+  sourceAccountName: "",
+  sourceAccountNumber: "",
 };
 
 /**
@@ -51,10 +55,13 @@ export function ContributionsPanel({
   shareholders,
   contributions,
   totals,
+  accounts,
 }: {
   shareholders: Shareholder[];
   contributions: CapitalContribution[];
   totals: CapitalTotals;
+  /** Registered company accounts that may receive money. */
+  accounts: { id: string; label: string }[];
 }) {
   const [pending, startTransition] = useTransition();
 
@@ -159,7 +166,7 @@ export function ContributionsPanel({
               htmlFor="cap-method"
               required
               error={errors.payMethod?.message}
-              help={payMethod === "cash" ? "Lands in the head-office till." : "Lands in the bank account."}
+              help={payMethod === "cash" ? "Lands in the head-office till." : undefined}
             >
               <Select id="cap-method" invalid={!!errors.payMethod} {...register("payMethod")}>
                 {PAY_METHODS.map((m) => (
@@ -168,6 +175,40 @@ export function ContributionsPanel({
                   </option>
                 ))}
               </Select>
+            </Field>
+          </FieldGrid>
+
+          <FieldGrid>
+            <Field
+              label="Received Into (Company Account)"
+              htmlFor="cap-account"
+              error={errors.bankAccountId?.message}
+              help={payMethod === "cash" ? "Cash lands in the head-office till." : undefined}
+            >
+              <Select id="cap-account" disabled={payMethod === "cash"} {...register("bankAccountId")}>
+                <option value="">{payMethod === "cash" ? "Head-office till" : "Default company account"}</option>
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Transaction Reference" htmlFor="cap-reference" error={errors.reference?.message}>
+              <TextInput id="cap-reference" placeholder="Auto-generated if blank" {...register("reference")} />
+            </Field>
+          </FieldGrid>
+
+          <FieldGrid>
+            <Field label="Shareholder's Bank / Wallet" htmlFor="cap-source-name" error={errors.sourceAccountName?.message}>
+              <TextInput id="cap-source-name" placeholder="e.g. CRDB, M-Pesa" {...register("sourceAccountName")} />
+            </Field>
+            <Field
+              label="Shareholder's Account Number"
+              htmlFor="cap-source-number"
+              error={errors.sourceAccountNumber?.message}
+            >
+              <TextInput id="cap-source-number" placeholder="Account number" {...register("sourceAccountNumber")} />
             </Field>
           </FieldGrid>
 
@@ -204,8 +245,11 @@ export function ContributionsPanel({
                 <tr>
                   <th>S/No</th>
                   <th>Share Holder</th>
+                  <th>Reference</th>
                   <th>Amount</th>
                   <th>Pay method</th>
+                  <th>Received into</th>
+                  <th>From</th>
                   <th>Receipt no</th>
                   <th>Chaque no</th>
                   <th>Date</th>
@@ -219,17 +263,24 @@ export function ContributionsPanel({
                     <tr>
                       <td className="font-tabular text-[var(--st-ink-faint)]">{groupIndex + 1}.</td>
                       <td className="font-medium text-[var(--st-ink)]">{group.name}</td>
-                      <td colSpan={6} />
+                      <td colSpan={9} />
                     </tr>
                     {group.rows.map((row) => (
                       <tr key={row.id}>
                         <td />
                         <td />
+                        <td className="font-tabular whitespace-nowrap" title={row.journalEntryNumber ?? undefined}>
+                          {row.reference}
+                        </td>
                         <td className="font-tabular whitespace-nowrap">{formatMoney(row.amount)}</td>
                         <td>
                           <StatusBadge tone="neutral" dot={false}>
                             {row.payMethodLabel}
                           </StatusBadge>
+                        </td>
+                        <td>{row.receivedAccountName ?? "-"}</td>
+                        <td>
+                          {[row.sourceAccountName, row.sourceAccountNumber].filter(Boolean).join(" · ") || "-"}
                         </td>
                         <td>{row.receiptNo ?? "-"}</td>
                         <td>{row.chequeNo ?? "-"}</td>
@@ -250,7 +301,7 @@ export function ContributionsPanel({
                   <td colSpan={2} className="font-semibold uppercase tracking-wide text-[12.5px]">
                     Share Holder Capital
                   </td>
-                  <td colSpan={6} className="font-tabular font-semibold">
+                  <td colSpan={9} className="font-tabular font-semibold">
                     {formatMoney(totals.shareholderCapital)}
                   </td>
                 </tr>
@@ -258,7 +309,7 @@ export function ContributionsPanel({
                   <td colSpan={2} className="font-semibold uppercase tracking-wide text-[12.5px]">
                     Total Company Capital
                   </td>
-                  <td colSpan={6} className="font-tabular font-semibold">
+                  <td colSpan={9} className="font-tabular font-semibold">
                     {formatMoney(totals.companyCapital)}
                   </td>
                 </tr>

@@ -18,6 +18,10 @@ export const ShareholderSchema = z.object({
   dateOfBirth: z.string(),
   /** Drives whether delete is offered — the API refuses once capital exists. */
   contributionCount: z.number(),
+  /** Cumulative capital this shareholder has paid in. */
+  totalContributed: z.number(),
+  /** Share of all contributed capital, e.g. "66.67". Never from a cash balance. */
+  ownershipPercentage: z.string(),
 });
 export type Shareholder = z.infer<typeof ShareholderSchema>;
 
@@ -57,6 +61,14 @@ export const CapitalContributionSchema = z.object({
   receiptNo: z.string().nullable(),
   chequeNo: z.string().nullable(),
   createdAt: z.string().nullable(),
+  /** CAP-0000001, or the transaction number the shareholder paid with. */
+  reference: z.string(),
+  /** The company account the money landed in. */
+  receivedAccountName: z.string().nullable(),
+  sourceAccountName: z.string().nullable(),
+  sourceAccountNumber: z.string().nullable(),
+  journalEntryNumber: z.string().nullable(),
+  recordedByName: z.string().nullable(),
 });
 export type CapitalContribution = z.infer<typeof CapitalContributionSchema>;
 
@@ -68,6 +80,12 @@ export const CapitalContributionInputSchema = z
     payMethod: z.enum(PAY_METHODS),
     receiptNo: z.string(),
     chequeNo: z.string(),
+    /** The registered company account that received it; blank = the default. Ignored for cash. */
+    bankAccountId: z.string(),
+    /** Optional — a bank/mobile-money transaction number. Must be unique. */
+    reference: z.string().max(60),
+    sourceAccountName: z.string().max(150),
+    sourceAccountNumber: z.string().max(60),
   })
   // The API applies the same rule: a cheque number only matters for a cheque.
   .refine((v) => v.payMethod !== "cheque" || v.chequeNo.trim().length > 0, {

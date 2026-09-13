@@ -141,6 +141,7 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
     writeOffRegister,
     recoveries,
     recoveryAccounts,
+    fundingAccounts,
   ] = await Promise.all([
     historyRequest,
     schedulesRequest,
@@ -177,6 +178,12 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
     isBadDebt ? getLoanRecoveries(id).catch(() => []) : Promise.resolve([]),
     isBadDebt
       ? getBankAccounts({ status: "active" })
+          .then((r) => r.accounts)
+          .catch(() => [])
+      : Promise.resolve([]),
+    // The company accounts a payout may leave from — only while one is being prepared.
+    loan.status === "pending_finance"
+      ? getBankAccounts({ usage: "disbursement" })
           .then((r) => r.accounts)
           .catch(() => [])
       : Promise.resolve([]),
@@ -296,6 +303,10 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
             permissions={permissions}
             approval={approval}
             settlement={settlement}
+            fundingAccounts={fundingAccounts.map((a) => ({
+              id: a.id,
+              label: `${a.bankName} — ${a.accountName} (${formatMoney(a.balance)})`,
+            }))}
           />
 
           {/*

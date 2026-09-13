@@ -668,16 +668,26 @@ export interface DisbursementBatch {
   requestedBy: string;
   requestedAt: string;
   completedAt: string | null;
+  /** The company account the payout leaves, and the entry that recorded it. */
+  fundingAccountId?: string | null;
+  fundingAccountName?: string | null;
+  journalEntryNumber?: string | null;
 }
 
 export async function prepareDisbursementRequest(
   loanId: string,
-  channel: DisbursementChannel
+  channel: DisbursementChannel,
+  /** "default" = default company account, "cash" = branch till, otherwise a bank account id. */
+  funding = "default"
 ): Promise<DisbursementBatch> {
   return apiData<DisbursementBatch>(`/api/v1/loans/${loanId}/prepare-disbursement`, {
     method: "POST",
     token: await token(),
-    body: { channel },
+    body: {
+      channel,
+      fundingSource: funding === "cash" ? "cash" : "account",
+      fundingBankAccountId: funding === "default" || funding === "cash" ? null : Number(funding),
+    },
   });
 }
 

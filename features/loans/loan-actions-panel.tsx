@@ -57,6 +57,7 @@ export function LoanActionsPanel({
   permissions,
   approval,
   settlement,
+  fundingAccounts = [],
 }: {
   loanId: string;
   status: LoanStatus;
@@ -74,10 +75,14 @@ export function LoanActionsPanel({
    * which is why the button is gated on it rather than on the status alone.
    */
   settlement?: EarlySettlementQuote | null;
+  /** Company accounts that may send money — where the payout is debited from. */
+  fundingAccounts?: { id: string; label: string }[];
 }) {
   const [pending, startTransition] = useTransition();
   const [otp, setOtp] = React.useState("");
   const [channel, setChannel] = React.useState<DisbursementChannel>("vodacom");
+  // "default" = the default company account, "cash" = the branch till, otherwise a bank account id.
+  const [funding, setFunding] = React.useState<string>("default");
   const [settleOpen, setSettleOpen] = React.useState(false);
 
   function run(action: () => Promise<ActionResult>) {
@@ -292,7 +297,34 @@ export function LoanActionsPanel({
               </SelectContent>
             </Select>
           </div>
-          <Button size="sm" disabled={pending} onClick={() => run(() => prepareDisbursement(loanId, channel))}>
+          <div className="space-y-1.5">
+            <Label>Pay From</Label>
+            <Select value={funding} onValueChange={(v) => v && setFunding(v as string)}>
+              <SelectTrigger aria-label="Pay from" className="w-72">
+                <SelectValue>
+                  {(v: string) =>
+                    v === "cash"
+                      ? "Branch cash (teller till)"
+                      : (fundingAccounts.find((a) => a.id === v)?.label ?? "Default company account")
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">Default company account</SelectItem>
+                {fundingAccounts.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    {a.label}
+                  </SelectItem>
+                ))}
+                <SelectItem value="cash">Branch cash (teller till)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            size="sm"
+            disabled={pending}
+            onClick={() => run(() => prepareDisbursement(loanId, channel, funding))}
+          >
             <Send className="size-4" />
             Prepare Disbursement
           </Button>

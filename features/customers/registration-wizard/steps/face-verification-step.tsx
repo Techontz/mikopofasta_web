@@ -34,9 +34,7 @@ import type { FaceScanReport } from "@/features/customers/registration-wizard/fa
  * leaves here without one is correctly reported as incomplete.
  */
 export function FaceVerificationStep({
-  customerId,
   customerName,
-  required,
   verified,
   submitting,
   onCapture,
