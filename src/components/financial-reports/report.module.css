@@ -1,0 +1,106 @@
+.chart {
+  width: 100%;
+  height: 280px;
+  margin-bottom: 20px;
+}
+
+.chartTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mf-heading);
+  margin: 4px 0 8px;
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.tile {
+  flex: 1 1 160px;
+  border: 1px solid var(--mf-border);
+  border-radius: 4px;
+  padding: 10px 14px;
+  background: var(--mf-surface);
+}
+
+.tile span {
+  display: block;
+  font-size: 12px;
+  color: var(--mf-muted);
+  text-transform: uppercase;
+}
+
+.tile strong {
+  display: block;
+  font-size: 18px;
+  color: var(--mf-heading);
+}
+
+.subhead {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--mf-heading);
+  margin: 18px 0 8px;
+}
+
+.statement td,
+.statement th {
+  padding: 10px 12px;
+}
+
+.statement .group td {
+  font-weight: 700;
+  background: var(--mf-surface-muted);
+}
+
+.statement .indent {
+  padding-left: 32px;
+}
+
+.total td {
+  font-weight: 700;
+}
+
+.in {
+  color: var(--mf-positive);
+}
+
+.out {
+  color: var(--mf-negative);
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.note {
+  font-size: 12px;
+  color: var(--mf-muted);
+  margin-top: 8px;
+}
+
+@media print {
+  :global(#left-sidebar),
+  :global(.navbar),
+  :global(.block-header),
+  :global(.mf-table-controls),
+  :global(.mf-table-footer),
+  .actions {
+    display: none !important;
+  }
+
+  :global(#main-content) {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .chart {
+    break-inside: avoid;
+  }
+}
