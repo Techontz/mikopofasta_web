@@ -12,6 +12,13 @@ export interface SalaryAdvancePayment {
   amount: number;
   paid_on: string;
   created_at: string | null;
+  reversed?: boolean;
+  reversed_at?: string | null;
+  reversed_by?: string | null;
+  reversal_reason?: string | null;
+  reversal_pending?: boolean;
+  can_request_reversal?: boolean;
+  reversal_blocked_reason?: string | null;
 }
 
 export type SalaryAdvanceFeeStatus = "no_fee" | "not_approved" | "uncollected" | "collected" | "collected_at_approval" | "old_system";

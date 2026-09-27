@@ -13,7 +13,7 @@ import { useApi } from "@/lib/hooks";
 
 export default function SalaryAdvanceRepaymentsPage() {
   const { can } = useAuth();
-  const [history, setHistory] = useState<SalaryAdvance | null>(null);
+  const [historyId, setHistoryId] = useState<number | null>(null);
   const [collecting, setCollecting] = useState<SalaryAdvance | null>(null);
   const { data: advances, isLoading } = useApi<SalaryAdvance[]>("salary-advance/repayments");
 
@@ -42,14 +42,15 @@ export default function SalaryAdvanceRepaymentsPage() {
               header: "Action",
               sortable: false,
               render: (row) => (
-                <button type="button" className="btn btn-sm btn-icon btn-info" title="Deposit History" onClick={() => setHistory(row)}><i className="icon-list" /></button>
+                <button type="button" className="btn btn-sm btn-icon btn-info" title="Deposit History" onClick={() => setHistoryId(row.id)}><i className="icon-list" /></button>
               ),
             },
           ]}
         />
       </Card>
 
-      <DepositHistoryModal advance={history} onClose={() => setHistory(null)} />
+      {/* Looked up by id so the modal shows the refreshed list after a reversal is requested. */}
+      <DepositHistoryModal advance={advances?.find((row) => row.id === historyId) ?? null} onClose={() => setHistoryId(null)} />
       <CollectFeeModal advance={collecting} onClose={() => setCollecting(null)} />
     </>
   );

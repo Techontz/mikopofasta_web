@@ -24,8 +24,8 @@ const YEARS = Array.from({ length: 8 }, (_, index) => String(new Date().getFullY
 /**
  * "Export File" and "Import File" at the top of a module (Finance, Admin, Super Admin).
  *
- * Export asks for the branch only (Active Salary Advance, Penalty List) or branch + loan status + year (Loan File), and
- * downloads a CSV in exactly the columns the import reads. Import uploads a CSV / Excel file for a branch; it is checked
+ * Export covers every branch the user can see, in one file: Active Salary Advance and Penalty List download at once,
+ * Loan File asks for the loan status and year. It is an Excel (.xlsx) file in exactly the columns the import reads. Import uploads a CSV / Excel file for a branch; it is checked
  * and opened as a preview (Legacy Imports), and changes no balance until someone else approves it.
  */
 export function LegacyImportButtons({ module }: { module: LegacyModule }) {
@@ -39,7 +39,11 @@ export function LegacyImportButtons({ module }: { module: LegacyModule }) {
 
   return (
     <>
-      <button type="button" className="btn btn-sm btn-success ml-1" onClick={() => setExporting(true)}>
+      <button
+        type="button"
+        className="btn btn-sm btn-success ml-1"
+        onClick={() => (module === "loan" ? setExporting(true) : (window.location.href = backendUrl(`legacy-imports/export?module=${module}`)))}
+      >
         <i className="fa fa-download" /> Export File
       </button>
       <button type="button" className="btn btn-sm btn-primary ml-1" onClick={() => setImporting(true)}>
@@ -52,11 +56,8 @@ export function LegacyImportButtons({ module }: { module: LegacyModule }) {
 }
 
 function ExportModal({ module, onClose }: { module: LegacyModule; onClose: () => void }) {
-  const isLoan = module === "loan";
-  const [branch, setBranch] = useState("");
   const [status, setStatus] = useState("Active");
   const [year, setYear] = useState(YEARS[0]);
-  const [error, setError] = useState<string | null>(null);
 
   return (
     <Modal
@@ -65,34 +66,21 @@ function ExportModal({ module, onClose }: { module: LegacyModule; onClose: () =>
       title={`Export File — ${MODULE_LABELS[module]}`}
       submitLabel="Export"
       onSubmit={() => {
-        if (!branch) {
-          setError("Choose the branch to export.");
-          return;
-        }
-        const query = new URLSearchParams({ module, branch_id: branch, ...(isLoan ? { loan_status: status, year } : {}) });
+        const query = new URLSearchParams({ module, loan_status: status, year });
         window.location.href = backendUrl(`legacy-imports/export?${query.toString()}`);
         onClose();
       }}
     >
       <div className="row clearfix">
-        <Field label="Branch" className="col-md-12" error={error ?? undefined} required>
-          <SelectBox optionsUrl="options/branches" query={{ branches_only: 1 }} value={branch} onChange={(value) => { setBranch(value ?? ""); setError(null); }} />
+        <Field label="Loan Status" className="col-md-6" required>
+          <SelectBox options={[{ value: "Active", label: "Active" }, { value: "Default", label: "Default" }]} value={status} onChange={(value) => setStatus(value ?? "Active")} />
         </Field>
-        {isLoan && (
-          <>
-            <Field label="Loan Status" className="col-md-6" required>
-              <SelectBox options={[{ value: "Active", label: "Active" }, { value: "Default", label: "Default" }]} value={status} onChange={(value) => setStatus(value ?? "Active")} />
-            </Field>
-            <Field label="Year" className="col-md-6" required>
-              <SelectBox options={YEARS.map((value) => ({ value, label: value }))} value={year} onChange={(value) => setYear(value ?? YEARS[0])} />
-            </Field>
-          </>
-        )}
+        <Field label="Year" className="col-md-6" required>
+          <SelectBox options={YEARS.map((value) => ({ value, label: value }))} value={year} onChange={(value) => setYear(value ?? YEARS[0])} />
+        </Field>
       </div>
       <p className="text-muted small mb-0 mt-2">
-        {isLoan
-          ? "Loans of the branch with this status, withdrawn in or before the year. January–September are the loan repayments of each month of that year."
-          : `The ${MODULE_LABELS[module]} of the branch, as shown on this page.`}
+        Loans of all branches with this status, withdrawn in or before the year. January–September are the loan repayments of each month of that year.
       </p>
     </Modal>
   );

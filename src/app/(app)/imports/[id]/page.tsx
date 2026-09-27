@@ -210,8 +210,8 @@ function columnsFor(detail: LegacyImportDetail, onMap: (row: LegacyImportRow) =>
             { key: "total_payable", header: "Principal + Interest", render: (row) => money(row.total_payable) },
             { key: "paid_amount", header: "Paid", render: (row) => money(row.paid_amount) },
             { key: "remain_amount", header: "Remain (opening)", render: (row) => <b>{money(row.remain_amount)}</b> },
-            { key: "fee", header: "Carger", render: (row) => money(row.fee) },
-            { key: "alert_date", header: "Date Alert", render: (row) => row.alert_date ?? row.raw["Date Alert"] },
+            { key: "fee", header: "Charges", render: (row) => money(row.fee) },
+            { key: "alert_date", header: "Date", render: (row) => row.alert_date ?? row.raw["Date"] ?? row.raw["Date Alert"] },
           ];
 
   return [

@@ -1,7 +1,7 @@
 /** A maker/checker reversal request (loan repayment, loan disbursement or direct penalty payment) as the API presents it. */
 export interface ReversalRequestRow {
   id: number;
-  type: "loan_repayment" | "loan_disbursement" | "penalty_payment";
+  type: "loan_repayment" | "loan_disbursement" | "penalty_payment" | "salary_advance_payment";
   type_label: string;
   status: "pending" | "approved" | "rejected";
   amount: number;

@@ -24,6 +24,7 @@ const TYPES = [
   { value: "loan_repayment", label: "Loan Repayment" },
   { value: "loan_disbursement", label: "Loan Disbursement" },
   { value: "penalty_payment", label: "Penalty Payment" },
+  { value: "salary_advance_payment", label: "Salary Advance Deposit" },
 ];
 
 type Status = (typeof STATUSES)[number]["value"];

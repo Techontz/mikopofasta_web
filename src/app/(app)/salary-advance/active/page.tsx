@@ -20,7 +20,7 @@ export default function ActiveSalaryAdvancePage() {
   const [filters, setFilters] = useState<Filters>({});
   const [filtering, setFiltering] = useState(false);
   const [depositing, setDepositing] = useState<SalaryAdvance | null>(null);
-  const [history, setHistory] = useState<SalaryAdvance | null>(null);
+  const [historyId, setHistoryId] = useState<number | null>(null);
   const [collecting, setCollecting] = useState<SalaryAdvance | null>(null);
   const { data: advances, isLoading } = useApi<SalaryAdvance[]>("salary-advance/active", { ...filters });
 
@@ -54,8 +54,8 @@ export default function ActiveSalaryAdvancePage() {
               className: "text-nowrap",
               render: (row) => (
                 <>
-                  <button type="button" className="btn btn-sm btn-icon btn-info mr-1" title="Deposit" onClick={() => setDepositing(row)}><i className="icon-pencil" /></button>
-                  <button type="button" className="btn btn-sm btn-icon btn-info mr-1" title="Deposit History" onClick={() => setHistory(row)}><i className="icon-list" /></button>
+                  <button type="button" className="btn btn-sm btn-success mr-1 text-nowrap" title="Pay remain amount" onClick={() => setDepositing(row)}><i className="icon-wallet" /> Pay</button>
+                  <button type="button" className="btn btn-sm btn-icon btn-info mr-1" title="Deposit History" onClick={() => setHistoryId(row.id)}><i className="icon-list" /></button>
                   {can("accounting.reverse") && (
                     <button
                       type="button"
@@ -99,7 +99,8 @@ export default function ActiveSalaryAdvancePage() {
       </Card>
 
       <DepositModal advance={depositing} onClose={() => setDepositing(null)} />
-      <DepositHistoryModal advance={history} onClose={() => setHistory(null)} />
+      {/* Looked up by id so the modal shows the refreshed list after a reversal is requested. */}
+      <DepositHistoryModal advance={advances?.find((row) => row.id === historyId) ?? null} onClose={() => setHistoryId(null)} />
       <CollectFeeModal advance={collecting} onClose={() => setCollecting(null)} />
       <FilterModal open={filtering} onClose={() => setFiltering(false)} onApply={setFilters} dates="optional" />
     </>

@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Field } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
-import { confirmAction } from "@/components/ui/notify";
+import { confirmAction, promptReason } from "@/components/ui/notify";
 import { money } from "@/lib/format";
 import { useAction } from "@/lib/hooks";
 
@@ -93,9 +93,13 @@ export function CollectFeeModal({ advance, onClose }: { advance: SalaryAdvance |
   );
 }
 
-/** Live "Deposit History (customer)" modal. */
+/**
+ * Live "Deposit History (customer)" modal. The trash icon REQUESTS the reversal of a deposit (maker/checker): nothing
+ * changes until another user approves it under Reversal Requests; the deposit then shows as reversed and is owed again.
+ */
 export function DepositHistoryModal({ advance, onClose }: { advance: SalaryAdvance | null; onClose: () => void }) {
   const payments = advance?.payments ?? [];
+  const reverse = useAction<{ id: number; reason: string }>("post", (body) => `salary-advance/payments/${body.id}/reverse`);
 
   return (
     <Modal open={advance !== null} onClose={onClose} title={`Deposit History (${advance?.customer ?? ""})`}>
@@ -116,16 +120,45 @@ export function DepositHistoryModal({ advance, onClose }: { advance: SalaryAdvan
             {payments.map((payment, index) => (
               <tr key={payment.id}>
                 <td>{index + 1}.</td>
-                <td>{money(payment.amount)}</td>
-                <td>{payment.created_at}</td>
-                <td />
+                <td>{payment.reversed ? <s className="text-muted">{money(payment.amount)}</s> : money(payment.amount)}</td>
+                <td>
+                  {payment.created_at}
+                  {payment.reversed && (
+                    <div style={{ whiteSpace: "normal" }}>
+                      <Badge tone="danger">REVERSED</Badge> <small>{payment.reversed_at} · {payment.reversed_by ?? "—"} · {payment.reversal_reason}</small>
+                    </div>
+                  )}
+                  {payment.reversal_pending && (
+                    <div><Badge tone="warning">REVERSAL PENDING APPROVAL</Badge></div>
+                  )}
+                </td>
+                <td>
+                  {!payment.reversed && !payment.reversal_pending && (
+                    <span title={payment.can_request_reversal ? "Reverse this deposit" : payment.reversal_blocked_reason ?? ""} className="d-inline-block">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-icon btn-danger"
+                        disabled={!payment.can_request_reversal || reverse.isPending}
+                        style={payment.can_request_reversal ? undefined : { pointerEvents: "none" }}
+                        onClick={async () => {
+                          const reason = await promptReason(`Reverse the deposit of ${money(payment.amount)} made ${payment.created_at ?? payment.paid_on}?`);
+                          if (reason) {
+                            reverse.mutate({ id: payment.id, reason });
+                          }
+                        }}
+                      >
+                        <i className="icon-trash" />
+                      </button>
+                    </span>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr>
               <td><b>TOTAL:</b></td>
-              <td><b>{money(sum(payments, (payment) => payment.amount))}</b></td>
+              <td><b>{money(sum(payments.filter((payment) => !payment.reversed), (payment) => payment.amount))}</b></td>
               <td />
               <td />
             </tr>
@@ -140,6 +173,7 @@ export function DepositHistoryModal({ advance, onClose }: { advance: SalaryAdvan
 export function DepositModal({ advance, onClose }: { advance: SalaryAdvance | null; onClose: () => void }) {
   const [amount, setAmount] = useState("");
   const pay = useAction<{ id: number; amount: string }>("post", (body) => `salary-advance/advances/${body.id}/payments`);
+  const remaining = Number(advance?.remaining_amount ?? 0);
 
   const close = () => {
     setAmount("");
@@ -153,10 +187,10 @@ export function DepositModal({ advance, onClose }: { advance: SalaryAdvance | nu
       onClose={close}
       title={
         <>
-          Deposit ({advance?.customer}) <br />start Date:{advance?.start_date} <br /> End Date: {advance?.end_date}
+          Pay Remain Amount ({advance?.customer}) <br />start Date:{advance?.start_date} <br /> End Date: {advance?.end_date}
         </>
       }
-      submitLabel="Deposit"
+      submitLabel="Pay"
       submitting={pay.isPending}
       onSubmit={async () => {
         if (advance && (await confirmAction())) {
@@ -164,9 +198,17 @@ export function DepositModal({ advance, onClose }: { advance: SalaryAdvance | nu
         }
       }}
     >
+      <p className="mb-2">
+        Principal + Interest: <b>{money(advance?.total_payable ?? 0)}</b> · Paid: <b>{money(advance?.paid_amount ?? 0)}</b> · Remain Amount: <b>{money(remaining)}</b>
+      </p>
       <div className="row clearfix">
         <Field label="Amount:" className="col-md-12" error={pay.fieldError("amount")}>
-          <input type="number" className="form-control" placeholder="Enter Amount" autoComplete="off" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+          <div className="input-group">
+            <input type="number" className="form-control" placeholder="Enter Amount" autoComplete="off" min={1} max={remaining} step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+            <div className="input-group-append">
+              <button type="button" className="btn btn-outline-secondary" onClick={() => setAmount(String(remaining))}>Pay full remain</button>
+            </div>
+          </div>
         </Field>
       </div>
     </Modal>
