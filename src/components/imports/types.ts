@@ -59,6 +59,17 @@ export interface LegacyImportDetail extends LegacyImportSummary {
   can_delete: boolean;
 }
 
+/** Map All: an unmatched row, the customers it could belong to, and the proposed choice ("create", a customer id, or null). */
+export interface MapSuggestion {
+  row_id: number;
+  row_number: number;
+  customer_name: string;
+  phone: string | null;
+  messages: string[];
+  candidates: { id: number; label: string }[];
+  suggestion: number | "create" | null;
+}
+
 export interface LegacyImportRow {
   id: number;
   row_number: number;

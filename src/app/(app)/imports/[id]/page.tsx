@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { IMPORT_STATUS, ROW_STATUS, type LegacyImportDetail, type LegacyImportRow, type RowStatus } from "@/components/imports/types";
+import { IMPORT_STATUS, ROW_STATUS, type LegacyImportDetail, type LegacyImportRow, type MapSuggestion, type RowStatus } from "@/components/imports/types";
 import { Stat } from "@/components/reports/ReportKit";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
@@ -31,13 +31,14 @@ const FILTERS: { value: "all" | RowStatus; label: string }[] = [
 /**
  * Preview and approval of one old-system file: counts, the balances it brings in, every row with its status and exact
  * reasons, the exception file, and the workflow — Submit for Approval (uploader), Approve / Reject (another authorised
- * user), map unmatched customers, roll back an approved import.
+ * user), map unmatched customers one by one or all at once (Map All), roll back an approved import.
  */
 export default function LegacyImportPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [filter, setFilter] = useState<"all" | RowStatus>("all");
   const [mapping, setMapping] = useState<LegacyImportRow | null>(null);
+  const [mappingAll, setMappingAll] = useState(false);
   const { data: detail, isLoading } = useApi<LegacyImportDetail>(`legacy-imports/${id}`);
   const { data: rows, isLoading: rowsLoading } = useApi<LegacyImportRow[]>(`legacy-imports/${id}/rows`);
 
@@ -166,19 +167,27 @@ export default function LegacyImportPage() {
       <Card
         title="Records"
         actions={
-          <div className="btn-group btn-group-sm">
-            {FILTERS.map((option) => (
-              <button key={option.value} type="button" className={`btn ${filter === option.value ? "btn-primary" : "btn-outline-primary"}`} onClick={() => setFilter(option.value)}>
-                {option.label} ({count(option.value)})
+          <>
+            {detail.can_map && detail.unmatched_rows > 0 && (
+              <button type="button" className="btn btn-sm btn-primary mr-2" onClick={() => setMappingAll(true)}>
+                <i className="fa fa-users" /> Map All ({detail.unmatched_rows})
               </button>
-            ))}
-          </div>
+            )}
+            <div className="btn-group btn-group-sm">
+              {FILTERS.map((option) => (
+                <button key={option.value} type="button" className={`btn ${filter === option.value ? "btn-primary" : "btn-outline-primary"}`} onClick={() => setFilter(option.value)}>
+                  {option.label} ({count(option.value)})
+                </button>
+              ))}
+            </div>
+          </>
         }
       >
         <DataTable rows={visible} loading={rowsLoading} rowKey={(row) => row.id} columns={columnsFor(detail, setMapping)} />
       </Card>
 
       {mapping && <MapRowModal importId={detail.id} row={mapping} onClose={() => setMapping(null)} />}
+      {mappingAll && <MapAllModal importId={detail.id} onClose={() => setMappingAll(false)} />}
     </>
   );
 }
@@ -284,6 +293,107 @@ function MapRowModal({ importId, row, onClose }: { importId: number; row: Legacy
           Create New Customer
         </button>
       </div>
+    </Modal>
+  );
+}
+
+/** A Map All choice: a new customer, an existing customer's id, skip (stays unmatched), or "" (not chosen yet). */
+type Choice = "create" | "skip" | "" | `${number}`;
+
+/**
+ * Map All: every unmatched row with a choice — a new customer, one of the likely existing customers, or skip. Rows start
+ * on the proposed choice (the customer when exactly one is likely, a new customer when none is); rows with several likely
+ * customers must be chosen. One click then maps them all in one transaction.
+ */
+function MapAllModal({ importId, onClose }: { importId: number; onClose: () => void }) {
+  const { data: suggestions, isLoading } = useApi<MapSuggestion[]>(`legacy-imports/${importId}/map-suggestions`);
+  const [picked, setPicked] = useState<Record<number, Choice>>({});
+  const mapAll = useAction<{ mappings: { row_id: number; customer_id?: number; create?: boolean }[] }>("post", `legacy-imports/${importId}/map-all`);
+
+  const rows = suggestions ?? [];
+  const choiceOf = (row: MapSuggestion): Choice => picked[row.row_id] ?? (row.suggestion === null ? "" : row.suggestion === "create" ? "create" : `${row.suggestion}`);
+  const choices = rows.map((row) => ({ row, choice: choiceOf(row) }));
+  const toCreate = choices.filter(({ choice }) => choice === "create").length;
+  const toExisting = choices.filter(({ choice }) => choice !== "create" && choice !== "skip" && choice !== "").length;
+  const skipped = choices.filter(({ choice }) => choice === "skip").length;
+  const undecided = choices.filter(({ choice }) => choice === "").map(({ row }) => row.row_number);
+  const setAll = (from: (choice: Choice) => boolean, to: Choice) =>
+    setPicked((current) => ({ ...current, ...Object.fromEntries(choices.filter(({ choice }) => from(choice)).map(({ row }) => [row.row_id, to])) }));
+
+  const submit = async () => {
+    if (undecided.length > 0) {
+      await confirmAction("Choose a customer first", `Rows ${undecided.join(", ")} could belong to several existing customers. Choose one, Create New Customer, or Skip.`);
+      return;
+    }
+    const mappings = choices
+      .filter(({ choice }) => choice !== "skip")
+      .map(({ row, choice }) => (choice === "create" ? { row_id: row.row_id, create: true } : { row_id: row.row_id, customer_id: Number(choice) }));
+    if (mappings.length === 0) {
+      onClose();
+      return;
+    }
+    const detail = [toExisting > 0 ? `${toExisting} to existing customers` : null, toCreate > 0 ? `${toCreate} new customers will be created` : null, skipped > 0 ? `${skipped} skipped` : null].filter(Boolean).join(", ");
+    if (await confirmAction(`Map ${mappings.length} rows?`, `${detail}.`)) {
+      mapAll.mutate({ mappings }, { onSuccess: onClose });
+    }
+  };
+
+  return (
+    <Modal open onClose={onClose} title="Map All Unmatched Customers" size="xl" submitLabel={`Map ${toCreate + toExisting} Rows`} onSubmit={submit} submitting={mapAll.isPending}>
+      {isLoading && <p className="text-muted">Loading the unmatched rows…</p>}
+      {!isLoading && rows.length === 0 && <p className="text-muted">No unmatched rows left.</p>}
+      {rows.length > 0 && (
+        <>
+          <p className="small text-muted mb-2">
+            Each row starts on the proposed choice: the existing customer when exactly one is likely, a new customer when none is. Rows marked <b>Choose</b> could belong to several customers. New customers are created from the row (name and phone as printed, in this import&apos;s branch) and must complete registration before any new loan.
+          </p>
+          <div className="mb-2">
+            <button type="button" className="btn btn-sm btn-outline-warning mr-1" onClick={() => setAll((choice) => choice === "", "create")}>
+              Create new for rows not chosen
+            </button>
+            <button type="button" className="btn btn-sm btn-outline-secondary mr-1" onClick={() => setAll((choice) => choice === "", "skip")}>
+              Skip rows not chosen
+            </button>
+            <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setPicked({})}>
+              Reset to proposals
+            </button>
+          </div>
+          <div className="table-responsive" style={{ maxHeight: "55vh", overflowY: "auto" }}>
+            <table className="table table-sm table-hover mb-0">
+              <thead className="thead-info">
+                <tr>
+                  <th>Row</th>
+                  <th>Customer Name (file)</th>
+                  <th style={{ minWidth: 320 }}>Map To</th>
+                </tr>
+              </thead>
+              <tbody>
+                {choices.map(({ row, choice }) => (
+                  <tr key={row.row_id} className={choice === "" ? "table-warning" : undefined}>
+                    <td>{row.row_number}</td>
+                    <td>
+                      <b>{row.customer_name}</b>
+                      {row.phone && <div className="small text-muted">{row.phone}</div>}
+                      {row.messages.map((message) => <div key={message} className="small text-muted">{message}</div>)}
+                    </td>
+                    <td>
+                      <select className="form-control form-control-sm" value={choice} onChange={(event) => setPicked((current) => ({ ...current, [row.row_id]: event.target.value as Choice }))}>
+                        {choice === "" && <option value="">Choose… ({row.candidates.length} possible customers)</option>}
+                        {row.candidates.map((candidate) => <option key={candidate.id} value={`${candidate.id}`}>{candidate.label}</option>)}
+                        <option value="create">+ Create New Customer</option>
+                        <option value="skip">Skip (leave unmatched)</option>
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="small mb-0 mt-2">
+            <b>{toExisting}</b> to existing customers · <b>{toCreate}</b> new customers · <b>{skipped}</b> skipped{undecided.length > 0 && <span className="text-danger"> · <b>{undecided.length}</b> still to choose</span>}
+          </p>
+        </>
+      )}
     </Modal>
   );
 }
