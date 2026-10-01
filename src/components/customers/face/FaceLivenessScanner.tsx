@@ -23,6 +23,7 @@ import {
   type QualityCheck,
   type SequenceState,
 } from "./liveness";
+import { CAMERA_LABELS, cameraConstraints, countCameras, isMirrored, openedFacing, otherFacing, saveFacing, savedFacing, usableFacing, type CameraFacing } from "./camera";
 
 export interface ScanResult {
   capture: Blob;
@@ -85,7 +86,8 @@ const NO_CHECKS: Record<QualityCheck, boolean> = { oneFaceDetected: false, eyesO
 
 /**
  * Guided liveness scanner: the six live quality checks and the five-pose sequence. Produces a still capture
- * (JPEG, taken on the straight pose) and a report; `onResult(null)` when a new scan starts.
+ * (JPEG, taken on the straight pose) and a report; `onResult(null)` when a new scan starts. On a device with more than
+ * one camera the scan can use the front or the back camera (Switch camera); the choice is remembered on the device.
  */
 export function FaceLivenessScanner({ onResult, disabled }: { onResult: (result: ScanResult | null) => void; disabled?: boolean }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -98,6 +100,7 @@ export function FaceLivenessScanner({ onResult, disabled }: { onResult: (result:
   const startedAtRef = useRef(0);
   const lastTimestampRef = useRef(-1);
   const onResultRef = useRef(onResult);
+  const facingRef = useRef<CameraFacing>("user");
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -105,10 +108,20 @@ export function FaceLivenessScanner({ onResult, disabled }: { onResult: (result:
   const [poseIndex, setPoseIndex] = useState(0);
   const [completed, setCompleted] = useState<SequenceState["completed"]>(initialSequence().completed);
   const [result, setResult] = useState<ScanResult | null>(null);
+  const [facing, setFacing] = useState<CameraFacing>("user");
+  const [openedCamera, setOpenedCamera] = useState<CameraFacing>("user");
+  const [cameraCount, setCameraCount] = useState(0);
 
   useEffect(() => {
     onResultRef.current = onResult;
   }, [onResult]);
+
+  // The remembered camera and the number of cameras are only known in the browser, after the first render.
+  useEffect(() => {
+    facingRef.current = savedFacing();
+    setFacing(facingRef.current);
+    void countCameras().then(setCameraCount);
+  }, []);
 
   const stopCamera = () => {
     if (frameRef.current !== null) {
@@ -204,7 +217,7 @@ export function FaceLivenessScanner({ onResult, disabled }: { onResult: (result:
     onResultRef.current(scan);
   };
 
-  const start = async () => {
+  const start = async (preferred: CameraFacing = facingRef.current) => {
     setError(null);
     setResult(null);
     onResultRef.current(null);
@@ -222,14 +235,15 @@ export function FaceLivenessScanner({ onResult, disabled }: { onResult: (result:
     }
 
     setPhase("loading");
+    const requested = usableFacing(preferred, cameraCount === 0 ? await countCameras() : cameraCount);
     let landmarker: FaceLandmarker;
     try {
-      const [loaded, stream] = await Promise.all([
-        loadLandmarker(),
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false }),
-      ]);
+      const [loaded, stream] = await Promise.all([loadLandmarker(), navigator.mediaDevices.getUserMedia(cameraConstraints(requested))]);
       landmarker = loaded;
       streamRef.current = stream;
+      setOpenedCamera(openedFacing(requested, stream.getVideoTracks()[0]?.getSettings().facingMode));
+      // With camera permission granted the browser lists every camera, so the switch can appear now.
+      void countCameras().then(setCameraCount);
     } catch (exception) {
       stopCamera();
       setPhase("error");
@@ -306,6 +320,18 @@ export function FaceLivenessScanner({ onResult, disabled }: { onResult: (result:
     setPhase("idle");
   };
 
+  /** Use the other camera. During a scan the scan starts again on it: the poses must all be done on one camera. */
+  const switchCamera = () => {
+    const next = otherFacing(facingRef.current);
+    facingRef.current = next;
+    setFacing(next);
+    saveFacing(next);
+    if (phase === "running") {
+      stopCamera();
+      void start(next);
+    }
+  };
+
   const running = phase === "running" || phase === "loading";
   const instruction = phase === "running" ? POSES[Math.min(poseIndex, POSES.length - 1)].instruction : null;
   const failed = result?.report.status === "failed";
@@ -313,7 +339,7 @@ export function FaceLivenessScanner({ onResult, disabled }: { onResult: (result:
   return (
     <div className="mf-face-scanner">
       <div className="mf-face-stage">
-        <video ref={videoRef} muted playsInline className={running ? "" : "d-none"} aria-label="Camera preview" />
+        <video ref={videoRef} muted playsInline className={`${running ? "" : "d-none"} ${isMirrored(openedCamera) ? "mf-face-mirrored" : ""}`.trim()} aria-label="Camera preview" data-camera={openedCamera} />
         {running && <div className="mf-face-oval" aria-hidden="true" />}
         {!running && result && (
           // eslint-disable-next-line @next/next/no-img-element -- local object URL of the capture
@@ -361,7 +387,17 @@ export function FaceLivenessScanner({ onResult, disabled }: { onResult: (result:
           </div>
         )}
 
+        {cameraCount > 1 && (
+          <div className="small text-muted mb-2" data-testid="face-camera-label">
+            <i className="icon-camera" /> {CAMERA_LABELS[running ? openedCamera : facing]}
+          </div>
+        )}
         <div className="mf-face-actions">
+          {cameraCount > 1 && (
+            <button type="button" className="btn btn-outline-secondary" onClick={switchCamera} disabled={phase === "loading" || disabled} title="Use the other camera">
+              <i className="fa fa-refresh" /> Switch to {CAMERA_LABELS[otherFacing(facing)].toLowerCase()}
+            </button>
+          )}
           {running ? (
             <button type="button" className="btn btn-outline-secondary" onClick={cancel}>
               Stop
