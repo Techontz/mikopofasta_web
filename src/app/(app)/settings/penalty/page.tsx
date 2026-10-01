@@ -68,8 +68,31 @@ function LoanFreezeForm({ days }: { days: number }) {
   );
 }
 
+/** Super Admin setting: share of an old-system loan the customer must have repaid before it can be topped up. */
+function LegacyTopupForm({ percent, canUpdate }: { percent: number; canUpdate: boolean }) {
+  const [value, setValue] = useState(String(percent));
+  const update = useAction<{ legacy_topup_percent: string }>("put", "settings/legacy-topup");
+
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); update.mutate({ legacy_topup_percent: value }); }}>
+      <div className="form-group">
+        <span>Percentage of an old-system loan the customer must have paid before a top-up (100 = must clear it first)</span>
+        <input type="number" min={1} max={100} step="0.01" className="form-control" value={value} onChange={(e) => setValue(e.target.value)} required disabled={!canUpdate} />
+        {!canUpdate && <small className="form-text text-muted">Only the Super Administrator can change this percentage.</small>}
+        {update.fieldError("legacy_topup_percent") && <div className="field-error">{update.fieldError("legacy_topup_percent")}</div>}
+      </div>
+      {canUpdate && (
+        <div className="text-center m-t-20">
+          <button type="submit" className="btn btn-primary" disabled={update.isPending}><i className="icon-drawer" />Update</button>
+        </div>
+      )}
+    </form>
+  );
+}
+
 export default function PenaltySettingPage() {
   const { data: freeze } = useApi<{ loan_freeze_days: number }>("settings/loan-freeze");
+  const { data: legacyTopup } = useApi<{ legacy_topup_percent: number; can_update: boolean }>("settings/legacy-topup");
   const { data } = useApi<PenaltySetting>("settings/penalty");
   const clear = useAction<PenaltySetting>("put", "settings/penalty");
 
@@ -100,6 +123,7 @@ export default function PenaltySettingPage() {
         </div>
       </Card>
       <Card title="Default Freeze Time for New Loan Categories">{freeze ? <LoanFreezeForm key={freeze.loan_freeze_days} days={freeze.loan_freeze_days} /> : <Loading />}</Card>
+      <Card title="Old-System Loan Top-up">{legacyTopup ? <LegacyTopupForm key={legacyTopup.legacy_topup_percent} percent={legacyTopup.legacy_topup_percent} canUpdate={legacyTopup.can_update} /> : <Loading />}</Card>
     </>
   );
 }
