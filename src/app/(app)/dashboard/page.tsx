@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { FinanceDashboard } from "@/components/dashboard/FinanceDashboard";
 import { Card } from "@/components/ui/Card";
 import { Loading } from "@/components/ui/Loading";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { useAuth } from "@/lib/auth";
 import { money } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 
@@ -51,11 +53,24 @@ const TYPE_LINKS: Record<string, string> = {
   "customers.index": "/customers",
 };
 
-/** Every role sees the same dashboard; the figures inside it are scoped to what the signed-in employee may see. */
 /** Branch List money columns, in display order. */
 const BRANCH_COLUMNS = ["petty_cash", "principal_repaid", "interest", "loan_fee", "penalty", "reserve", "salary_advance", "cash_pending"];
 
+/**
+ * Finance has its own dashboard ({@see FinanceDashboard}); every other role sees the general dashboard, its figures scoped
+ * to what the signed-in employee may see.
+ */
 export default function DashboardPage() {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <Loading />;
+  }
+
+  return user?.role?.key === "finance" ? <FinanceDashboard /> : <GeneralDashboard />;
+}
+
+function GeneralDashboard() {
   const { data, isLoading } = useApi<DashboardData>("dashboard");
   const [accountsOpen, setAccountsOpen] = useState(false);
   const [branchesOpen, setBranchesOpen] = useState(false);
