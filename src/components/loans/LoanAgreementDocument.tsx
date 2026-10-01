@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { backendUrl } from "@/lib/api";
+import { imageSrc } from "@/lib/api";
 import { BRAND_LOGO } from "@/lib/brand";
 import { money, percent } from "@/lib/format";
 
@@ -12,9 +12,6 @@ const PAGES = 5;
 
 /** Swahili words for the small whole percentages a penalty uses ("asilimia tatu (3%)"). */
 const NUMBER_WORDS = ["", "moja", "mbili", "tatu", "nne", "tano", "sita", "saba", "nane", "tisa", "kumi"];
-
-/** The face-scan capture is an API path streamed through the proxy; anything else is already a URL. */
-const imageSrc = (url: string | null) => (url ? (/^(https?:)?\//.test(url) ? url : backendUrl(url)) : null);
 
 /** "2026-09-16" → "16/09/2026". */
 const dayFirst = (iso: string) => iso.slice(0, 10).split("-").reverse().join("/");

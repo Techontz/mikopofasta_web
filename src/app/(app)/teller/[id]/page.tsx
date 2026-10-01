@@ -14,6 +14,7 @@ import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SelectBox } from "@/components/ui/SelectBox";
+import { imageSrc } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { money } from "@/lib/format";
 import { useAction, useApi } from "@/lib/hooks";
@@ -106,7 +107,7 @@ export default function TellerCustomerPage() {
           {data && (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={data.customer.photo_url} className="img-thumbnail" alt="customer image" style={{ width: 135, height: 135, objectFit: "cover" }} />
+              <img src={imageSrc(data.customer.photo_url) ?? undefined} className="img-thumbnail" alt="customer image" style={{ width: 135, height: 135, objectFit: "cover" }} />
               <br />
               <small>{data.customer.full_name}</small>
               <div className="m-t-10">

@@ -33,6 +33,11 @@ export function backendUrl(path: string): string {
   return `/api/backend/${path.replace(/^\//, "")}`;
 }
 
+/** Image source for a photo URL: an API path (e.g. the customer's face-scan capture) goes through the proxy; anything else is already a URL. */
+export function imageSrc(url: string | null | undefined): string | null {
+  return url ? (/^(https?:)?\//.test(url) ? url : backendUrl(url)) : null;
+}
+
 function buildUrl(path: string, query?: Query): string {
   const url = `/api/backend/${path.replace(/^\//, "")}`;
   if (!query) {

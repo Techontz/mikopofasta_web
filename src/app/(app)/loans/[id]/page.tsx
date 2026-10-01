@@ -22,7 +22,7 @@ import { DataTable } from "@/components/ui/DataTable";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import type { Option } from "@/components/ui/SelectBox";
-import { api } from "@/lib/api";
+import { api, imageSrc } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { money, percent } from "@/lib/format";
 import { useAction, useApi } from "@/lib/hooks";
@@ -129,7 +129,7 @@ function LoanDetailView({ detail, openEditInitially }: { detail: LoanDetail; ope
           <div className="row">
             <div className="col-md-4 d-flex align-items-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={customer.photo_url} alt="" className="rounded-circle mr-2" width={42} height={42} />
+              <img src={imageSrc(customer.photo_url) ?? undefined} alt="" className="rounded-circle mr-2" width={42} height={42} />
               <div><b>{customer.short_name}</b><br /><small>{customer.customer_code}</small></div>
             </div>
             <div className="col-md-4">

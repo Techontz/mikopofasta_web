@@ -12,6 +12,7 @@ import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SelectBox } from "@/components/ui/SelectBox";
 import { confirmAction, promptReason } from "@/components/ui/notify";
+import { imageSrc } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { money } from "@/lib/format";
 import { useAction, useApi } from "@/lib/hooks";
@@ -54,7 +55,7 @@ export default function CustomerSavingPage() {
             <div className="body text-center">
               {customer && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={customer.photo_url} className="img-thumbnail" alt="customer image" style={{ width: 135, height: 135, objectFit: "cover" }} />
+                <img src={imageSrc(customer.photo_url) ?? undefined} className="img-thumbnail" alt="customer image" style={{ width: 135, height: 135, objectFit: "cover" }} />
               )}
               <div><small>{customer?.full_name}</small></div>
             </div>
