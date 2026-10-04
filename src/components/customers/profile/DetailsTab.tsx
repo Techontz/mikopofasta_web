@@ -4,13 +4,13 @@ import { useQueries } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/Badge";
-import { backendUrl } from "@/lib/api";
 import { money } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 
 import { Detail, formatDateTime } from "../common";
 import type { Customer, CustomerType, FaceScanResource, FieldDef, MasterData } from "../types";
 import { fetchParented, parentedKey } from "../wizard/Step2Details";
+import { DocumentLink } from "./DocumentPreview";
 import { buildDetailSections, featuredScan, nameOf, rawFieldValue, type DetailItem, type DetailSection } from "./detailSections";
 
 /** Titled card holding a label/value grid (2–3 columns, 1 on phones). */
@@ -71,9 +71,9 @@ export function DetailsTab({ customer, types, masterData, onOpenFace }: { custom
         return <Badge tone={item.tone}>{item.value}</Badge>;
       case "link":
         return (
-          <a href={backendUrl(item.href)} target="_blank" rel="noreferrer" className="mf-detail-link">
+          <DocumentLink path={item.href} fileName={item.value} className="mf-detail-link">
             <i className="fa fa-paperclip" /> {item.value}
-          </a>
+          </DocumentLink>
         );
       default:
         return item.format === "datetime" ? formatDateTime(item.value as string | null) : item.value;

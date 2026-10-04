@@ -10,6 +10,7 @@ import { DataTable } from "@/components/ui/DataTable";
 import { Field } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { backendUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { money } from "@/lib/format";
 import { useAction, useApi } from "@/lib/hooks";
@@ -52,6 +53,9 @@ export default function StaffSalaryAdvancePage() {
             {can("hrm.manage") && <HeaderButton icon="icon-pencil" title="Request" onClick={() => setModal("request")} />}
             <HeaderButton icon="icon-list" title="Approved List" onClick={() => setModal("approved")} />
             <HeaderButton title="filter" onClick={() => setModal("filter")} />
+            {can("payroll.pay") && data?.approved.some((row) => row.status === "finance_approved") && (
+              <a className="btn btn-sm btn-success ml-1" href={backendUrl("hrm/salary-advances/bank-file")} title="Finance Approved, waiting to be disbursed"><i className="fa fa-download" /> Bank Disbursement File</a>
+            )}
           </>
         }
       >

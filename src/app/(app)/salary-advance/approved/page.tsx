@@ -7,6 +7,7 @@ import type { SalaryAdvance } from "@/components/finance-b/types";
 import { Card } from "@/components/ui/Card";
 import { DataTable } from "@/components/ui/DataTable";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { backendUrl } from "@/lib/api";
 import { money, percent } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 
@@ -25,7 +26,7 @@ export default function SalaryAdvanceApprovedPage() {
     <>
       <PageHeader crumbs={["Salary Advance", "salary Advance Loan Approved"]} />
 
-      <Card title={`Salary Advance Approved Today / ${todayLabel()}`} actions={<HeaderButton onClick={() => setFiltering(true)} />}>
+      <Card title={`Salary Advance Approved Today / ${todayLabel()}`} actions={<><HeaderButton onClick={() => setFiltering(true)} /><a className="btn btn-sm btn-success ml-1" href={backendUrl(`salary-advance/approved/disbursement-file${filters.branch_id ? `?branch_id=${filters.branch_id}` : ""}`)}><i className="fa fa-download" /> Mobile Disbursement File</a></>}>
         <DataTable
           rows={advances}
           loading={isLoading}

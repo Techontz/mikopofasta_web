@@ -13,6 +13,7 @@ import { Field } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { confirmAction } from "@/components/ui/notify";
+import { backendUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { money } from "@/lib/format";
 import { useAction, useApi } from "@/lib/hooks";
@@ -94,7 +95,7 @@ export default function DisbursementPage() {
   return (
     <>
       <PageHeader crumbs={["Loan", "Ready to Pay Out"]} />
-      <Card title="Approved Loans Ready to Pay Out">
+      <Card title="Approved Loans Ready to Pay Out" actions={<a className="btn btn-sm btn-success ml-1" href={backendUrl(`loans/disbursement-file?status=${tab}`)}><i className="fa fa-download" /> Mobile Disbursement File</a>}>
         <ul className="nav nav-tabs mb-3">
           {TABS.map((item) => (
             <li className="nav-item" key={item.status}>

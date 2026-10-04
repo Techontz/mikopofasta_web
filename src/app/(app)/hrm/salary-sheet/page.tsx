@@ -13,6 +13,7 @@ import { Field } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { confirmAction } from "@/components/ui/notify";
+import { backendUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { money } from "@/lib/format";
 import { useAction, useApi } from "@/lib/hooks";
@@ -117,6 +118,9 @@ export default function SalarySheetPage() {
               {run?.status === "draft" && run.can_approve === false && run.approve_blocked_reason && <BlockedApproveButton reason={run.approve_blocked_reason} label="Approve Payroll" />}
               {can("payroll.pay") && run?.status === "draft" && run.can_approve !== false && (
                 <button type="button" className="btn btn-sm btn-success" disabled={approve.isPending} onClick={async () => (await confirmAction("Approve payroll?", "Salaries can not be changed after approval")) && approve.mutate({ id: run.id })}>Approve Payroll</button>
+              )}
+              {can("payroll.pay") && (run?.status === "approved" || run?.status === "paid") && (
+                <a className="btn btn-sm btn-success ml-1" href={backendUrl(`hrm/payroll/${run.id}/bank-file`)}><i className="fa fa-download" /> Bank Disbursement File</a>
               )}
             </span>
           </div>

@@ -1,0 +1,126 @@
+/*
+ * Credit Officer: the Credit Department dashboard (.cd-*) and the red theme of every page the role opens (body.theme-credit,
+ * set by the app layout). Surfaces, text and borders use the theme tokens so both work in the light and the dark theme.
+ */
+:root, :root[data-theme="light"] { --cd-red: #e1061a; --cd-red-soft: rgba(225, 6, 26, .1); --cd-series-dark: #111; --cd-series-grey: #7d8590; }
+:root[data-theme="dark"] { --cd-red: #c8232c; --cd-red-soft: rgba(200, 35, 44, .18); --cd-series-dark: #e3e7ec; --cd-series-grey: #7d8590; }
+
+/* ---------------------------------------------------------------- Red theme of the Credit Officer's pages */
+body.theme-credit {
+    --mf-table-head: var(--cd-red);
+    --mf-table-head-alt: var(--cd-red);
+    --mf-link: var(--cd-red);
+    --mf-cyan: var(--cd-red);
+    --mf-selected: var(--cd-red-soft);
+}
+body.theme-credit .navbar-fixed-top { background: var(--cd-red); border-bottom-color: var(--cd-red); }
+body.theme-credit .navbar-fixed-top .navbar-btn button,
+body.theme-credit #navbar-menu .icon-menu,
+body.theme-credit #navbar-menu .icon-menu i { color: #fff; }
+body.theme-credit #navbar-menu .notification-dot { background: #fff; }
+body.theme-credit .sidebar-nav .metismenu > li.active > a { border-left-color: var(--cd-red); }
+body.theme-credit .sidebar-nav .metismenu > li i { color: var(--cd-red); }
+body.theme-credit #left-sidebar .nav-tabs .nav-link.active { color: var(--cd-red); }
+
+/* Section titles and card headings carry the red bar of the design. */
+body.theme-credit .mf-section-title {
+    margin: 22px 0 10px;
+    padding-left: 12px;
+    border-left: 4px solid var(--cd-red);
+    font-size: 15px;
+    letter-spacing: .02em;
+    line-height: 1.3;
+    color: var(--mf-heading);
+}
+body.theme-credit .mf-section-title:first-child { margin-top: 0; }
+body.theme-credit .card .header h2 { padding-left: 10px; border-left: 4px solid var(--cd-red); }
+body.theme-credit .mf-detail-card { border-left: 4px solid var(--cd-red); }
+
+/* Every table heading is red with white capitals. */
+body.theme-credit .table thead th,
+body.theme-credit .table .thead-info th,
+body.theme-credit .table .thead-primary th {
+    color: #fff;
+    background-color: var(--cd-red);
+    border-color: var(--cd-red);
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    font-size: 13px;
+    font-weight: 700;
+}
+body.theme-credit .table thead th a,
+body.theme-credit .table thead th b { color: #fff; }
+body.theme-credit .page-item.active .page-link { background-color: var(--cd-red); border-color: var(--cd-red); }
+
+/* ---------------------------------------------------------------- Dashboard */
+.cd { --cd-radius: 6px; --cd-gap: 14px; color: var(--mf-text); }
+.cd-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 16px; }
+.cd-heading { padding-left: 12px; border-left: 5px solid var(--cd-red); }
+.cd-title { margin: 0; font-size: 1.75rem; font-weight: 700; color: var(--mf-heading); }
+.cd-subtitle { margin: 0; color: var(--mf-text); }
+.cd-filters { display: flex; flex-wrap: wrap; gap: 10px; }
+.cd-filter { display: flex; align-items: center; gap: 8px; margin: 0; min-height: 44px; padding: 0 12px; border: 1px solid var(--mf-border-strong); border-radius: 6px; background: var(--mf-surface); }
+.cd-filter input[type="month"] { border: 0; background: transparent; color: var(--mf-heading); font-weight: 600; outline: none; }
+.cd-filter-branch { min-width: 220px; padding: 0 4px; }
+
+.cd-grid { display: grid; gap: var(--cd-gap); margin-bottom: var(--cd-gap); }
+.cd-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.cd-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 1399.98px) { .cd-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1199.98px) { .cd-grid-3 { grid-template-columns: 1fr; } }
+@media (max-width: 575.98px) { .cd-grid-4 { grid-template-columns: 1fr; } }
+
+.cd-card { min-width: 0; background: var(--mf-surface); border: 1px solid var(--mf-border); border-radius: var(--cd-radius); box-shadow: 0 1px 3px rgba(16, 24, 40, .06); }
+.cd-link, .cd-link:hover { color: inherit; text-decoration: none; }
+.cd-link:hover, .cd-link:focus-visible { box-shadow: 0 0 0 2px var(--cd-red-soft); outline: none; }
+.cd-card-title, .cd-panel-head h3 { margin: 0; padding-left: 10px; border-left: 4px solid var(--cd-red); font-size: 1.05rem; font-weight: 600; line-height: 1.3; color: var(--mf-heading); }
+
+.cd-kpi { padding: 16px 18px; }
+.cd-kpi-row { display: flex; align-items: center; gap: 16px; margin-top: 10px; }
+.cd-kpi-value { flex: 1; min-width: 0; font-size: 2.2rem; font-weight: 700; line-height: 1.1; color: var(--mf-strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:root[data-theme="dark"] .cd-kpi-value { color: var(--mf-heading); }
+.cd-kpi-value.is-red, :root[data-theme="dark"] .cd-kpi-value.is-red { color: var(--cd-red); }
+.cd-kpi-money { font-size: 1.7rem; }
+.cd-kpi-side { flex: 0 0 auto; padding-left: 16px; border-left: 1px solid var(--mf-border-strong); color: var(--mf-heading); }
+.cd-kpi-side b { display: block; font-size: 1.1rem; }
+.cd-kpi-side small { color: var(--mf-muted); font-size: .85rem; }
+
+.cd-mandate-total { margin: 8px 0 6px; font-size: 1.6rem; font-weight: 700; color: var(--mf-heading); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cd-mandate { margin: 0; padding: 0; list-style: none; }
+.cd-mandate li { display: grid; grid-template-columns: 12px 1fr auto auto; align-items: center; gap: 8px; padding: 3px 0; font-size: .9rem; color: var(--mf-heading); }
+.cd-mandate li i { width: 12px; height: 12px; border-radius: 50%; }
+.cd-mandate li i.is-dark { background: var(--cd-series-dark); }
+.cd-mandate li i.is-red { background: var(--cd-red); }
+.cd-mandate li b { font-weight: 500; white-space: nowrap; }
+.cd-mandate li em { min-width: 48px; font-style: normal; text-align: right; }
+.cd-mandate .is-good { color: #16a34a; }
+.cd-mandate .is-bad { color: var(--cd-red); }
+.cd-note { display: block; margin-top: 4px; color: var(--mf-muted); font-size: .75rem; }
+
+.cd-panel { padding: 16px 18px; }
+.cd-panel-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.cd-panel-head h3 { flex: 1; }
+.cd-chip { padding: 5px 12px; border: 1px solid var(--mf-border-strong); border-radius: 6px; font-size: .8rem; color: var(--mf-heading); white-space: nowrap; }
+.cd-view-all { padding: 5px 12px; border: 1px solid var(--mf-border-strong); border-radius: 6px; font-size: .85rem; color: var(--mf-heading); background: var(--mf-surface); white-space: nowrap; }
+.cd-view-all:hover { color: #fff; background: var(--cd-red); border-color: var(--cd-red); text-decoration: none; }
+
+.cd-approvals { margin: 0; padding: 0; list-style: none; }
+.cd-approvals li { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--mf-border); }
+.cd-approvals li:last-child { border-bottom: 0; }
+.cd-approval-icon { width: 24px; color: var(--cd-red); font-size: 20px; text-align: center; }
+.cd-approval-count { min-width: 26px; color: var(--mf-heading); font-size: 1.05rem; }
+.cd-approval-label { flex: 1; min-width: 0; color: var(--mf-heading); font-size: .9rem; }
+.cd-approval-status { min-width: 130px; padding: 5px 10px; border-radius: 6px; font-size: .8rem; text-align: center; white-space: nowrap; }
+.cd-approval-status.warning { color: #b45309; background: rgba(245, 158, 11, .16); }
+.cd-approval-status.danger { color: var(--cd-red); background: var(--cd-red-soft); }
+.cd-arrow { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; color: var(--cd-red); background: var(--cd-red-soft); }
+.cd-arrow:hover { color: #fff; background: var(--cd-red); text-decoration: none; }
+.cd-arrow.is-disabled { opacity: .35; }
+@media (max-width: 575.98px) { .cd-approval-status { min-width: 0; } }
+
+.cd .cd-table { font-size: .875rem; }
+.cd .cd-table thead th { padding: 9px 10px; color: #fff; background: var(--cd-red); border: 0; font-size: .75rem; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; white-space: nowrap; }
+.cd .cd-table td { padding: 8px 10px; color: var(--mf-heading); border-top: 1px solid var(--mf-border); white-space: nowrap; }
+.cd .cd-table td:first-child { white-space: normal; }
+.cd-rate.is-bad { color: var(--cd-red); font-weight: 600; }
+.cd-empty { padding: 24px 0 !important; color: var(--mf-muted) !important; text-align: center; white-space: normal !important; }

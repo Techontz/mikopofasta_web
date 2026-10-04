@@ -11,6 +11,7 @@ import { DataTable, type Column } from "@/components/ui/DataTable";
 import { Field } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { backendUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { money } from "@/lib/format";
 import { useAction, useApi } from "@/lib/hooks";
@@ -65,6 +66,9 @@ export default function StaffLoanPage() {
             <HeaderButton icon="icon-list" title="Approved List" onClick={() => setModal("approved")} />
             <Link href="/hrm/staff-loans/active" className="btn btn-warning btn-sm ml-1" title="Active loan"><i className="icon-arrow-right" /></Link>
             {can("hrm.manage") && <HeaderButton icon="icon-plus" title="Apply loan" onClick={() => setModal("apply")} />}
+            {can("payroll.pay") && data?.approved.some((row) => row.status === "finance_approved") && (
+              <a className="btn btn-sm btn-success ml-1" href={backendUrl("hrm/staff-loans/bank-file")} title="Finance Approved, waiting to be disbursed"><i className="fa fa-download" /> Bank Disbursement File</a>
+            )}
           </>
         }
       >

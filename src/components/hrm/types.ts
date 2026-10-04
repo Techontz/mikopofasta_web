@@ -1,6 +1,7 @@
 export interface SalaryInfo {
   salary: number;
   account_name: string;
+  bank_name: string | null;
   account_number: string;
   fee: number;
   salary_type: string;

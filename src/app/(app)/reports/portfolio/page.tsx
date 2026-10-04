@@ -86,7 +86,7 @@ export default function LoanPortfolioPage() {
             <Stat tone="primary" label="Total Loans Issued" value={`${s.issued_count} / ${money(s.issued_amount)}`} />
             <Stat tone="success" label="Active Loans" value={s.active_count} />
             <Stat tone="info" label="Completed Loans" value={s.completed_count} />
-            <Stat tone="danger" label="Default Loans" value={s.default_count} />
+            <Stat tone="danger" label={`Default Loans (${s.default_customers ?? 0} customers)`} value={`${s.default_count} / ${money(s.default_outstanding ?? 0)}`} />
             <Stat tone="primary" label="Outstanding Principal" value={money(s.outstanding_principal)} />
             <Stat tone="warning" label="Outstanding Interest" value={money(s.outstanding_interest)} />
             <Stat tone="danger" label="Outstanding Penalty" value={money(s.outstanding_penalty)} />

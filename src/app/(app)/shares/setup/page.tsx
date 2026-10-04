@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { RegisterShareHolderModal } from "@/components/shareholders/ShareHolderForm";
 import { SharesAccess } from "@/components/shares/SharesAccess";
 import { SharesNav } from "@/components/shares/SharesNav";
 import { allocationStatus, holdingValue, initialShareValue, ownershipPercent, parseAmount, sharesLabel } from "@/components/shares/shares";
@@ -47,6 +49,9 @@ export default function ShareSetupPage() {
   const [lines, setLines] = useState<AllocationForm[]>([{ ...EMPTY_LINE }, { ...EMPTY_LINE }]);
   const [idempotencyKey] = useState(() => newIdempotencyKey("share-structure"));
   const save = useAction<Record<string, unknown>>("post", "shares/structure");
+  const canRegister = can("capital.manage");
+  // The allocation line waiting for a shareholder registered from this page (null = register dialog closed).
+  const [registeringFor, setRegisteringFor] = useState<number | null>(null);
 
   const basis = parseAmount(form.capital_basis);
   const total = Math.trunc(parseAmount(form.total_shares));
@@ -122,8 +127,9 @@ export default function ShareSetupPage() {
             actions={<button type="button" className="btn btn-sm btn-outline-primary" onClick={() => setLines([...lines, { ...EMPTY_LINE }])}><i className="icon-plus" /> Add line</button>}
           >
             <p className="text-muted">
-              Shareholders are registered in Capital → Shareholders. Choose for every line how the shares were paid for — money already recorded as a capital
-              contribution is linked and never posted twice.
+              Choose a registered shareholder for every line, or register a new one here (same record as{" "}
+              <Link href="/capital/share-holders">Capital → Shareholders</Link>). Choose for every line how the shares were paid for — money already recorded as a
+              capital contribution is linked and never posted twice.
             </p>
             {save.fieldError("allocations") && <div className="alert alert-danger">{save.fieldError("allocations")}</div>}
             {lines.map((line, index) => {
@@ -133,6 +139,11 @@ export default function ShareSetupPage() {
                 <div className="row border-bottom pb-2 mb-2" key={index}>
                   <Field label="Shareholder:" required className="col-lg-3 col-md-6" error={error("share_holder_id")}>
                     <SelectBox inputId={`holder-${index}`} placeholder="Select Shareholder" options={holders} value={line.share_holder_id} onChange={(value) => setLine(index, { share_holder_id: value ?? "", capital_id: "" })} />
+                    {canRegister && (
+                      <button type="button" className="btn btn-sm btn-link p-0" onClick={() => setRegisteringFor(index)}>
+                        <i className="icon-user-follow" /> Register new shareholder
+                      </button>
+                    )}
                   </Field>
                   <Field label="Shares:" required className="col-lg-2 col-md-6" error={error("shares")}>
                     <input className="form-control" inputMode="numeric" placeholder="Shares" value={line.shares} onChange={(e) => setLine(index, { shares: e.target.value })} required />
@@ -203,6 +214,17 @@ export default function ShareSetupPage() {
           </Card>
         </form>
       )}
+
+      {/* Outside the structure form: the dialog has a form of its own. */}
+      <RegisterShareHolderModal
+        open={registeringFor !== null}
+        onClose={() => setRegisteringFor(null)}
+        onRegistered={(holder) => {
+          if (registeringFor !== null) {
+            setLine(registeringFor, { share_holder_id: String(holder.id), capital_id: "" });
+          }
+        }}
+      />
     </SharesAccess>
   );
 }

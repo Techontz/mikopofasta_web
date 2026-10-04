@@ -225,3 +225,8 @@
 .mf-checklist li.is-fail i { color: var(--mf-danger); }
 .mf-checklist li.is-unknown i { color: var(--mf-subtle); }
 .mf-row-selected > td { background: var(--mf-selected); }
+
+/* Customer document preview window: the image or PDF fits the window, scrolling inside it. */
+.mf-doc-preview { display: flex; align-items: center; justify-content: center; min-height: 200px; max-height: 75vh; overflow: auto; background: var(--mf-surface-muted); border-radius: 8px; }
+.mf-doc-preview img { max-width: 100%; max-height: 75vh; object-fit: contain; }
+.mf-doc-preview iframe { width: 100%; height: 75vh; border: 0; background: #fff; }

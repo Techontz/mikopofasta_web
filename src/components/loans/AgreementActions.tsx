@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { DocumentPreviewModal } from "@/components/customers/profile/DocumentPreview";
 import { Field } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
 import { useAuth } from "@/lib/auth";
@@ -24,6 +25,7 @@ export const AGREEMENT_UPLOADERS = ["loans.apply", "loans.approve_manager", "loa
 export function AgreementActions({ loan, compact = false, showPrint = true }: { loan: AgreementLoan; compact?: boolean; showPrint?: boolean }) {
   const { can } = useAuth();
   const [open, setOpen] = useState(false);
+  const [viewing, setViewing] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const upload = useAction<FormData>("post", `loans/${loan.id}/agreement`);
 
@@ -42,14 +44,23 @@ export function AgreementActions({ loan, compact = false, showPrint = true }: { 
         </Link>
       )}
       {uploaded && (
-        <a href={loan.agreement_file ?? undefined} target="_blank" rel="noreferrer" className={`btn btn-success ${size}`} title="Signed agreement">
+        <button type="button" className={`btn btn-success ${size}`} title="View signed agreement" onClick={() => setViewing(true)}>
           <i className="icon-doc" />{!compact && " Signed Agreement"}
-        </a>
+        </button>
       )}
       {can(AGREEMENT_UPLOADERS) && (
         <button type="button" className={`btn ${uploaded ? "btn-outline-primary" : "btn-primary"} ${size}`} title={uploaded ? "Replace signed agreement" : "Upload signed agreement"} onClick={() => { setFile(null); setOpen(true); }}>
           <i className="icon-cloud-upload" />{!compact && (uploaded ? " Replace Signed Agreement" : " Upload Signed Agreement")}
         </button>
+      )}
+
+      {viewing && (
+        <DocumentPreviewModal
+          path={`loans/${loan.id}/agreement/file`}
+          fileName={`Signed Loan Agreement${loan.customer_name ? ` - ${loan.customer_name}` : ""}.pdf`}
+          mimeType="application/pdf"
+          onClose={() => setViewing(false)}
+        />
       )}
 
       <Modal

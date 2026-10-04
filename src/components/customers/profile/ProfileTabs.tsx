@@ -9,7 +9,7 @@ import type { CustomerFreeze } from "@/components/loans/freeze";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { Loading } from "@/components/ui/Loading";
 import { confirmAction } from "@/components/ui/notify";
-import { api, ApiError, backendUrl } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { money } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 
@@ -17,6 +17,7 @@ import { Detail, formatDateTime } from "../common";
 import { toastError, toastSuccess } from "../toast";
 import type { Customer, DocumentResource, GuarantorResource, MasterData, NextOfKinResource } from "../types";
 import { RELATIONSHIPS } from "../wizard/form";
+import { DocumentLink } from "./DocumentPreview";
 import { KYC_ACCEPT, kycFileProblem } from "../wizard/Step3Kyc";
 import { DebtSummary, type CustomerDebt } from "@/components/customers/DebtSummary";
 
@@ -323,7 +324,7 @@ export function DocumentsTab({ customerId, canManage, masterData }: { customerId
                 (data ?? []).map((document) => (
                   <tr key={document.id}>
                     <td>
-                      <a href={backendUrl(document.downloadUrl ?? `customers/${customerId}/documents/${document.id}/download`)} target="_blank" rel="noreferrer">{document.originalName}</a>
+                      <DocumentLink path={document.downloadUrl ?? `customers/${customerId}/documents/${document.id}/download`} fileName={document.originalName} mimeType={document.mimeType} />
                     </td>
                     <td>{types.find((type) => type.code === document.documentType)?.name ?? document.documentType}</td>
                     <td className="text-nowrap">{document.sizeBytes ? `${Math.max(1, Math.round(document.sizeBytes / 1024))} KB` : ""}</td>

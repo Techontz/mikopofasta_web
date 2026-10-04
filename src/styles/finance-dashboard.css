@@ -9,6 +9,7 @@
 .fd-filters { display: flex; flex-wrap: wrap; gap: 10px; }
 .fd-filter { display: flex; align-items: center; gap: 8px; margin: 0; min-height: 44px; padding: 0 12px; border: 1px solid var(--mf-border-strong); border-radius: 10px; background: var(--mf-surface); }
 .fd-filter input[type="month"] { border: 0; background: transparent; color: var(--mf-heading); font-weight: 600; outline: none; }
+.fd-filters .btn { min-height: 44px; padding: 0 16px; border-radius: 10px; font-weight: 600; }
 .fd-filter-branch { min-width: 220px; padding: 0 4px; }
 
 .fd-grid { display: grid; gap: var(--fd-gap); margin-bottom: var(--fd-gap); }
@@ -63,7 +64,8 @@
 .fd-channel > div { font-size: .85rem; color: var(--mf-heading); }
 .fd-channel-name { font-size: .85rem; color: var(--mf-heading); overflow: hidden; text-overflow: ellipsis; }
 .fd-channel-badge { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; font-size: .65rem; font-weight: 700; text-transform: uppercase; color: #1d6ff2; background: rgba(29, 111, 242, .1); }
-.fd-channel-badge.mobile { color: #ef4444; background: rgba(239, 68, 68, .1); font-size: 18px; }
+.fd-channel-badge.mobile { color: #ef4444; background: rgba(239, 68, 68, .1); }
+.fd-channel-badge.mobile i, .fd-channel-badge.bank i { font-size: 18px; }
 .fd-channel-badge.cash { color: #16a34a; background: rgba(22, 163, 74, .12); font-size: 15px; }
 .fd-channel-badge.offset, .fd-channel-badge.other { color: var(--mf-heading); background: var(--mf-surface-muted); font-size: 15px; }
 
@@ -93,3 +95,5 @@
 .fd-approval-status.finance { color: #dc2626; background: rgba(239, 68, 68, .12); }
 .fd-approval-status.pending { color: #b45309; background: rgba(245, 158, 11, .16); }
 .fd-approvals .fd-arrow { margin-left: 0; }
+.fd-clickable { cursor: pointer; transition: box-shadow .15s ease; }
+.fd-clickable:hover, .fd-clickable:focus-visible { box-shadow: 0 0 0 2px rgba(29, 111, 242, .35); outline: none; }

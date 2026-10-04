@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useState, type KeyboardEvent, type ReactNode } from "react";
 import { Bar, BarChart, Cell, LabelList, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
+import { BranchListModal, type BranchAccounts } from "@/components/dashboard/BranchListModal";
 import { Loading } from "@/components/ui/Loading";
+import { Modal } from "@/components/ui/Modal";
 import { SelectBox } from "@/components/ui/SelectBox";
+import { useAuth } from "@/lib/auth";
 import { money } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 
@@ -21,6 +24,8 @@ export interface FinanceDashboardData {
   cards: {
     cash_balance: number;
     cash_balance_change: number | null;
+    /** The accounts the Total Cash sits in at the end of the month; they add up to cash_balance. */
+    cash_accounts: { label: string; amount: number }[];
     disbursed_today: number;
     disbursed_today_change: number | null;
     collected_today: number;
@@ -41,6 +46,8 @@ export interface FinanceDashboardData {
   income_expenses: { income: Line[]; expenses: Line[]; total_income: number; total_expenses: number; net: number; net_change: number | null };
   cash_flow: { opening: number; cash_in: number; cash_out: number; closing: number };
   approvals: { workflow: string; label: string; count: number; amount: number; status: string; link: string }[];
+  /** The Branch List popup for the month: always every branch, whatever branch is filtered. */
+  branch_accounts: BranchAccounts;
 }
 
 /** Colours of the design (Finance dashboard mock-up). */
@@ -58,16 +65,18 @@ const short = (value: number) => (Math.abs(value) >= 1e9 ? `${+(value / 1e9).toF
  * company or one branch. Every figure comes from GET /dashboard/finance; nothing is computed or invented here.
  */
 export function FinanceDashboard() {
+  const { user } = useAuth();
   const [month, setMonth] = useState(thisMonth);
   const [branchId, setBranchId] = useState("");
+  const [branchesOpen, setBranchesOpen] = useState(false);
   const { data, isLoading } = useApi<FinanceDashboardData>("dashboard/finance", { month, branch_id: branchId || undefined });
 
   return (
     <div className="fd">
       <div className="fd-head">
         <div>
-          <h1 className="fd-title">Finance Dashboard</h1>
-          <p className="fd-subtitle">Overview of financial performance and cash flow</p>
+          <h1 className="fd-title">Finance Department</h1>
+          <p className="fd-subtitle">Welcome, {user?.full_name}</p>
         </div>
         <div className="fd-filters">
           <label className="fd-filter">
@@ -77,10 +86,13 @@ export function FinanceDashboard() {
           <div className="fd-filter fd-filter-branch">
             <SelectBox inputId="fd-branch" placeholder="All Branches" optionsUrl="options/branches" value={branchId} isClearable onChange={(value) => setBranchId(value ?? "")} />
           </div>
+          <button type="button" className="btn btn-info" disabled={!data} onClick={() => setBranchesOpen(true)}><i className="icon-list" /> Branch</button>
         </div>
       </div>
 
       {isLoading || !data ? <Loading /> : <Body data={data} />}
+
+      <BranchListModal open={branchesOpen} onClose={() => setBranchesOpen(false)} data={data?.branch_accounts ?? null} />
     </div>
   );
 }
@@ -88,11 +100,12 @@ export function FinanceDashboard() {
 function Body({ data }: { data: FinanceDashboardData }) {
   const k = data.cards;
   const monthLabel = data.month_label;
+  const [accountsOpen, setAccountsOpen] = useState(false);
 
   return (
     <>
       <div className="fd-grid fd-grid-4">
-        <StatCard icon="fa fa-briefcase" tone={C.blue} title="Total Cash & Account Balance" value={k.cash_balance} change={k.cash_balance_change} compare="vs last month" href="/reports/cash-flow" />
+        <StatCard icon="fa fa-briefcase" tone={C.blue} title="Total Cash & Account Balance" value={k.cash_balance} change={k.cash_balance_change} compare="vs last month" href="/reports/cash-flow" onOpen={() => setAccountsOpen(true)} />
         <StatCard icon="fa fa-paper-plane" tone={C.red} title="Disbursed Today" value={k.disbursed_today} change={k.disbursed_today_change} compare="vs yesterday" href="/loans/disbursed" />
         <StatCard icon="fa fa-bar-chart" tone={C.green} title="Collection Today" value={k.collected_today} change={k.collected_today_change} compare="vs yesterday" href="/reports/collections" />
         <StatCard icon="fa fa-database" tone={C.purple} title="Total Loan Outstanding" value={k.loan_outstanding} change={k.loan_outstanding_change} compare="vs last month" href="/reports/portfolio" />
@@ -128,6 +141,10 @@ function Body({ data }: { data: FinanceDashboardData }) {
           <Approvals rows={data.approvals} />
         </Panel>
       </div>
+
+      <Modal open={accountsOpen} onClose={() => setAccountsOpen(false)} title={`Total Cash & Account Balance — ${monthLabel}`}>
+        <CashAccounts rows={k.cash_accounts} total={k.cash_balance} />
+      </Modal>
     </>
   );
 }
@@ -140,7 +157,14 @@ function IconTile({ icon, tone }: { icon: string; tone: string }) {
   );
 }
 
-function Arrow({ href }: { href: string }) {
+function Arrow({ href, onOpen }: { href: string; onOpen?: () => void }) {
+  if (onOpen) {
+    return (
+      <button type="button" className="fd-arrow border-0" aria-label="Show the accounts" onClick={(event) => { event.stopPropagation(); onOpen(); }}>
+        <i className="fa fa-chevron-right" />
+      </button>
+    );
+  }
   return (
     <Link href={href} className="fd-arrow" aria-label="Open the detail">
       <i className="fa fa-chevron-right" />
@@ -163,18 +187,42 @@ function Change({ value, compare }: { value: number | null; compare: string }) {
   );
 }
 
-function StatCard({ icon, tone, title, value, change, compare, href }: { icon: string; tone: string; title: string; value: number; change: number | null; compare: string; href: string }) {
+/** A stat card; with `onOpen` the whole card is clickable and opens its detail instead of following `href`. */
+function StatCard({ icon, tone, title, value, change, compare, href, onOpen }: { icon: string; tone: string; title: string; value: number; change: number | null; compare: string; href: string; onOpen?: () => void }) {
+  const clickable = onOpen ? { role: "button", tabIndex: 0, onClick: onOpen, onKeyDown: (event: KeyboardEvent) => (event.key === "Enter" || event.key === " ") && (event.preventDefault(), onOpen()) } : {};
   return (
-    <div className="fd-card fd-stat">
+    <div className={`fd-card fd-stat${onOpen ? " fd-clickable" : ""}`} {...clickable}>
       <IconTile icon={icon} tone={tone} />
       <div className="fd-stat-body">
         <div className="fd-stat-title">{title}</div>
         <div className="fd-stat-value">TZS {money(value)}</div>
         <div className="fd-stat-foot">
           <Change value={change} compare={compare} />
-          <Arrow href={href} />
+          <Arrow href={href} onOpen={onOpen} />
         </div>
       </div>
+    </div>
+  );
+}
+
+/** The accounts behind the Total Cash card, with their total (the card's figure) and a link to the Cash Flow report. */
+function CashAccounts({ rows, total }: { rows: FinanceDashboardData["cards"]["cash_accounts"]; total: number }) {
+  return (
+    <div className="table-responsive">
+      <table className="table table-bordered mb-2">
+        <thead className="thead-info"><tr><th>A/c Name</th><th className="text-right">Amount</th></tr></thead>
+        <tbody>
+          {rows.length === 0 && <tr><td colSpan={2} className="text-center text-muted">No money in any account.</td></tr>}
+          {rows.map((row) => (
+            <tr key={row.label} className={row.amount < 0 ? "text-danger" : undefined}>
+              <td>{row.label}</td>
+              <td className="text-right">{money(row.amount)}</td>
+            </tr>
+          ))}
+          <tr><th>TOTAL:</th><th className="text-right">{money(total)}</th></tr>
+        </tbody>
+      </table>
+      <Link href="/reports/cash-flow" className="fd-view-all">Open the Cash Flow report</Link>
     </div>
   );
 }
@@ -271,7 +319,15 @@ function PaymentMethods({ data }: { data: FinanceDashboardData["payment_methods"
   );
 }
 
-const CHANNEL_ICON: Record<string, string> = { mobile: "fa fa-mobile", cash: "fa fa-money", offset: "fa fa-exchange", other: "fa fa-ellipsis-h" };
+const CHANNEL_ICON: Record<string, string> = { bank: "fa fa-university", mobile: "fa fa-mobile", cash: "fa fa-money", offset: "fa fa-exchange", other: "fa fa-ellipsis-h" };
+
+/** Short name on a bank or network badge (CRD, MPE, AIR); none for an unnamed bank or network, which keeps its icon. */
+function badgeText(row: FinanceDashboardData["channels"][number]): string | null {
+  if ((row.channel !== "bank" && row.channel !== "mobile") || row.label.includes("(NOT NAMED)")) {
+    return null;
+  }
+  return row.label.replace(/[^A-Za-z0-9]/g, "").slice(0, 3);
+}
 
 function Channels({ rows }: { rows: FinanceDashboardData["channels"] }) {
   if (rows.length === 0) {
@@ -281,7 +337,7 @@ function Channels({ rows }: { rows: FinanceDashboardData["channels"] }) {
     <div className="fd-channels">
       {rows.map((row) => (
         <div key={row.label} className="fd-channel">
-          <span className={`fd-channel-badge ${row.channel}`}>{row.channel === "bank" ? row.label.slice(0, 3) : <i className={CHANNEL_ICON[row.channel] ?? CHANNEL_ICON.other} />}</span>
+          <span className={`fd-channel-badge ${row.channel}`}>{badgeText(row) ?? <i className={CHANNEL_ICON[row.channel] ?? CHANNEL_ICON.other} />}</span>
           <b className="fd-channel-name">{row.label}</b>
           <div>
             <small>Expected</small>

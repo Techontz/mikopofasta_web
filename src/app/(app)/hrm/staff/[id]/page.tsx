@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 
-import { SALARY_TYPES, statusTone } from "@/components/hrm/common";
+import { SALARY_TYPES, STAFF_BANKS, statusTone } from "@/components/hrm/common";
 import { StaffCreditStatus } from "@/components/hrm/StaffCreditActions";
 import { StaffForm, staffToForm, type StaffFormValues } from "@/components/hrm/StaffForm";
 import type { AmountItem, StaffDetail } from "@/components/hrm/types";
@@ -30,6 +30,7 @@ const TABS = [
 interface SalaryForm {
   salary: string;
   account_name: string;
+  bank_name: string;
   account_number: string;
   fee_salary: string;
   salary_type: string;
@@ -60,7 +61,7 @@ export default function StaffProfilePage() {
   const [form, setForm] = useState<StaffFormValues | null>(null);
   const [passwords, setPasswords] = useState({ oldpass: "", newpass: "", passconf: "" });
   const [salaryOpen, setSalaryOpen] = useState(false);
-  const [salary, setSalary] = useState<SalaryForm>({ salary: "", account_name: "", account_number: "", fee_salary: "0", salary_type: "branch", commission_eligible: true, payment_method: "bank" });
+  const [salary, setSalary] = useState<SalaryForm>({ salary: "", account_name: "", bank_name: "", account_number: "", fee_salary: "0", salary_type: "branch", commission_eligible: true, payment_method: "bank" });
 
   const update = useAction<StaffFormValues>("put", `hrm/staff/${id}`);
   const password = useAction<typeof passwords>("put", `hrm/staff/${id}/password`);
@@ -72,8 +73,8 @@ export default function StaffProfilePage() {
   const openSalary = () => {
     const info = staff?.salary_info;
     setSalary(info
-      ? { salary: String(info.salary), account_name: info.account_name, account_number: info.account_number, fee_salary: String(info.fee), salary_type: info.salary_type, commission_eligible: info.commission_eligible, payment_method: info.payment_method }
-      : { salary: "", account_name: "", account_number: "", fee_salary: "0", salary_type: staff?.role?.scope === "company" ? "hq" : staff?.role?.scope === "zone" ? "zone_manager" : "branch", commission_eligible: staff?.role?.scope !== "company", payment_method: "bank" });
+      ? { salary: String(info.salary), account_name: info.account_name, bank_name: info.bank_name ?? "", account_number: info.account_number, fee_salary: String(info.fee), salary_type: info.salary_type, commission_eligible: info.commission_eligible, payment_method: info.payment_method }
+      : { salary: "", account_name: "", bank_name: "", account_number: "", fee_salary: "0", salary_type: staff?.role?.scope === "company" ? "hq" : staff?.role?.scope === "zone" ? "zone_manager" : "branch", commission_eligible: staff?.role?.scope !== "company", payment_method: "bank" });
     setSalaryOpen(true);
   };
 
@@ -179,6 +180,7 @@ export default function StaffProfilePage() {
             searchable={false}
             columns={[
               { key: "account_name", header: "Account Name" },
+              { key: "bank_name", header: "Bank", render: (row) => row.bank_name ?? "—" },
               { key: "account_number", header: "Account Number" },
               { key: "salary", header: "Amount", render: (row) => money(row.salary) },
               { key: "fee", header: "Fee", render: (row) => money(row.fee) },
@@ -286,6 +288,12 @@ export default function StaffProfilePage() {
           </Field>
           <Field label="Account Name:" className="col-lg-6 col-6" error={saveSalary.fieldError("account_name")}>
             <input className="form-control input-sm" placeholder="Enter Account Name" value={salary.account_name} onChange={(e) => setSalary({ ...salary, account_name: e.target.value })} required />
+          </Field>
+          <Field label={salary.payment_method === "bank" ? "*Bank:" : "Bank:"} className="col-lg-6 col-6" error={saveSalary.fieldError("bank_name")}>
+            <select className="form-control" value={salary.bank_name} onChange={(e) => setSalary({ ...salary, bank_name: e.target.value })} required={salary.payment_method === "bank"}>
+              <option value="">Select Bank</option>
+              {STAFF_BANKS.map((bank) => <option key={bank} value={bank}>{bank}</option>)}
+            </select>
           </Field>
           <Field label="*Account Number:" className="col-lg-6 col-6" error={saveSalary.fieldError("account_number")}>
             <input className="form-control input-sm" placeholder="Enter Account Number" value={salary.account_number} onChange={(e) => setSalary({ ...salary, account_number: e.target.value })} required />

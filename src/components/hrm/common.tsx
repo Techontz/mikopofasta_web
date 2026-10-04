@@ -116,6 +116,12 @@ export const SALARY_TYPES = [
   { value: "hq", label: "HQ Staff (Fixed)" },
 ];
 
+/** Banks the bank disbursement file accepts (its "bank" drop-down), as the bank expects them written. */
+export const STAFF_BANKS = [
+  "CRDB", "NMB", "TPB", "NBC", "COVENANT", "CBA", "CANARA", "ABSA", "ACCESS BANK", "UBA", "STANBIC", "SCB", "PBZ", "MKOMBOZI",
+  "MAENDELEO", "LETSHEGO", "KCB", "IM BANK", "FNB", "EQUITY BANK", "DTB", "DCB", "MWALIMU BANK", "AKIBA BANK", "EXIM",
+];
+
 export function currentMonth(): string {
   return new Date().toISOString().slice(0, 7);
 }

@@ -10,6 +10,7 @@ import { DataTable } from "@/components/ui/DataTable";
 import { Field } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
 import { confirmAction, promptReason } from "@/components/ui/notify";
+import { backendUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { money, todayIso } from "@/lib/format";
 import { useAction, useApi } from "@/lib/hooks";
@@ -121,6 +122,11 @@ export function CommissionPayments({ period }: { period: string }) {
             <button type="button" className="btn btn-sm btn-warning" disabled={busy} onClick={() => openPay({ period })}>
               Pay Approved ({counts.pay})
             </button>
+          )}
+          {canDecide && counts.pay > 0 && (
+            <a className="btn btn-sm btn-success ml-1" href={backendUrl(`hrm/commission/payments/bank-file?period=${period}`)} title="Finance Approved commission, ready to upload to the bank">
+              <i className="fa fa-download" /> Bank Disbursement File
+            </a>
           )}
         </>
       }

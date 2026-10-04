@@ -5,6 +5,9 @@ import { createContext, useContext, type ReactNode } from "react";
 
 import { api } from "@/lib/api";
 
+/** Role key of the Credit Officer: their own dashboard and the red Credit Department theme. */
+export const CREDIT_OFFICER = "credit_officer";
+
 export interface CurrentUser {
   id: number;
   full_name: string;

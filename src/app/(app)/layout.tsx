@@ -6,7 +6,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { ShareholderTopbar } from "@/components/layout/ShareholderTopbar";
 import { Navbar } from "@/components/layout/Navbar";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { AuthProvider, useAuth } from "@/lib/auth";
+import { AuthProvider, CREDIT_OFFICER, useAuth } from "@/lib/auth";
 import { redirectFor, shellFor } from "@/lib/shareholderMenu";
 import { Loading } from "@/components/ui/Loading";
 
@@ -20,6 +20,8 @@ function Shell({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarPath, setSidebarPath] = useState(pathname);
   const shareholder = shellFor(user) === "shareholder";
+  /** The Credit Officer's pages use the red Credit Department theme instead of the orange frame. */
+  const credit = !shareholder && user?.role?.key === CREDIT_OFFICER;
   const redirect = redirectFor(user, pathname);
 
   if (sidebarPath !== pathname) {
@@ -34,8 +36,9 @@ function Shell({ children }: { children: ReactNode }) {
   }, [redirect, router]);
 
   useEffect(() => {
-    const orange = !shareholder && ORANGE_THEME.some((prefix) => pathname === prefix || pathname.startsWith(prefix));
+    const orange = !shareholder && !credit && ORANGE_THEME.some((prefix) => pathname === prefix || pathname.startsWith(prefix));
     document.body.classList.toggle("theme-orange", orange);
+    document.body.classList.toggle("theme-credit", credit);
     document.body.classList.toggle("font-ubuntu", orange);
     document.body.classList.toggle("offcanvas-active", !shareholder && sidebarOpen);
     if (shareholder) {
@@ -43,7 +46,7 @@ function Shell({ children }: { children: ReactNode }) {
     } else {
       delete document.body.dataset.shell;
     }
-  }, [pathname, sidebarOpen, shareholder]);
+  }, [pathname, sidebarOpen, shareholder, credit]);
 
   if (isLoading || !user || redirect) {
     return <Loading />;

@@ -12,6 +12,7 @@ import "@/styles/finance.css";
 import "@/styles/shareholder.css";
 import "@/styles/polish.css";
 import "@/styles/finance-dashboard.css";
+import "@/styles/credit-dashboard.css";
 
 import { Providers } from "@/components/providers";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";

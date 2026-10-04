@@ -7,14 +7,13 @@ import Link from "next/link";
 
 import { ownershipLabel } from "@/components/capital/contributions";
 import { CredentialsModal } from "@/components/shareholders/CredentialsModal";
+import { EMPTY_HOLDER, HolderFields, holderName, toFormData, type HolderForm } from "@/components/shareholders/ShareHolderForm";
 import { credentialsFrom, type CredentialEntry } from "@/components/shareholders/credentials";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { DataTable } from "@/components/ui/DataTable";
-import { Field } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { PassportPhotoField } from "@/components/ui/PassportPhotoField";
 import { confirmAction, notifySuccess } from "@/components/ui/notify";
 import { backendUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -71,76 +70,6 @@ function LoginBadge({ login }: { login?: HolderLogin }) {
   return login.must_change_password ? <Badge tone="warning">MUST CHANGE PASSWORD</Badge> : <Badge tone="success">ACTIVE</Badge>;
 }
 
-interface HolderForm {
-  first_name: string;
-  middle_name: string;
-  last_name: string;
-  share_mobile: string;
-  share_email: string;
-  share_sex: string;
-  share_dob: string;
-  passport_photo: File | null;
-}
-
-const EMPTY: HolderForm = { first_name: "", middle_name: "", last_name: "", share_mobile: "", share_email: "", share_sex: "", share_dob: "", passport_photo: null };
-
-/** Multipart body for the API (the photo is a file; editing spoofs PUT because PHP only parses multipart POST). */
-function toFormData(form: HolderForm, method: "POST" | "PUT"): FormData {
-  const body = new FormData();
-  for (const [key, value] of Object.entries(form)) {
-    if (value instanceof File) {
-      body.append(key, value);
-    } else if (value !== null) {
-      body.append(key, value);
-    }
-  }
-  if (method === "PUT") {
-    body.append("_method", "PUT");
-  }
-  return body;
-}
-
-function HolderFields({ form, setForm, fieldError, editing, currentPhoto }: { form: HolderForm; setForm: (form: HolderForm) => void; fieldError: (field: string) => string | undefined; editing?: boolean; currentPhoto?: string | null }) {
-  const set = (field: keyof HolderForm) => (event: { target: { value: string } }) => setForm({ ...form, [field]: event.target.value });
-
-  return (
-    <div className="row">
-      <div className="col-lg-9">
-        <div className="row">
-          <Field label=" First Name:" required className="col-md-4" error={fieldError("first_name")}>
-            <input className="form-control" placeholder="First Name" autoComplete="off" value={form.first_name} onChange={set("first_name")} required />
-          </Field>
-          <Field label="Middle Name:" className="col-md-4" error={fieldError("middle_name")}>
-            <input className="form-control" placeholder="Middle Name" autoComplete="off" value={form.middle_name} onChange={set("middle_name")} />
-          </Field>
-          <Field label=" Last Name:" required className="col-md-4" error={fieldError("last_name")}>
-            <input className="form-control" placeholder="Last Name" autoComplete="off" value={form.last_name} onChange={set("last_name")} required />
-          </Field>
-          <Field label={editing ? " Mobile no:" : " Phone no:"} required className="col-md-4" error={fieldError("share_mobile")}>
-            <input type="number" className="form-control" placeholder={editing ? "Mobile no" : "Phone no"} autoComplete="off" value={form.share_mobile} onChange={set("share_mobile")} required />
-          </Field>
-          <Field label=" Email:" required className="col-md-4" error={fieldError("share_email")}>
-            <input type="email" className="form-control" placeholder="Email" autoComplete="off" value={form.share_email} onChange={set("share_email")} required />
-          </Field>
-          <Field label="Gender:" required className="col-md-4" error={fieldError("share_sex")}>
-            <select className="form-control input-sm" value={form.share_sex} onChange={set("share_sex")}>
-              {!editing && <option value="">Select gender</option>}
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-            </select>
-          </Field>
-          <Field label="Date of Birth:" required className="col-md-4" error={fieldError("share_dob")}>
-            <input type="date" className="form-control" value={form.share_dob} onChange={set("share_dob")} required />
-          </Field>
-        </div>
-      </div>
-      <Field label="Passport Size Image:" required={!editing} className="col-lg-3">
-        <PassportPhotoField file={form.passport_photo} onChange={(file) => setForm({ ...form, passport_photo: file })} currentUrl={currentPhoto} error={fieldError("passport_photo")} required={!editing} />
-      </Field>
-    </div>
-  );
-}
-
 /**
  * Live admin/shareHolder, with the name split into first / middle / last and a passport-size photo. A shareholder
  * record alone owns nothing: Total Contributed Capital comes from their capital contributions, while Shares and
@@ -149,10 +78,10 @@ function HolderFields({ form, setForm, fieldError, editing, currentPhoto }: { fo
 export default function ShareHoldersPage() {
   const { can } = useAuth();
   const { data: holders, isLoading } = useApi<ShareHolder[]>("capital/share-holders");
-  const [form, setForm] = useState<HolderForm>(EMPTY);
+  const [form, setForm] = useState<HolderForm>(EMPTY_HOLDER);
   const [formKey, setFormKey] = useState(0);
   const [editing, setEditing] = useState<ShareHolder | null>(null);
-  const [editForm, setEditForm] = useState<HolderForm>(EMPTY);
+  const [editForm, setEditForm] = useState<HolderForm>(EMPTY_HOLDER);
   const [historyOf, setHistoryOf] = useState<number | null>(null);
 
   const [credentials, setCredentials] = useState<CredentialEntry[] | null>(null);
@@ -187,10 +116,10 @@ export default function ShareHoldersPage() {
             key={formKey}
             onSubmit={(e) => {
               e.preventDefault();
-              const name = [form.first_name, form.middle_name, form.last_name].filter(Boolean).join(" ");
+              const name = holderName(form);
               create.mutate(toFormData(form, "POST"), {
                 onSuccess: (result) => {
-                  setForm(EMPTY);
+                  setForm(EMPTY_HOLDER);
                   setFormKey((key) => key + 1);
                   showCredentials(result, name, `${result.message} — ${result.account?.message ?? ""}`);
                 },

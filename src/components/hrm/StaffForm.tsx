@@ -6,7 +6,7 @@ import { Field } from "@/components/ui/Field";
 import { SelectBox, type Option } from "@/components/ui/SelectBox";
 import { api } from "@/lib/api";
 
-import { SALARY_TYPES } from "./common";
+import { SALARY_TYPES, STAFF_BANKS } from "./common";
 import type { Staff } from "./types";
 
 export interface StaffFormValues {
@@ -28,12 +28,13 @@ export interface StaffFormValues {
   commission_eligible?: boolean;
   payment_method?: string;
   account_name?: string;
+  bank_name?: string;
   account_number?: string;
 }
 
 export const EMPTY_STAFF: StaffFormValues = {
   empl_name: "", emp_mname: "", emp_lname: "", empl_no: "", date_birth: "", empl_email: "", blanch_id: "", position_id: "",
-  username: "", empl_sex: "", role_id: "", zone_id: "", password: "", salary: "", salary_type: "", commission_eligible: true, payment_method: "bank", account_name: "", account_number: "",
+  username: "", empl_sex: "", role_id: "", zone_id: "", password: "", salary: "", salary_type: "", commission_eligible: true, payment_method: "bank", account_name: "", bank_name: "", account_number: "",
 };
 
 export function staffToForm(staff: Staff): StaffFormValues {
@@ -144,6 +145,12 @@ export function StaffForm({ form, setForm, fieldError, registering }: { form: St
           </Field>
           <Field label="Account Name:" className="col-lg-3 col-6" error={fieldError("account_name")}>
             <input className="form-control input-sm" placeholder="Enter Account Name" value={form.account_name} onChange={(e) => set({ account_name: e.target.value })} />
+          </Field>
+          <Field label="Bank:" className="col-lg-3 col-6" error={fieldError("bank_name")}>
+            <select className="form-control" value={form.bank_name} onChange={(e) => set({ bank_name: e.target.value })}>
+              <option value="">Select Bank</option>
+              {STAFF_BANKS.map((bank) => <option key={bank} value={bank}>{bank}</option>)}
+            </select>
           </Field>
           <Field label="Account Number:" className="col-lg-3 col-6" error={fieldError("account_number")}>
             <input className="form-control input-sm" placeholder="Enter Account Number" value={form.account_number} onChange={(e) => set({ account_number: e.target.value })} />

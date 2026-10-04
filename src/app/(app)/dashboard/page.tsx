@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { BranchListModal, type BranchAccounts } from "@/components/dashboard/BranchListModal";
+import { CreditDashboard } from "@/components/dashboard/CreditDashboard";
 import { FinanceDashboard } from "@/components/dashboard/FinanceDashboard";
 import { Card } from "@/components/ui/Card";
 import { Loading } from "@/components/ui/Loading";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { useAuth } from "@/lib/auth";
+import { CREDIT_OFFICER, useAuth } from "@/lib/auth";
 import { money } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 
@@ -18,7 +20,7 @@ interface DashboardData {
   account_balances: Record<string, number> | null;
   account_balances_total: number | null;
   account_memos: Array<{ label: string; amount: number; tone: string }> | null;
-  branch_accounts: { month: string; rows: Array<Record<string, number | string>>; total: Record<string, number> } | null;
+  branch_accounts: BranchAccounts | null;
   operating_income: { total: number; sources: Array<{ key: string; label: string; amount: number }> } | null;
   today: Record<string, number | null>;
   customer_types: Array<{ label: string; route: string; all: number; active: number; pending: number; close: number; default: number; male: number; female: number }>;
@@ -53,12 +55,9 @@ const TYPE_LINKS: Record<string, string> = {
   "customers.index": "/customers",
 };
 
-/** Branch List money columns, in display order. */
-const BRANCH_COLUMNS = ["petty_cash", "principal_repaid", "interest", "loan_fee", "penalty", "reserve", "salary_advance", "cash_pending"];
-
 /**
- * Finance has its own dashboard ({@see FinanceDashboard}); every other role sees the general dashboard, its figures scoped
- * to what the signed-in employee may see.
+ * Finance and the Credit Officer have their own dashboards ({@see FinanceDashboard}, {@see CreditDashboard}); every other
+ * role sees the general dashboard, its figures scoped to what the signed-in employee may see.
  */
 export default function DashboardPage() {
   const { user, isLoading } = useAuth();
@@ -67,7 +66,10 @@ export default function DashboardPage() {
     return <Loading />;
   }
 
-  return user?.role?.key === "finance" ? <FinanceDashboard /> : <GeneralDashboard />;
+  if (user?.role?.key === "finance") {
+    return <FinanceDashboard />;
+  }
+  return user?.role?.key === CREDIT_OFFICER ? <CreditDashboard /> : <GeneralDashboard />;
 }
 
 function GeneralDashboard() {
@@ -301,42 +303,7 @@ function GeneralDashboard() {
         </div>
       </Modal>
 
-      <Modal open={branchesOpen} onClose={() => setBranchesOpen(false)} title={`Branch List — ${data.branch_accounts?.month ?? ""}`} size="xl">
-        <div className="table-responsive">
-          <table className="table table-bordered">
-            <thead className="thead-info">
-              <tr>
-                <th>Branch Name</th>
-                <th>Petty Cash<small className="d-block">available now</small></th>
-                <th>Principal Repaid</th>
-                <th>Interest</th>
-                <th>Loan fee</th>
-                <th>Penalty</th>
-                <th>Reserve</th>
-                <th>Salary Advance</th>
-                <th>Cash Pending<small className="d-block">not yet verified</small></th>
-              </tr>
-            </thead>
-            <tbody>
-              {(data.branch_accounts?.rows ?? []).map((branch) => (
-                <tr key={String(branch.name)}>
-                  <td>{branch.name}</td>
-                  {BRANCH_COLUMNS.map((key) => <td key={key}>{money(branch[key] as number)}</td>)}
-                </tr>
-              ))}
-              {data.branch_accounts && (
-                <tr>
-                  <th>TOTAL:</th>
-                  {BRANCH_COLUMNS.map((key) => <th key={key}>{money(data.branch_accounts?.total[key])}</th>)}
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        <small className="text-muted">
-          Every column covers {data.branch_accounts?.month} except Petty Cash, which is the balance each branch holds now — the only money a branch holds. Principal Repaid is already back in HQ&apos;s Operation Principal, and Interest (after the 20% reserve), Loan fee, Penalty and Reserve are what the branch collected for HQ. Salary Advance is the full amount customers repaid on salary advances this month (capital + profit), shown as a report only — the capital is already back in Operation Principal and the profit in Salary Advance income. Cash Pending is teller cash collected this month that Finance has not yet verified as banked.
-        </small>
-      </Modal>
+      <BranchListModal open={branchesOpen} onClose={() => setBranchesOpen(false)} data={data.branch_accounts} />
     </>
   );
 }
