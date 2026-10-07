@@ -40,7 +40,7 @@ export interface CreditDashboardData {
   payment_mandate: { total: number; collected: number; unpaid: number; collected_percent: number; unpaid_percent: number };
   officers: (Performance & { arrears_percent: number })[];
   branches: { label: string; active_loans: number; arrears_percent: number; default_percent: number }[];
-  products: Performance[];
+  customer_types: { label: string; applications: number; approved: number; default_percent: number }[];
 }
 
 /** Series colours of the Credit Department design: black, grey and the brand red. */
@@ -53,7 +53,7 @@ const short = (value: number) => (Math.abs(value) >= 1e9 ? `${+(value / 1e9).toF
 
 /**
  * Credit Department dashboard (role Credit Officer): applications, the approval pipeline, today's collections and portfolio
- * quality per officer, branch and product. Every figure comes from GET /dashboard/credit; nothing is computed here.
+ * quality per officer, branch and customer type. Every figure comes from GET /dashboard/credit; nothing is computed here.
  */
 export function CreditDashboard() {
   const { user } = useAuth();
@@ -167,10 +167,10 @@ function Body({ data }: { data: CreditDashboardData }) {
           empty="No active loans."
         />
         <TablePanel
-          title="Loan Product Performance"
-          headings={["Loan Product", "Applications", "Approved", "Rejection %"]}
-          rows={data.products.map((row) => [row.label, row.applications, row.approved, <Rate key="r" value={row.rejection_percent} />])}
-          empty="No applications this month."
+          title="Customer Type Performance"
+          headings={["Customer Type", "Applications", "Approved", "Default %"]}
+          rows={data.customer_types.map((row) => [row.label, row.applications, row.approved, <Rate key="d" value={row.default_percent} />])}
+          empty="No applications or loans."
         />
       </div>
     </>
@@ -266,10 +266,13 @@ const APPROVAL_ICONS: Record<string, string> = {
   returned: "fa fa-exclamation-triangle",
 };
 
+/** The panel is a brief: only its first rows fit the card without a scroll — View All opens the full list. */
+const APPROVALS_SHOWN = 5;
+
 function Approvals({ rows }: { rows: CreditDashboardData["approvals"] }) {
   return (
     <ul className="cd-approvals">
-      {rows.map((row) => (
+      {rows.slice(0, APPROVALS_SHOWN).map((row) => (
         <li key={row.key}>
           <i className={`${APPROVAL_ICONS[row.key] ?? "fa fa-file-o"} cd-approval-icon`} />
           <b className="cd-approval-count">{row.count}</b>

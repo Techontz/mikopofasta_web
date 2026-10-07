@@ -25,7 +25,8 @@ export interface FinanceDashboardData {
     cash_balance: number;
     cash_balance_change: number | null;
     /** The accounts the Total Cash sits in at the end of the month; they add up to cash_balance. */
-    cash_accounts: { label: string; amount: number }[];
+    /** `in_total` false: listed for information, its money is already inside another row (DIVIDEND in OPERATION INCOME). */
+    cash_accounts: { label: string; amount: number; in_total: boolean }[];
     disbursed_today: number;
     disbursed_today_change: number | null;
     collected_today: number;
@@ -214,9 +215,9 @@ function CashAccounts({ rows, total }: { rows: FinanceDashboardData["cards"]["ca
         <tbody>
           {rows.length === 0 && <tr><td colSpan={2} className="text-center text-muted">No money in any account.</td></tr>}
           {rows.map((row) => (
-            <tr key={row.label} className={row.amount < 0 ? "text-danger" : undefined}>
+            <tr key={row.label} className={row.amount < 0 ? "text-danger" : row.in_total ? undefined : "text-muted font-italic"} title={row.in_total ? undefined : "Not added to the total: this money is already counted in OPERATION INCOME"}>
               <td>{row.label}</td>
-              <td className="text-right">{money(row.amount)}</td>
+              <td className="text-right">{row.in_total ? money(row.amount) : `(${money(row.amount)})`}</td>
             </tr>
           ))}
           <tr><th>TOTAL:</th><th className="text-right">{money(total)}</th></tr>
@@ -444,13 +445,16 @@ const APPROVAL_ICONS: Record<string, string> = {
   "expenses.request": "fa fa-file-o",
 };
 
+/** The panel is a brief: only its first rows fit the card without a scroll — View All opens the full list. */
+const APPROVALS_SHOWN = 5;
+
 function Approvals({ rows }: { rows: FinanceDashboardData["approvals"] }) {
   if (rows.length === 0) {
     return <p className="fd-empty">Nothing is waiting for approval.</p>;
   }
   return (
     <ul className="fd-approvals">
-      {rows.map((row) => (
+      {rows.slice(0, APPROVALS_SHOWN).map((row) => (
         <li key={row.workflow}>
           <i className={`${APPROVAL_ICONS[row.workflow] ?? "fa fa-database"} fd-approval-icon`} />
           <b className="fd-approval-count">{row.count}</b>
