@@ -202,6 +202,16 @@ export const menu: MenuTab[] = [
       },
       { label: "VISA", icon: "icon-list", href: "/visa", permission: "visa.manage" },
       { label: "CRM", icon: "icon-call-in", href: "/crm", permission: "crm.use" },
+      {
+        label: "SMS Centre",
+        icon: "icon-envelope",
+        children: [
+          { label: "Send SMS", href: "/sms/send", permission: "sms.manage" },
+          { label: "Templates & Reminders", href: "/sms/templates", permission: "sms.manage" },
+          { label: "Contact Groups", href: "/sms/contact-groups", permission: "sms.manage" },
+          { label: "SMS Log", href: "/sms/logs", permission: "sms.manage" },
+        ],
+      },
       { label: "Messages", icon: "icon-bubbles", href: "/messages", permission: "messages.use" },
       { label: "Goals", icon: "icon-target", href: "/goals", permission: ["goals.view", "goals.manage"] },
       {
