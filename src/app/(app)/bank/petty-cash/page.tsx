@@ -30,7 +30,7 @@ interface BranchPettyCash {
 
 interface PettyCashList {
   data: BankTransfer[];
-  hq_interest_balance: number;
+  operation_income_balance: number;
   branches: BranchPettyCash[];
 }
 
@@ -41,7 +41,7 @@ type Tab = "transfers" | "balances";
 const TABS: Array<[Tab, string]> = [["transfers", "Transfers"], ["balances", "Branch Balances"]];
 
 /**
- * Bank → Send Petty Cash To Branch. Petty cash is the only money a branch holds: HQ sends it out of interest income, and the
+ * Bank → Send Petty Cash To Branch. Petty cash is the only money a branch holds: HQ sends it out of OPERATION INCOME, and the
  * branch spends it only on expenses HQ accepts. Rule 6: requested as PENDING, posted when another authorised user approves.
  */
 export default function BranchPettyCashPage() {
@@ -70,7 +70,7 @@ export default function BranchPettyCashPage() {
     (rows ?? []).filter((row) => row.branch_id === branchId && row.status === "approved").map((row) => row.transfer_date).sort().at(-1);
 
   const tiles: Array<[string, string, ReactNode, string?]> = [
-    ["bg-success", "HQ Interest Available", money(data?.hq_interest_balance)],
+    ["bg-success", "Operation Income Available", money(data?.operation_income_balance)],
     ["bg-info", "Petty Cash Held By Branches", money(totalHeld)],
     ["bg-warning", "Awaiting Approval", money(sum(pending, (row) => row.amount)), `${pending.length} request${pending.length === 1 ? "" : "s"}`],
     ["bg-primary", "Branches Holding Petty Cash", `${funded} / ${branches.length}`],
@@ -193,7 +193,7 @@ export default function BranchPettyCashPage() {
           </Field>
           <div className="col-12">
             <small className="text-muted">
-              Paid out of interest income (available: {money(data?.hq_interest_balance)}) once another authorised user approves. The branch then spends it only on expenses HQ accepts.
+              Paid out of OPERATION INCOME (available: {money(data?.operation_income_balance)}) once another authorised user approves. The branch then spends it only on expenses HQ accepts.
             </small>
           </div>
         </div>
