@@ -25,7 +25,7 @@ export interface FinanceDashboardData {
     cash_balance: number;
     cash_balance_change: number | null;
     /** The accounts the Total Cash sits in at the end of the month; they add up to cash_balance. */
-    /** `in_total` false: listed for information, its money is already inside another row (DIVIDEND in OPERATION INCOME). */
+    /** `in_total` false: listed for information, its money is already inside another row (PROFIT and DIVIDEND in OPERATION INCOME). */
     cash_accounts: { label: string; amount: number; in_total: boolean }[];
     disbursed_today: number;
     disbursed_today_change: number | null;
