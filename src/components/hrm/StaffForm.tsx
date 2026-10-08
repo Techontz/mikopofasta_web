@@ -59,8 +59,19 @@ const POSITIONS = [
   { value: "admin", label: "Admin" },
 ];
 
-/** Register Employee / Basic Information fields (live), plus role, zone and — on registration — login and salary structure. */
-export function StaffForm({ form, setForm, fieldError, registering }: { form: StaffFormValues; setForm: (form: StaffFormValues) => void; fieldError: (field: string) => string | undefined; registering?: boolean }) {
+/** Current role, branch and zone names, shown read-only when an employee edits their own profile. */
+export interface LockedAssignment {
+  role: string | null;
+  branch: string | null;
+  zone: string | null;
+}
+
+/**
+ * Register Employee / Basic Information fields (live), plus role, zone and — on registration — login and salary structure.
+ * `locked`: the employee is editing themselves, so role, branch, zone and position are read-only (the API refuses the change;
+ * an Admin or Super Admin moves them).
+ */
+export function StaffForm({ form, setForm, fieldError, registering, locked }: { form: StaffFormValues; setForm: (form: StaffFormValues) => void; fieldError: (field: string) => string | undefined; registering?: boolean; locked?: LockedAssignment }) {
   const { data: roles = [] } = useQuery({
     queryKey: ["options", "hrm/options/roles"],
     queryFn: () => api.get<{ data: (Option & { scope: string })[] }>("hrm/options/roles").then((response) => response.data),
@@ -91,17 +102,33 @@ export function StaffForm({ form, setForm, fieldError, registering }: { form: St
       <Field label="*Email:" className="col-lg-3 col-6" error={fieldError("empl_email")}>
         <input type="email" className="form-control input-sm" placeholder="Email" value={form.empl_email} onChange={(e) => set({ empl_email: e.target.value })} required />
       </Field>
-      <Field label="Role:" className="col-lg-4 col-6" error={fieldError("role_id")}>
-        <SelectBox placeholder="Select Role" options={roles} value={form.role_id} onChange={(value) => set({ role_id: value ?? "" })} />
-      </Field>
-      <Field label="Branch:" className="col-lg-4 col-6" error={fieldError("blanch_id")}>
-        <SelectBox placeholder={scope === "branch" || !scope ? "Select Branch" : "Select Branch (optional)"} optionsUrl="options/branches" value={form.blanch_id} onChange={(value) => set({ blanch_id: value ?? "" })} isClearable />
-      </Field>
-      <Field label="Zone:" className="col-lg-4 col-6" error={fieldError("zone_id")}>
-        <SelectBox placeholder="Select Zone" optionsUrl="hrm/options/zones" value={form.zone_id} onChange={(value) => set({ zone_id: value ?? "" })} isDisabled={scope !== "zone"} isClearable />
-      </Field>
+      {locked ? (
+        <>
+          <Field label="Role:" className="col-lg-4 col-6" error={fieldError("role_id")}>
+            <input className="form-control input-sm" value={locked.role ?? ""} readOnly title="Only an Admin or Super Admin can change your role" />
+          </Field>
+          <Field label="Branch:" className="col-lg-4 col-6" error={fieldError("blanch_id")}>
+            <input className="form-control input-sm" value={locked.branch ?? ""} readOnly title="Only an Admin or Super Admin can move you" />
+          </Field>
+          <Field label="Zone:" className="col-lg-4 col-6" error={fieldError("zone_id")}>
+            <input className="form-control input-sm" value={locked.zone ?? ""} readOnly title="Only an Admin or Super Admin can move you" />
+          </Field>
+        </>
+      ) : (
+        <>
+          <Field label="Role:" className="col-lg-4 col-6" error={fieldError("role_id")}>
+            <SelectBox placeholder="Select Role" options={roles} value={form.role_id} onChange={(value) => set({ role_id: value ?? "" })} />
+          </Field>
+          <Field label="Branch:" className="col-lg-4 col-6" error={fieldError("blanch_id")}>
+            <SelectBox placeholder={scope === "branch" || !scope ? "Select Branch" : "Select Branch (optional)"} optionsUrl="options/branches" value={form.blanch_id} onChange={(value) => set({ blanch_id: value ?? "" })} isClearable />
+          </Field>
+          <Field label="Zone:" className="col-lg-4 col-6" error={fieldError("zone_id")}>
+            <SelectBox placeholder="Select Zone" optionsUrl="hrm/options/zones" value={form.zone_id} onChange={(value) => set({ zone_id: value ?? "" })} isDisabled={scope !== "zone"} isClearable />
+          </Field>
+        </>
+      )}
       <Field label="Position:" className="col-lg-4 col-6" error={fieldError("position_id")}>
-        <select className="form-control" value={form.position_id} onChange={(e) => set({ position_id: e.target.value })} required>
+        <select className="form-control" value={form.position_id} onChange={(e) => set({ position_id: e.target.value })} disabled={Boolean(locked)} required>
           <option value="">Select Position</option>
           {POSITIONS.map((position) => <option key={position.value} value={position.value}>{position.label}</option>)}
         </select>

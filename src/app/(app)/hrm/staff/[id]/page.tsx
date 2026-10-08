@@ -14,6 +14,7 @@ import { DataTable } from "@/components/ui/DataTable";
 import { Field } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { useAuth } from "@/lib/auth";
 import { money } from "@/lib/format";
 import { useAction, useApi } from "@/lib/hooks";
 
@@ -57,6 +58,8 @@ function AmountTable({ rows }: { rows: AmountItem[] }) {
 export default function StaffProfilePage() {
   const { id } = useParams<{ id: string }>();
   const { data: staff } = useApi<StaffDetail>(`hrm/staff/${id}`);
+  const { user } = useAuth();
+  const isSelf = user !== null && staff !== undefined && user.id === staff.id;
   const [tab, setTab] = useState<string>("Basic");
   const [form, setForm] = useState<StaffFormValues | null>(null);
   const [passwords, setPasswords] = useState({ oldpass: "", newpass: "", passconf: "" });
@@ -143,7 +146,8 @@ export default function StaffProfilePage() {
             <div className="body">
               <h6>Basic Information</h6>
               <form onSubmit={(e) => { e.preventDefault(); update.mutate(basic); }}>
-                <StaffForm form={basic} setForm={setForm} fieldError={update.fieldError} />
+                <StaffForm form={basic} setForm={setForm} fieldError={update.fieldError} locked={isSelf ? { role: staff.role?.name ?? null, branch: staff.branch ?? null, zone: staff.zone ?? null } : undefined} />
+                {isSelf && <small className="text-muted d-block mt-2">Your role, branch, zone and position can only be changed by an Admin or Super Admin.</small>}
                 <br />
                 <div className="text-center">
                   <button type="submit" className="btn btn-primary" disabled={update.isPending}>Update</button>
