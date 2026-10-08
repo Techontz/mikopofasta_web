@@ -21,6 +21,7 @@ import {
   TimelineTab,
   type Overview,
 } from "@/components/customers/profile/ProfileTabs";
+import { CreditHistoryTab } from "@/components/customers/profile/CreditHistoryTab";
 import { toastError, toastSuccess } from "@/components/customers/toast";
 import type { Customer, CustomerType, MasterData } from "@/components/customers/types";
 import { Card } from "@/components/ui/Card";
@@ -32,7 +33,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useAction, useApi } from "@/lib/hooks";
 
-type Tab = "overview" | "details" | "kyc" | "face" | "timeline" | "documents" | "notes" | "guarantors" | "next-of-kin" | "group" | "audit";
+type Tab = "overview" | "details" | "kyc" | "face" | "timeline" | "credit-history" | "documents" | "notes" | "guarantors" | "next-of-kin" | "group" | "audit";
 
 /** Customer Profile with its tabs (CUSTOMER_MODULE_SPEC §1.3). */
 export default function CustomerProfilePage() {
@@ -103,6 +104,7 @@ export default function CustomerProfilePage() {
     { key: "kyc", label: "KYC" },
     { key: "face", label: "Face KYC" },
     { key: "timeline", label: "Timeline" },
+    { key: "credit-history", label: "Credit History" },
     { key: "documents", label: "Documents", count: counts?.documents },
     { key: "notes", label: "Notes", count: counts?.notes },
     { key: "guarantors", label: "Guarantors", count: counts?.guarantors },
@@ -176,6 +178,7 @@ export default function CustomerProfilePage() {
           {tab === "kyc" && <KycTab customer={customer} />}
           {tab === "face" && <FaceKycTab customer={customer} canManage={canManage} onVerified={() => void client.invalidateQueries()} />}
           {tab === "timeline" && <TimelineTab customerId={customer.id} />}
+          {tab === "credit-history" && <CreditHistoryTab customerId={customer.id} />}
           {tab === "documents" && <DocumentsTab customerId={customer.id} canManage={canManage} masterData={masterData} />}
           {tab === "notes" && <NotesTab customerId={customer.id} canManage={canManage} />}
           {tab === "guarantors" && <GuarantorsTab customerId={customer.id} canManage={canManage} />}

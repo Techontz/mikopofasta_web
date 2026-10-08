@@ -230,3 +230,8 @@
 .mf-doc-preview { display: flex; align-items: center; justify-content: center; min-height: 200px; max-height: 75vh; overflow: auto; background: var(--mf-surface-muted); border-radius: 8px; }
 .mf-doc-preview img { max-width: 100%; max-height: 75vh; object-fit: contain; }
 .mf-doc-preview iframe { width: 100%; height: 75vh; border: 0; background: #fff; }
+
+/* Customer Profile → Credit History summary cards */
+.mf-stat { margin-top: 0; }
+.mf-stat-label { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--mf-muted); }
+.mf-stat-value { margin-top: 2px; font-size: 18px; font-weight: 600; color: var(--mf-heading); }
