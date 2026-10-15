@@ -1,0 +1,12 @@
+/*
+ * Zone Manager dashboard (.zd-*): built on the Branch dashboard (.cd-*, .bd-*) — today's operations in one card, branch
+ * performance beside the approval queue, the TOTAL row on the brand red tint.
+ */
+.zd-section { margin-bottom: var(--cd-gap); }
+.zd-main { display: grid; grid-template-columns: minmax(0, 2.4fr) minmax(0, 1fr); gap: var(--cd-gap); margin-bottom: var(--cd-gap); }
+@media (max-width: 1399.98px) { .zd-main { grid-template-columns: minmax(0, 1fr); } }
+
+.zd .zd-table tfoot td { padding: 10px; font-weight: 700; color: var(--mf-heading); background: var(--cd-red-soft); border-top: 0; white-space: nowrap; }
+.zd-rate-good { font-weight: 600; color: var(--bd-good); }
+.zd-view { padding: 3px 14px; border: 1px solid var(--cd-red); border-radius: 6px; color: var(--cd-red); background: var(--mf-surface); font-size: .85rem; font-weight: 600; }
+.zd-view:hover, .zd-view:focus-visible { color: #fff; background: var(--cd-red); outline: none; }

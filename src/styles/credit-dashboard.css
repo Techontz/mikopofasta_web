@@ -124,3 +124,66 @@ body.theme-credit .page-item.active .page-link { background-color: var(--cd-red)
 .cd .cd-table td:first-child { white-space: normal; }
 .cd-rate.is-bad { color: var(--cd-red); font-weight: 600; }
 .cd-empty { padding: 24px 0 !important; color: var(--mf-muted) !important; text-align: center; white-space: normal !important; }
+
+/* ---------------------------------------------------------------- Branch dashboard (Teller, Loan Officer, Branch Manager) */
+:root, :root[data-theme="light"] { --bd-type-1: #e1061a; --bd-type-2: #111; --bd-type-3: #facc15; --bd-type-4: #16a34a; --bd-type-5: #a3a9b1; --bd-good: #16a34a; }
+:root[data-theme="dark"] { --bd-type-1: #e5484d; --bd-type-2: #e3e7ec; --bd-type-3: #facc15; --bd-type-4: #22c55e; --bd-type-5: #7d8590; --bd-good: #22c55e; }
+
+.bd-book { display: block; padding: 16px 18px; }
+.bd-book-value { display: flex; align-items: baseline; gap: 10px; font-size: 1.35rem; font-weight: 700; color: var(--mf-heading); white-space: nowrap; overflow: hidden; }
+.bd-book-value span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.bd-book-value i { font-style: normal; font-weight: 400; color: var(--mf-muted); }
+.bd-book-count { color: var(--cd-red); }
+.bd-book-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; margin-top: 8px; }
+.bd-book-title { font-size: 1rem; color: var(--mf-text); }
+.bd-book.is-filled { background: var(--cd-red); border-color: var(--cd-red); }
+.bd-book.is-filled .bd-book-value, .bd-book.is-filled .bd-book-count, .bd-book.is-filled .bd-book-value i,
+.bd-book.is-filled .bd-book-title, .bd-book.is-filled .bd-change b, .bd-book.is-filled .bd-change small { color: #fff; }
+
+.bd-change { display: inline-flex; flex-direction: column; align-items: flex-end; line-height: 1.2; white-space: nowrap; }
+.bd-change b { font-size: .95rem; }
+.bd-change b.is-up { color: var(--bd-good); }
+.bd-change b.is-down { color: var(--cd-red); }
+.bd-change small { color: var(--mf-muted); font-size: .75rem; }
+
+/* Petty cash, today's cards and the portfolio table on the left; the approval queue down the right. */
+.bd-main { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.05fr); grid-template-areas: "today today today approvals" "portfolio portfolio portfolio approvals"; gap: var(--cd-gap); margin-bottom: var(--cd-gap); }
+.bd-today { grid-area: today; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--cd-gap); }
+.bd-portfolio { grid-area: portfolio; }
+.bd-approvals { grid-area: approvals; }
+.bd-today-row { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.bd-today-value { flex: 1; min-width: 0; font-size: 1.45rem; font-weight: 700; color: var(--mf-heading); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bd-today-loans { padding: 0 10px; border-left: 1px solid var(--mf-border-strong); border-right: 1px solid var(--mf-border-strong); font-weight: 700; color: var(--mf-heading); }
+
+.bd .bd-table thead th { text-align: left; }
+.bd .bd-table .bd-count { padding-right: 4px; text-align: right; border-right: 1px solid var(--mf-border-strong); }
+.bd .bd-table .bd-amount { padding-left: 8px; color: var(--mf-text); }
+.bd .bd-table tfoot td { padding: 10px; font-weight: 700; color: var(--mf-heading); background: var(--cd-red-soft); border-top: 0; white-space: nowrap; }
+
+.bd-charts { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: var(--cd-gap); margin-bottom: var(--cd-gap); }
+.bd-donut { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; }
+.bd-donut-chart { position: relative; flex: 0 0 220px; width: 220px; }
+.bd-donut-centre { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
+.bd-donut-centre b { font-size: 1.8rem; color: var(--mf-heading); line-height: 1.1; }
+.bd-donut-centre small { color: var(--mf-muted); font-size: .8rem; }
+.bd-legend { flex: 1; min-width: 200px; margin: 0; padding: 0; list-style: none; }
+.bd-legend li { display: grid; grid-template-columns: 14px 1fr auto 52px; align-items: center; gap: 10px; padding: 5px 0; color: var(--mf-heading); }
+.bd-legend li i { width: 14px; height: 14px; border-radius: 3px; }
+.bd-legend li em { font-style: normal; color: var(--mf-muted); text-align: right; }
+
+.bd-pipeline { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.bd-stage-wrap { display: flex; flex: 1 0 140px; align-items: center; gap: 6px; }
+.bd-stage-arrow { color: var(--cd-red); }
+.bd-stage { flex: 1; padding: 12px 8px; border-radius: 6px; text-align: center; background: var(--mf-surface-hover); }
+.bd-stage span { display: block; font-size: .85rem; font-weight: 600; color: var(--mf-heading); }
+.bd-stage b { display: block; margin: 4px 0; font-size: 1.5rem; color: var(--mf-heading); }
+.bd-stage small { color: var(--mf-text); font-size: .85rem; white-space: nowrap; }
+.bd-stage.is-manager, .bd-stage.is-credit, .bd-stage.is-finance, .bd-stage.is-rejected { background: var(--cd-red-soft); }
+.bd-stage.is-approved { background: rgba(22, 163, 74, .14); }
+
+@media (max-width: 1399.98px) {
+    .bd-main { grid-template-columns: minmax(0, 1fr); grid-template-areas: "today" "approvals" "portfolio"; }
+}
+@media (max-width: 1199.98px) { .bd-charts { grid-template-columns: 1fr; } }
+@media (max-width: 767.98px) { .bd-today { grid-template-columns: 1fr; } }
+@media (max-width: 575.98px) { .bd-donut-chart { flex-basis: 100%; width: 100%; } }

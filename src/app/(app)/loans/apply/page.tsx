@@ -126,7 +126,7 @@ export default function LoanApplicationPage() {
           {eligibility && (
             <Card title="Customer Eligibility">
               <div className="row">
-                <div className="col-md-3"><b>KYC:</b> {eligibility.rules.kyc_complete ? <span className="badge badge-success">COMPLETE</span> : <span className="badge badge-danger">NOT VERIFIED</span>}</div>
+                <div className="col-md-3"><b>KYC:</b> {!eligibility.rules.kyc_complete ? <span className="badge badge-danger">NOT VERIFIED</span> : eligibility.rules.registration_approved ? <span className="badge badge-success">APPROVED</span> : eligibility.rules.approval_status === "rejected" ? <span className="badge badge-danger">RETURNED</span> : <span className="badge badge-warning">AWAITING APPROVAL</span>}</div>
                 <div className="col-md-3"><b>Customer Type:</b> {options?.customer_type?.name ?? <span className="badge badge-warning">NOT ASSIGNED</span>}</div>
                 <div className="col-md-3"><b>Risk level:</b> {eligibility.rules.risk_level ?? "—"}</div>
                 <div className="col-md-3"><b>Loan categories:</b> {options?.data.length ?? 0}</div>
