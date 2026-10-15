@@ -244,8 +244,11 @@ export function RegisterWizard({ editing }: { editing?: Customer } = {}) {
       return;
     }
     setBusy("update");
+    let sentForApproval = false;
     try {
-      await api.put(`customers/${editing.id}`, changes);
+      // A registered customer changed by branch staff: the API holds the change for CRM approval (202) instead of applying it.
+      const result = await api.put<{ data?: { update_request_id?: number } }>(`customers/${editing.id}`, changes);
+      sentForApproval = Boolean(result?.data?.update_request_id);
     } catch (error) {
       setBusy(null);
       if (error instanceof ApiError && error.status === 422 && Object.keys(error.errors).length > 0) {
@@ -257,7 +260,9 @@ export function RegisterWizard({ editing }: { editing?: Customer } = {}) {
       return;
     }
     await client.invalidateQueries();
-    toastSuccess(`${effective.firstName} ${effective.lastName}'s details were updated.`);
+    toastSuccess(sentForApproval
+      ? `The changes to ${effective.firstName} ${effective.lastName}'s details were sent to CRM for approval. The current details stay until CRM approves them.`
+      : `${effective.firstName} ${effective.lastName}'s details were updated.`);
     router.push(`/customers/${editing.id}`);
   };
 

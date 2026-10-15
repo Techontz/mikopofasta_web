@@ -8,13 +8,15 @@ import { SelectBox } from "@/components/ui/SelectBox";
 import { todayIso } from "@/lib/format";
 import { useAction, useApi } from "@/lib/hooks";
 
-import type { CrmOptions, Ticket } from "./types";
+import type { CaseType, CrmOptions, Ticket } from "./types";
 
 interface BaseProps {
   open: boolean;
   onClose: () => void;
   customerId?: number | null;
 }
+
+const CASE_TITLES: Record<CaseType, string> = { complaint: "Complaint", request: "Customer Request" };
 
 function CustomerSelect({ value, onChange, disabled }: { value: string; onChange: (value: string) => void; disabled?: boolean }) {
   return <SelectBox inputId="crm-customer" placeholder="Select customer" optionsUrl="options/customers" query={{ with_code: 1 }} value={value} onChange={(next) => onChange(next ?? "")} isDisabled={disabled} />;
@@ -145,6 +147,7 @@ export function BulkSmsModal({ open, onClose }: Omit<BaseProps, "customerId">) {
 
 interface TicketForm {
   customer_id: string;
+  type: string;
   category: string;
   channel: string;
   priority: string;
@@ -153,24 +156,31 @@ interface TicketForm {
   assigned_to: string;
 }
 
-/** CRM → register a customer report / complaint. */
-export function TicketModal(props: BaseProps) {
+/** CRM → register a case: a complaint or a customer request (`type` fixes it, e.g. on the Complaints page). */
+export function TicketModal(props: BaseProps & { type?: CaseType }) {
   return props.open ? <TicketModalBody {...props} /> : null;
 }
 
-function TicketModalBody({ open, onClose, customerId }: BaseProps) {
+function TicketModalBody({ open, onClose, customerId, type }: BaseProps & { type?: CaseType }) {
   const { data: options } = useCrmOptions();
-  const empty: TicketForm = { customer_id: customerId ? String(customerId) : "", category: "", channel: "call", priority: "normal", subject: "", description: "", assigned_to: "" };
+  const empty: TicketForm = { customer_id: customerId ? String(customerId) : "", type: type ?? "complaint", category: "", channel: "call", priority: "normal", subject: "", description: "", assigned_to: "" };
   const [form, setForm] = useState<TicketForm>(empty);
   const save = useAction<TicketForm>("post", "crm/tickets");
 
 
   return (
-    <Modal open={open} onClose={onClose} title="Customer Report" size="lg" submitLabel="Save" submitting={save.isPending} onSubmit={() => save.mutate(form, { onSuccess: onClose })}>
+    <Modal open={open} onClose={onClose} title={type ? `New ${CASE_TITLES[type]}` : "New Case"} size="lg" submitLabel="Save" submitting={save.isPending} onSubmit={() => save.mutate(form, { onSuccess: onClose })}>
       <div className="row">
-        <Field label="Customer:" required className="col-md-6" error={save.fieldError("customer_id")}>
+        <Field label="Customer:" required className={type ? "col-md-6" : "col-md-4"} error={save.fieldError("customer_id")}>
           <CustomerSelect value={form.customer_id} onChange={(value) => setForm({ ...form, customer_id: value })} disabled={Boolean(customerId)} />
         </Field>
+        {!type && (
+          <Field label="Type:" required className="col-md-2" error={save.fieldError("type")}>
+            <select className="form-control" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+              {options?.case_types.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          </Field>
+        )}
         <Field label="Category:" required className="col-md-3" error={save.fieldError("category")}>
           <select className="form-control" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} required>
             <option value="">select</option>
@@ -221,7 +231,7 @@ function UpdateTicketBody({ ticket, onClose }: { ticket: Ticket; onClose: () => 
 
 
   return (
-    <Modal open={ticket !== null} onClose={onClose} title={`Customer Report ${ticket?.ticket_number ?? ""}`} size="lg" submitLabel="Update" submitting={update.isPending} onSubmit={() => update.mutate(form, { onSuccess: onClose })}>
+    <Modal open={ticket !== null} onClose={onClose} title={`${ticket.type_label} ${ticket.ticket_number}`} size="lg" submitLabel="Update" submitting={update.isPending} onSubmit={() => update.mutate(form, { onSuccess: onClose })}>
       {ticket && (
         <div className="row">
           <div className="col-md-12 mb-3">

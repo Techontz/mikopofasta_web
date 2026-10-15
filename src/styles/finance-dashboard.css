@@ -97,3 +97,17 @@
 .fd-approvals .fd-arrow { margin-left: 0; }
 .fd-clickable { cursor: pointer; transition: box-shadow .15s ease; }
 .fd-clickable:hover, .fd-clickable:focus-visible { box-shadow: 0 0 0 2px rgba(29, 111, 242, .35); outline: none; }
+
+/* CRM department dashboard (role CRM), built on the Finance dashboard blocks above. */
+.crm-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 1199.98px) { .crm-grid-2 { grid-template-columns: 1fr; } }
+.crm-search { flex: 1; max-width: 680px; justify-content: flex-end; }
+.crm-search .fd-filter { flex: 1; }
+.crm-search .fd-filter input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--mf-heading); outline: none; }
+.crm-card { color: inherit; }
+.crm-card:hover { text-decoration: none; border-color: var(--mf-border-strong); }
+.crm-table th { font-size: .8rem; font-weight: 600; color: var(--mf-heading); white-space: nowrap; }
+.crm-table td { font-size: .85rem; vertical-align: middle; }
+.crm-value { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crm-pill { display: inline-block; padding: 3px 10px; border-radius: 6px; font-size: .8rem; font-weight: 600; }
+.crm-pill.warning { color: #b45309; background: rgba(245, 158, 11, .15); }

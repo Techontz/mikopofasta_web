@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type KeyboardEvent, type ReactNode } from "react";
+import { useState, type KeyboardEvent } from "react";
 import { Bar, BarChart, Cell, LabelList, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { BranchListModal, type BranchAccounts } from "@/components/dashboard/BranchListModal";
+import { Change, IconTile, Panel } from "@/components/dashboard/parts";
 import { Loading } from "@/components/ui/Loading";
 import { Modal } from "@/components/ui/Modal";
 import { SelectBox } from "@/components/ui/SelectBox";
@@ -150,14 +151,6 @@ function Body({ data }: { data: FinanceDashboardData }) {
   );
 }
 
-function IconTile({ icon, tone }: { icon: string; tone: string }) {
-  return (
-    <span className="fd-icon" style={{ color: tone, background: `${tone}1f` }}>
-      <i className={icon} />
-    </span>
-  );
-}
-
 function Arrow({ href, onOpen }: { href: string; onOpen?: () => void }) {
   if (onOpen) {
     return (
@@ -170,21 +163,6 @@ function Arrow({ href, onOpen }: { href: string; onOpen?: () => void }) {
     <Link href={href} className="fd-arrow" aria-label="Open the detail">
       <i className="fa fa-chevron-right" />
     </Link>
-  );
-}
-
-function Change({ value, compare }: { value: number | null; compare: string }) {
-  if (value === null) {
-    return <span className="fd-compare">No figure to compare {compare.replace("vs ", "with ")}</span>;
-  }
-  const up = value >= 0;
-  return (
-    <>
-      <span className={`fd-change ${up ? "up" : "down"}`}>
-        <i className={`fa fa-arrow-${up ? "up" : "down"}`} /> {Math.abs(value).toFixed(1)}%
-      </span>
-      <span className="fd-compare">{compare}</span>
-    </>
   );
 }
 
@@ -243,19 +221,6 @@ function ProgressCard({ icon, tone, title, value, percent, href }: { icon: strin
           <Arrow href={href} />
         </div>
       </div>
-    </div>
-  );
-}
-
-function Panel({ title, period, action, children }: { title: string; period?: string; action?: ReactNode; children: ReactNode }) {
-  return (
-    <div className="fd-card fd-panel">
-      <div className="fd-panel-head">
-        <h3>{title}</h3>
-        {period && <span className="fd-chip">{period}</span>}
-        {action}
-      </div>
-      {children}
     </div>
   );
 }

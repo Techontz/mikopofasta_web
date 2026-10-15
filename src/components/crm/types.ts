@@ -28,15 +28,19 @@ export interface Interaction {
   created_at: string;
 }
 
+export type CaseType = "complaint" | "request";
+
 export interface Ticket {
   id: number;
   ticket_number: string;
+  type: CaseType;
+  type_label: string;
   category: string;
   category_label: string;
   channel: string;
   channel_label: string;
   priority: "low" | "normal" | "high";
-  status: "open" | "in_progress" | "resolved" | "closed";
+  status: "open" | "in_progress" | "waiting" | "resolved" | "closed";
   status_label: string;
   subject: string;
   description: string;
@@ -55,6 +59,7 @@ export interface CrmOptions {
   types: Option[];
   directions: Option[];
   outcomes: Option[];
+  case_types: Option[];
   categories: Option[];
   channels: Option[];
   priorities: Option[];
@@ -88,6 +93,29 @@ export interface StaffActivity {
   tickets_resolved: number;
 }
 
-export const TICKET_STATUS_TONE = { open: "warning", in_progress: "info", resolved: "success", closed: "default" } as const;
+export const TICKET_STATUS_TONE = { open: "warning", in_progress: "info", waiting: "warning", resolved: "success", closed: "default" } as const;
+
+/** Sidebar counts of what waits for CRM (GET /crm/badges). */
+export interface CrmBadges {
+  kyc: number;
+  complaints: number;
+  requests: number;
+  follow_ups: number;
+  updates: number;
+}
+
+/** A change to a registered customer's details: waiting for CRM approval, or already applied / rejected. */
+export interface CustomerUpdate {
+  id: number;
+  status: "pending" | "approved" | "rejected";
+  customer: CrmCustomerRef | null;
+  branch: string | null;
+  changes: Array<{ field: string; old: string; new: string }>;
+  requested_by: string | null;
+  requested_at: string | null;
+  decided_by: string | null;
+  decided_at: string | null;
+  rejection_reason: string | null;
+}
 export const PRIORITY_TONE = { low: "default", normal: "info", high: "danger" } as const;
 export const FOLLOW_UP_TONE = { done: "success", overdue: "danger", due: "warning", upcoming: "info" } as const;

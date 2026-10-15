@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useRef, useState } from "react";
 
 import { AccessDenied } from "@/components/customers/AccessDenied";
@@ -31,8 +32,10 @@ const EMPTY: Filters = { search: "", kyc_status: "", status: "", approval_status
 /** Customer → All Customer: server-paginated, searchable, branch-scoped list (CUSTOMER_MODULE_SPEC §1.2). */
 export default function AllCustomersPage() {
   const { can } = useAuth();
-  const [filters, setFilters] = useState<Filters>(EMPTY);
-  const [searchText, setSearchText] = useState("");
+  // ?search= opens the list already searched (the CRM dashboard's customer search).
+  const initialSearch = useSearchParams().get("search")?.trim() ?? "";
+  const [filters, setFilters] = useState<Filters>({ ...EMPTY, search: initialSearch });
+  const [searchText, setSearchText] = useState(initialSearch);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);

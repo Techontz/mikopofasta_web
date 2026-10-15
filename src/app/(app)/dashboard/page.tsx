@@ -3,9 +3,13 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { BranchDashboard } from "@/components/dashboard/BranchDashboard";
 import { BranchListModal, type BranchAccounts } from "@/components/dashboard/BranchListModal";
 import { CreditDashboard } from "@/components/dashboard/CreditDashboard";
+import { CrmDashboard } from "@/components/dashboard/CrmDashboard";
 import { FinanceDashboard } from "@/components/dashboard/FinanceDashboard";
+import { HrDashboard } from "@/components/dashboard/HrDashboard";
+import { ZoneDashboard } from "@/components/dashboard/ZoneDashboard";
 import { Card } from "@/components/ui/Card";
 import { Loading } from "@/components/ui/Loading";
 import { Modal } from "@/components/ui/Modal";
@@ -55,9 +59,13 @@ const TYPE_LINKS: Record<string, string> = {
   "customers.index": "/customers",
 };
 
+/** Roles of the branch staff, who see the Branch dashboard ({@see BranchDashboard}). */
+const BRANCH_STAFF = ["teller", "loan_officer", "branch_manager"];
+
 /**
- * Finance and the Credit Officer have their own dashboards ({@see FinanceDashboard}, {@see CreditDashboard}); every other
- * role sees the general dashboard, its figures scoped to what the signed-in employee may see.
+ * Finance, HR, the Credit Officer, the Zone Manager and the branch staff (Teller, Loan Officer, Branch Manager) have their own
+ * dashboards ({@see FinanceDashboard}, {@see HrDashboard}, {@see CrmDashboard}, {@see CreditDashboard}, {@see ZoneDashboard}, {@see BranchDashboard}); every other role sees the general dashboard,
+ * its figures scoped to what the signed-in employee may see.
  */
 export default function DashboardPage() {
   const { user, isLoading } = useAuth();
@@ -68,6 +76,18 @@ export default function DashboardPage() {
 
   if (user?.role?.key === "finance") {
     return <FinanceDashboard />;
+  }
+  if (user?.role?.key === "hr") {
+    return <HrDashboard />;
+  }
+  if (user?.role?.key === "crm") {
+    return <CrmDashboard />;
+  }
+  if (user?.role?.key === "zone_manager") {
+    return <ZoneDashboard />;
+  }
+  if (BRANCH_STAFF.includes(user?.role?.key ?? "")) {
+    return <BranchDashboard />;
   }
   return user?.role?.key === CREDIT_OFFICER ? <CreditDashboard /> : <GeneralDashboard />;
 }

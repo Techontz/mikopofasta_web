@@ -4,8 +4,22 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
 
+import type { CrmBadges } from "@/components/crm/types";
 import { useAuth } from "@/lib/auth";
-import { menu, type MenuItem, type MenuLink } from "@/lib/menu";
+import { useApi } from "@/lib/hooks";
+import { crmMenu, menu, type MenuBadge, type MenuItem, type MenuLink } from "@/lib/menu";
+
+/** Red count beside a CRM queue; nothing when the queue is empty. */
+function Count({ badge, counts }: { badge?: MenuBadge; counts?: CrmBadges }) {
+  const value = badge && counts ? counts[badge] : 0;
+  return value > 0 ? <span className="badge badge-danger float-right ml-1">{value}</span> : null;
+}
+
+/** A closed group shows how much waits in its queues altogether. */
+function GroupCount({ links, counts }: { links: MenuLink[]; counts: CrmBadges }) {
+  const total = links.reduce((sum, link) => sum + (link.badge ? counts[link.badge] : 0), 0);
+  return total > 0 ? <span className="badge badge-danger ml-1">{total}</span> : null;
+}
 
 function isActive(pathname: string, href: string): boolean {
   return pathname === href || (href !== "/dashboard" && pathname.startsWith(`${href}/`));
@@ -21,10 +35,11 @@ export function Sidebar() {
   const { user, can, logout } = useAuth();
 
   const allowed = (entry: MenuItem | MenuLink) => !entry.permission || can(entry.permission);
+  const { data: counts } = useApi<CrmBadges>(user && can("crm.use") ? "crm/badges" : null);
 
   const tabs = useMemo(
     () =>
-      menu
+      (user?.role?.key === "crm" ? crmMenu : menu)
         .map((tab) => ({
           ...tab,
           items: tab.items
@@ -91,11 +106,12 @@ export function Sidebar() {
                       <li key={item.label} className={`${openGroup === item.label ? "open" : ""} ${item.children.some((child) => isActive(pathname, child.href)) ? "active" : ""}`}>
                         <a href="#" className="has-arrow" onClick={(e) => { e.preventDefault(); setOpenGroup(openGroup === item.label ? null : item.label); }}>
                           <i className={item.icon} /> <span>{item.label}</span>
+                          {counts && <GroupCount links={item.children} counts={counts} />}
                         </a>
                         <ul className="collapse">
                           {item.children.map((child) => (
                             <li key={child.href} className={isActiveChild(pathname, child.href, item.children ?? []) ? "active" : ""}>
-                              <Link href={child.href}>{child.label}</Link>
+                              <Link href={child.href}>{child.label}<Count badge={child.badge} counts={counts} /></Link>
                             </li>
                           ))}
                         </ul>
@@ -104,6 +120,7 @@ export function Sidebar() {
                       <li key={item.label} className={item.href && isActive(pathname, item.href) ? "active" : ""}>
                         <Link href={item.href ?? "#"}>
                           <i className={item.icon} /> <span>{item.label}</span>
+                          <Count badge={item.badge} counts={counts} />
                         </Link>
                       </li>
                     ),

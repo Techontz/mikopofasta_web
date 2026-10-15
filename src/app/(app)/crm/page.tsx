@@ -166,6 +166,7 @@ export default function CrmPage() {
               <option value="pending">Pending</option>
               <option value="open">Open</option>
               <option value="in_progress">In progress</option>
+              <option value="waiting">Waiting</option>
               <option value="resolved">Resolved</option>
               <option value="closed">Closed</option>
               <option value="all">All</option>
@@ -181,6 +182,7 @@ export default function CrmPage() {
               { key: "ticket_number", header: "Report No." },
               { key: "created_at", header: "Date" },
               { key: "customer", header: "Customer", value: (row) => row.customer?.name, render: (row) => <CustomerCell row={row} /> },
+              { key: "type_label", header: "Type" },
               { key: "category_label", header: "Category" },
               { key: "subject", header: "Subject" },
               { key: "priority", header: "Priority", render: (row) => <Badge tone={PRIORITY_TONE[row.priority]}>{row.priority}</Badge> },

@@ -3,10 +3,14 @@
  * extended with the modules required by the Documents (payments, accounting, CRM, messages, goals).
  */
 
+/** Which count of what waits for CRM (GET /crm/badges) the entry shows. */
+export type MenuBadge = "kyc" | "complaints" | "requests" | "follow_ups" | "updates";
+
 export interface MenuLink {
   label: string;
   href: string;
   permission?: string | string[];
+  badge?: MenuBadge;
 }
 
 export interface MenuItem {
@@ -15,6 +19,7 @@ export interface MenuItem {
   href?: string;
   permission?: string | string[];
   children?: MenuLink[];
+  badge?: MenuBadge;
 }
 
 export interface MenuTab {
@@ -141,6 +146,7 @@ export const menu: MenuTab[] = [
           { label: "Register Customer", href: "/customers/register", permission: "customers.manage" },
           { label: "All Customer", href: "/customers", permission: "customers.view" },
           { label: "Customer Profile", href: "/customers/search", permission: "customers.view" },
+          { label: "KYC Approval", href: "/customers/approvals", permission: "customers.approve", badge: "kyc" },
         ],
       },
       {
@@ -201,7 +207,17 @@ export const menu: MenuTab[] = [
         ],
       },
       { label: "VISA", icon: "icon-list", href: "/visa", permission: "visa.manage" },
-      { label: "CRM", icon: "icon-call-in", href: "/crm", permission: "crm.use" },
+      {
+        label: "Customer Care",
+        icon: "icon-call-in",
+        children: [
+          { label: "Complaints", href: "/crm/complaints", permission: "crm.use", badge: "complaints" },
+          { label: "Customer Requests", href: "/crm/requests", permission: "crm.use", badge: "requests" },
+          { label: "Follow-ups", href: "/crm/follow-ups", permission: "crm.use", badge: "follow_ups" },
+          { label: "Customer Updates", href: "/crm/updates", permission: "customers.approve_updates", badge: "updates" },
+          { label: "Calls, SMS & Reports", href: "/crm", permission: "crm.use" },
+        ],
+      },
       {
         label: "SMS Centre",
         icon: "icon-envelope",
@@ -306,6 +322,29 @@ export const menu: MenuTab[] = [
       { label: "Performance", icon: "icon-speedometer", href: "/hrm/performance", permission: "hrm.manage" },
       { label: "Staff Loan category", icon: "icon-settings", href: "/hrm/staff-loan-categories", permission: "hrm.manage" },
       { label: "Staff salary advance category", icon: "icon-settings", href: "/hrm/staff-salary-advance-categories", permission: "hrm.manage" },
+    ],
+  },
+];
+
+/**
+ * The CRM department's own sidebar (role CRM, user ruling 2026-10-15): one list in the order of the Customer Care design,
+ * with the count of what waits for CRM beside each queue.
+ */
+export const crmMenu: MenuTab[] = [
+  {
+    key: "menu",
+    label: "Customer Care",
+    items: [
+      { label: "Dashboard", icon: "icon-home", href: "/dashboard", permission: "dashboard.view" },
+      { label: "Customers", icon: "icon-users", href: "/customers", permission: "customers.view" },
+      { label: "KYC Approval", icon: "icon-shield", href: "/customers/approvals", permission: "customers.approve", badge: "kyc" },
+      { label: "Complaints", icon: "icon-exclamation", href: "/crm/complaints", permission: "crm.use", badge: "complaints" },
+      { label: "Customer Requests", icon: "icon-doc", href: "/crm/requests", permission: "crm.use", badge: "requests" },
+      { label: "Follow-ups", icon: "icon-clock", href: "/crm/follow-ups", permission: "crm.use", badge: "follow_ups" },
+      { label: "Customer Updates", icon: "icon-note", href: "/crm/updates", permission: "customers.approve_updates", badge: "updates" },
+      { label: "Reports", icon: "icon-bar-chart", href: "/crm", permission: "crm.use" },
+      { label: "Messages", icon: "icon-bubbles", href: "/messages", permission: "messages.use" },
+      { label: "Goals", icon: "icon-target", href: "/goals", permission: ["goals.view", "goals.manage"] },
     ],
   },
 ];
