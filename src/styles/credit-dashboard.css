@@ -1,29 +1,68 @@
 /*
- * Credit Officer: the Credit Department dashboard (.cd-*) and the red theme of every page the role opens (body.theme-credit,
- * set by the app layout). Surfaces, text and borders use the theme tokens so both work in the light and the dark theme.
+ * The brand theme — red, black and white — of every staff page (body.theme-brand, set by the app layout for every staff
+ * login) and the Credit Department dashboard (.cd-*). Surfaces, text and borders use the theme tokens so both work in the light and the dark theme.
  */
-:root, :root[data-theme="light"] { --cd-red: #e1061a; --cd-red-soft: rgba(225, 6, 26, .1); --cd-series-dark: #111; --cd-series-grey: #7d8590; }
-:root[data-theme="dark"] { --cd-red: #c8232c; --cd-red-soft: rgba(200, 35, 44, .18); --cd-series-dark: #e3e7ec; --cd-series-grey: #7d8590; }
+/* Brand palette — red, black and white — used by every dashboard chart, icon and badge (lib/brand.ts). In the dark theme
+   "black" is the light ink so series stay readable on dark surfaces. */
+:root, :root[data-theme="light"] {
+    --brand-red: #e1061a; --brand-red-dark: #8f0410; --brand-red-light: #f2727c; --brand-red-soft: rgba(225, 6, 26, .1);
+    --brand-black: #111; --brand-grey-dark: #3f444b; --brand-grey: #7d8590; --brand-grey-light: #c9ced4; --brand-grey-soft: rgba(17, 17, 17, .07);
+    --cd-red: var(--brand-red); --cd-red-soft: var(--brand-red-soft); --cd-series-dark: var(--brand-black); --cd-series-grey: var(--brand-grey);
+}
+:root[data-theme="dark"] {
+    --brand-red: #e5484d; --brand-red-dark: #b4232a; --brand-red-light: #f08a8f; --brand-red-soft: rgba(229, 72, 77, .18);
+    --brand-black: #e3e7ec; --brand-grey-dark: #c2c8cf; --brand-grey: #8b939c; --brand-grey-light: #5b626b; --brand-grey-soft: rgba(227, 231, 236, .1);
+}
 
-/* ---------------------------------------------------------------- Red theme of the Credit Officer's pages */
-body.theme-credit {
+/* ---------------------------------------------------------------- Brand theme of every staff page */
+body.theme-brand {
     --mf-table-head: var(--cd-red);
     --mf-table-head-alt: var(--cd-red);
     --mf-link: var(--cd-red);
     --mf-cyan: var(--cd-red);
     --mf-selected: var(--cd-red-soft);
+    /* Buttons, badges and tiles inside the pages: primary = red, info and success = black / dark grey, warning = grey.
+       Danger keeps its red. */
+    --mf-blue: var(--brand-black);
+    --mf-info: var(--brand-black);
+    --mf-success: var(--brand-grey-dark);
+    --mf-warning: var(--brand-grey);
+    --mf-orange: var(--brand-red);
+    --mf-btn-primary: #e1061a; --mf-btn-primary-border: #b8000f; --mf-btn-primary-hover-border: #8f0410;
+    --mf-btn-info: #111; --mf-btn-info-border: #000; --mf-btn-info-hover-border: #000;
+    --mf-btn-success: #3f444b; --mf-btn-success-border: #2b2f34;
+    --mf-btn-warning: #7d8590; --mf-btn-warning-border: #646b74;
+    --mf-btn-danger: #8f0410; --mf-btn-danger-border: #6f030c; --mf-btn-danger-hover-border: #4f0208;
 }
-body.theme-credit .navbar-fixed-top { background: var(--cd-red); border-bottom-color: var(--cd-red); }
-body.theme-credit .navbar-fixed-top .navbar-btn button,
-body.theme-credit #navbar-menu .icon-menu,
-body.theme-credit #navbar-menu .icon-menu i { color: #fff; }
-body.theme-credit #navbar-menu .notification-dot { background: #fff; }
-body.theme-credit .sidebar-nav .metismenu > li.active > a { border-left-color: var(--cd-red); }
-body.theme-credit .sidebar-nav .metismenu > li i { color: var(--cd-red); }
-body.theme-credit #left-sidebar .nav-tabs .nav-link.active { color: var(--cd-red); }
+:root[data-theme="dark"] body.theme-brand {
+    --mf-btn-primary: #c8232c; --mf-btn-primary-border: #b01e26; --mf-btn-primary-hover-border: #e5484d;
+    --mf-btn-info: #2b2f34; --mf-btn-info-border: #3f444b; --mf-btn-info-hover-border: #5b626b;
+    --mf-btn-success: #3f444b; --mf-btn-success-border: #4b5058;
+    --mf-btn-warning: #5b626b; --mf-btn-warning-border: #6b737c;
+    --mf-btn-danger: #8f0410; --mf-btn-danger-border: #b4232a; --mf-btn-danger-hover-border: #e5484d;
+}
+/* Bootstrap colour utilities (dashboard tiles, labels) carry the brand colours too. */
+body.theme-brand .bg-primary, body.theme-brand .bg-danger { background-color: var(--mf-btn-primary) !important; }
+body.theme-brand .bg-info { background-color: var(--mf-btn-info) !important; }
+body.theme-brand .bg-success { background-color: var(--mf-btn-success) !important; }
+body.theme-brand .bg-warning { background-color: var(--mf-btn-warning) !important; }
+body.theme-brand .text-primary, body.theme-brand .text-danger { color: var(--brand-red) !important; }
+body.theme-brand .text-info { color: var(--brand-black) !important; }
+body.theme-brand .text-success { color: var(--brand-grey-dark) !important; }
+body.theme-brand .text-warning { color: var(--brand-grey) !important; }
+body.theme-brand .nav-tabs .nav-link.active { color: var(--brand-red); border-bottom-color: var(--brand-red); }
+body.theme-brand .form-control:focus { border-color: var(--brand-red); box-shadow: 0 0 0 .2rem var(--brand-red-soft); }
+body.theme-brand .navbar-fixed-top { background: var(--cd-red); border-bottom-color: var(--cd-red); }
+body.theme-brand .navbar-fixed-top .navbar-btn button,
+body.theme-brand #navbar-menu .icon-menu,
+body.theme-brand #navbar-menu .icon-menu i { color: #fff; }
+body.theme-brand #navbar-menu .notification-dot { background: #fff; }
+body.theme-brand .sidebar-nav .metismenu > li.active > a { border-left-color: var(--cd-red); }
+body.theme-brand .sidebar-nav .metismenu > li i { color: var(--cd-red); }
+body.theme-brand #left-sidebar .nav-tabs .nav-link.active { color: var(--cd-red); }
 
 /* Section titles and card headings carry the red bar of the design. */
-body.theme-credit .mf-section-title {
+body.theme-brand .mf-section-title {
     margin: 22px 0 10px;
     padding-left: 12px;
     border-left: 4px solid var(--cd-red);
@@ -32,14 +71,14 @@ body.theme-credit .mf-section-title {
     line-height: 1.3;
     color: var(--mf-heading);
 }
-body.theme-credit .mf-section-title:first-child { margin-top: 0; }
-body.theme-credit .card .header h2 { padding-left: 10px; border-left: 4px solid var(--cd-red); }
-body.theme-credit .mf-detail-card { border-left: 4px solid var(--cd-red); }
+body.theme-brand .mf-section-title:first-child { margin-top: 0; }
+body.theme-brand .card .header h2 { padding-left: 10px; border-left: 4px solid var(--cd-red); }
+body.theme-brand .mf-detail-card { border-left: 4px solid var(--cd-red); }
 
 /* Every table heading is red with white capitals. */
-body.theme-credit .table thead th,
-body.theme-credit .table .thead-info th,
-body.theme-credit .table .thead-primary th {
+body.theme-brand .table thead th,
+body.theme-brand .table .thead-info th,
+body.theme-brand .table .thead-primary th {
     color: #fff;
     background-color: var(--cd-red);
     border-color: var(--cd-red);
@@ -48,9 +87,9 @@ body.theme-credit .table .thead-primary th {
     font-size: 13px;
     font-weight: 700;
 }
-body.theme-credit .table thead th a,
-body.theme-credit .table thead th b { color: #fff; }
-body.theme-credit .page-item.active .page-link { background-color: var(--cd-red); border-color: var(--cd-red); }
+body.theme-brand .table thead th a,
+body.theme-brand .table thead th b { color: #fff; }
+body.theme-brand .page-item.active .page-link { background-color: var(--cd-red); border-color: var(--cd-red); }
 
 /* ---------------------------------------------------------------- Dashboard */
 .cd { --cd-radius: 6px; --cd-gap: 14px; color: var(--mf-text); }

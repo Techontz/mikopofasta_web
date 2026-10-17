@@ -8,6 +8,7 @@ import { Bar, BarChart, CartesianGrid, Cell, LabelList, Pie, PieChart, Responsiv
 import { Change, IconTile, Panel } from "@/components/dashboard/parts";
 import { Loading } from "@/components/ui/Loading";
 import { useAuth } from "@/lib/auth";
+import { BRAND, BRAND_SERIES } from "@/lib/brand";
 import { useApi } from "@/lib/hooks";
 
 interface Card {
@@ -23,21 +24,21 @@ interface CrmDashboardData {
   recent_updates: Array<{ request_id: number; customer_id: number; customer_code: string | null; name: string | null; field: string; old: string; new: string; updated_on: string | null; by: string | null }>;
 }
 
-const C = { blue: "#1d6ff2", green: "#16a34a", orange: "#f59e0b", red: "#ef4444", purple: "#8b5cf6", grey: "#8a9099", yellow: "#facc15", slate: "#64748b" };
+const C = BRAND;
 
-const CATEGORY_COLOURS = [C.blue, C.red, C.green, C.yellow, C.purple, C.grey, C.orange, C.slate];
+const CATEGORY_COLOURS = BRAND_SERIES;
 
-const STATUS_COLOURS: Record<string, string> = { open: C.red, in_progress: C.blue, waiting: C.yellow, resolved: C.green, closed: C.grey };
+const STATUS_COLOURS: Record<string, string> = { open: C.red, in_progress: C.black, waiting: C.greyLight, resolved: C.greyDark, closed: C.grey };
 
 const CARDS: Array<{ field: keyof CrmDashboardData["cards"]; title: string; icon: string; tone: string; compare: string; href: string }> = [
-  { field: "total_customers", title: "Total Customers", icon: "fa fa-users", tone: C.blue, compare: "vs last month", href: "/customers" },
-  { field: "pending_kyc", title: "Pending KYC", icon: "fa fa-shield", tone: C.green, compare: "vs last month", href: "/customers/approvals" },
-  { field: "kyc_approved", title: "KYC Approved", icon: "fa fa-check-circle", tone: C.purple, compare: "this month", href: "/customers?approval_status=approved" },
+  { field: "total_customers", title: "Total Customers", icon: "fa fa-users", tone: C.black, compare: "vs last month", href: "/customers" },
+  { field: "pending_kyc", title: "Pending KYC", icon: "fa fa-shield", tone: C.greyDark, compare: "vs last month", href: "/customers/approvals" },
+  { field: "kyc_approved", title: "KYC Approved", icon: "fa fa-check-circle", tone: C.redDark, compare: "this month", href: "/customers?approval_status=approved" },
   { field: "kyc_rejected", title: "KYC Rejected", icon: "fa fa-times-circle", tone: C.red, compare: "this month", href: "/customers?approval_status=rejected" },
-  { field: "open_complaints", title: "Open Complaints", icon: "fa fa-exclamation-triangle", tone: C.orange, compare: "vs last month", href: "/crm/complaints" },
-  { field: "pending_requests", title: "Pending Requests", icon: "fa fa-file-text", tone: C.blue, compare: "vs last month", href: "/crm/requests" },
-  { field: "follow_ups_due", title: "Follow-ups Due Today", icon: "fa fa-clock-o", tone: C.orange, compare: "vs yesterday", href: "/crm/follow-ups" },
-  { field: "customer_updates", title: "Customer Updates", icon: "fa fa-pencil-square-o", tone: C.slate, compare: "this month", href: "/crm/updates" },
+  { field: "open_complaints", title: "Open Complaints", icon: "fa fa-exclamation-triangle", tone: C.redLight, compare: "vs last month", href: "/crm/complaints" },
+  { field: "pending_requests", title: "Pending Requests", icon: "fa fa-file-text", tone: C.black, compare: "vs last month", href: "/crm/requests" },
+  { field: "follow_ups_due", title: "Follow-ups Due Today", icon: "fa fa-clock-o", tone: C.redLight, compare: "vs yesterday", href: "/crm/follow-ups" },
+  { field: "customer_updates", title: "Customer Updates", icon: "fa fa-pencil-square-o", tone: C.grey, compare: "this month", href: "/crm/updates" },
 ];
 
 /**

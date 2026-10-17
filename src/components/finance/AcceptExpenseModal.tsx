@@ -17,7 +17,7 @@ interface AcceptBody {
   from_account?: string;
 }
 
-/** Live "Expenses Accept Comment" modal (comment + amount); HQ expenses also pick the HQ account that pays. */
+/** Live "Expenses Accept Comment" modal (comment + amount); HQ expenses are paid from OPERATION INCOME, shown with its balance. */
 export function AcceptExpenseModal({ request, onClose, limit }: { request: ExpenseRequest | null; onClose: () => void; limit?: number }) {
   const [form, setForm] = useState<AcceptBody>({ id: 0, req_comment: "", req_amount: "" });
   const accept = useAction<AcceptBody>("post", (body) => `expenses/requests/${body.id}/accept`);
@@ -25,7 +25,7 @@ export function AcceptExpenseModal({ request, onClose, limit }: { request: Expen
   useEffect(() => {
     if (request) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setForm({ id: request.id, req_comment: request.comment ?? "", req_amount: String(request.amount), from_account: request.scope === "hq" ? "company_cash" : undefined });
+      setForm({ id: request.id, req_comment: request.comment ?? "", req_amount: String(request.amount), from_account: request.scope === "hq" ? "operation_income" : undefined });
       accept.setErrors({});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -50,12 +50,13 @@ export function AcceptExpenseModal({ request, onClose, limit }: { request: Expen
         {request?.scope === "hq" && (
           <Field label="Paid From Account:" className="col-md-12" error={accept.fieldError("from_account")}>
             <SelectBox optionsUrl="hq/options/accounts" query={{ with_company: 1 }} value={form.from_account} onChange={(value) => setForm({ ...form, from_account: value ?? undefined })} />
+            <small className="text-muted">HQ expenses are paid from OPERATION INCOME (interest, loan fee and penalty), drawn from each of its accounts in proportion to what it holds.</small>
           </Field>
         )}
         {request?.scope === "branch" && (
           <div className="col-md-12">
             <small className="text-muted">
-              Paid from branch INTEREST A/C.{limit !== undefined && ` Above ${money(limit)} requires Admin approval.`}
+              Paid from the branch PETTY CASH A/C.{limit !== undefined && ` Above ${money(limit)} requires Admin approval.`}
             </small>
           </div>
         )}

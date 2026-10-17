@@ -11,6 +11,7 @@ import { Modal } from "@/components/ui/Modal";
 import { SelectBox } from "@/components/ui/SelectBox";
 import { useAuth } from "@/lib/auth";
 import { money } from "@/lib/format";
+import { BRAND, BRAND_SERIES } from "@/lib/brand";
 import { useApi } from "@/lib/hooks";
 
 interface Line {
@@ -52,10 +53,10 @@ export interface FinanceDashboardData {
   branch_accounts: BranchAccounts;
 }
 
-/** Colours of the design (Finance dashboard mock-up). */
-const C = { blue: "#1d6ff2", green: "#16a34a", orange: "#f59e0b", red: "#ef4444", purple: "#8b5cf6", navy: "#0b3b82", grey: "#8a9099", sky: "#4f8ef7" };
+/** Brand palette: red, black and white. */
+const C = BRAND;
 
-const METHOD_COLOURS: Record<string, string> = { bank: C.navy, mobile: C.green, cash: "#facc15", offset: C.blue, other: C.grey };
+const METHOD_COLOURS: Record<string, string> = { bank: C.black, mobile: C.red, cash: C.greyDark, offset: C.redLight, other: C.grey };
 
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 
@@ -107,16 +108,16 @@ function Body({ data }: { data: FinanceDashboardData }) {
   return (
     <>
       <div className="fd-grid fd-grid-4">
-        <StatCard icon="fa fa-briefcase" tone={C.blue} title="Total Cash & Account Balance" value={k.cash_balance} change={k.cash_balance_change} compare="vs last month" href="/reports/cash-flow" onOpen={() => setAccountsOpen(true)} />
+        <StatCard icon="fa fa-briefcase" tone={C.black} title="Total Cash & Account Balance" value={k.cash_balance} change={k.cash_balance_change} compare="vs last month" href="/reports/cash-flow" onOpen={() => setAccountsOpen(true)} />
         <StatCard icon="fa fa-paper-plane" tone={C.red} title="Disbursed Today" value={k.disbursed_today} change={k.disbursed_today_change} compare="vs yesterday" href="/loans/disbursed" />
-        <StatCard icon="fa fa-bar-chart" tone={C.green} title="Collection Today" value={k.collected_today} change={k.collected_today_change} compare="vs yesterday" href="/reports/collections" />
-        <StatCard icon="fa fa-database" tone={C.purple} title="Total Loan Outstanding" value={k.loan_outstanding} change={k.loan_outstanding_change} compare="vs last month" href="/reports/portfolio" />
+        <StatCard icon="fa fa-bar-chart" tone={C.greyDark} title="Collection Today" value={k.collected_today} change={k.collected_today_change} compare="vs yesterday" href="/reports/collections" />
+        <StatCard icon="fa fa-database" tone={C.redDark} title="Total Loan Outstanding" value={k.loan_outstanding} change={k.loan_outstanding_change} compare="vs last month" href="/reports/portfolio" />
       </div>
 
       <div className="fd-grid fd-grid-4">
-        <ProgressCard icon="fa fa-calendar" tone={C.blue} title="Expected This Month" value={k.expected_month} percent={k.collected_month_percent} href="/reports/collections" />
-        <ProgressCard icon="fa fa-database" tone={C.green} title="Actual Collection This Month" value={k.collected_month} percent={k.collected_month_percent} href="/reports/collections" />
-        <ProgressCard icon="fa fa-clock-o" tone={C.orange} title="Arrears (Within Term)" value={k.arrears_within_term} percent={k.arrears_percent} href="/reports/arrears" />
+        <ProgressCard icon="fa fa-calendar" tone={C.black} title="Expected This Month" value={k.expected_month} percent={k.collected_month_percent} href="/reports/collections" />
+        <ProgressCard icon="fa fa-database" tone={C.greyDark} title="Actual Collection This Month" value={k.collected_month} percent={k.collected_month_percent} href="/reports/collections" />
+        <ProgressCard icon="fa fa-clock-o" tone={C.redLight} title="Arrears (Within Term)" value={k.arrears_within_term} percent={k.arrears_percent} href="/reports/arrears" />
         <ProgressCard icon="fa fa-exclamation-triangle" tone={C.red} title="Default (Overdue)" value={k.default_outstanding} percent={k.default_percent} href="/reports/default" />
       </div>
 
@@ -217,7 +218,7 @@ function ProgressCard({ icon, tone, title, value, percent, href }: { icon: strin
           <div className="fd-progress" title="Share of the instalments expected this month">
             <span style={{ width: `${Math.min(100, Math.max(0, percent))}%`, background: tone }} />
           </div>
-          <span className="fd-percent" style={tone === C.orange ? { color: tone } : undefined}>{percent.toFixed(1)}%</span>
+          <span className="fd-percent" style={tone === C.redLight ? { color: tone } : undefined}>{percent.toFixed(1)}%</span>
           <Arrow href={href} />
         </div>
       </div>
@@ -228,9 +229,9 @@ function ProgressCard({ icon, tone, title, value, percent, href }: { icon: strin
 function ExpectedVsActual({ data }: { data: FinanceDashboardData["expected_vs_actual"] }) {
   const bars = [
     { name: "Expected", value: data.expected, fill: C.grey },
-    { name: "Actual (Total)", value: data.actual, fill: C.green },
-    { name: "Cash", value: data.cash, fill: C.navy },
-    { name: "Offset", value: data.offset, fill: C.sky },
+    { name: "Actual (Total)", value: data.actual, fill: C.black },
+    { name: "Cash", value: data.cash, fill: C.greyDark },
+    { name: "Offset", value: data.offset, fill: C.greyLight },
     { name: "Outstanding", value: data.outstanding, fill: C.red },
   ];
   return (
@@ -323,8 +324,8 @@ function Channels({ rows }: { rows: FinanceDashboardData["channels"] }) {
   );
 }
 
-const INCOME_COLOURS = [C.green, C.blue, C.orange, C.red, C.purple];
-const EXPENSE_COLOURS = [C.red, C.blue, C.purple, C.navy];
+const INCOME_COLOURS = BRAND_SERIES;
+const EXPENSE_COLOURS = [C.red, C.black, C.greyDark, C.redLight];
 
 function IncomeExpenses({ data }: { data: FinanceDashboardData["income_expenses"] }) {
   return (
@@ -332,7 +333,7 @@ function IncomeExpenses({ data }: { data: FinanceDashboardData["income_expenses"
       <div className="fd-ie">
         <div className="fd-ie-col">
           <div className="fd-ie-total income">
-            <IconTile icon="fa fa-money" tone={C.green} />
+            <IconTile icon="fa fa-money" tone={C.greyDark} />
             <div>
               <small>Total Income</small>
               <b>TZS {money(data.total_income)}</b>
@@ -368,7 +369,7 @@ function IncomeExpenses({ data }: { data: FinanceDashboardData["income_expenses"
         </div>
       </div>
       <div className="fd-net">
-        <IconTile icon="fa fa-line-chart" tone={C.navy} />
+        <IconTile icon="fa fa-line-chart" tone={C.greyDark} />
         <span>Net Operating Result</span>
         <b className={data.net < 0 ? "text-danger" : ""}>TZS {money(data.net)}</b>
         <Change value={data.net_change} compare="vs last month" />
@@ -382,9 +383,9 @@ function CashFlow({ data }: { data: FinanceDashboardData["cash_flow"] }) {
   const top = data.opening + data.cash_in;
   const bars = [
     { name: "Opening Balance", span: [0, data.opening], fill: C.grey, label: data.opening },
-    { name: "Cash In", span: [data.opening, top], fill: C.green, label: data.cash_in },
+    { name: "Cash In", span: [data.opening, top], fill: C.black, label: data.cash_in },
     { name: "Cash Out", span: [top - data.cash_out, top], fill: C.red, label: data.cash_out },
-    { name: "Closing Balance", span: [0, data.closing], fill: C.blue, label: data.closing },
+    { name: "Closing Balance", span: [0, data.closing], fill: C.greyDark, label: data.closing },
   ];
   return (
     <div className="fd-chart">

@@ -1,9 +1,8 @@
 /*
- * HR Department dashboard (role HR, .hd-*). Layout and accent colours follow the HR dashboard design; surfaces, text and
+ * HR Department dashboard (role HR, .hd-*). Layout follows the HR dashboard design, in the brand palette (red, black, white); surfaces, text and
  * borders use the theme tokens so the page works in the light and the dark theme.
  */
-:root, :root[data-theme="light"] { --hd-red: #e1061a; --hd-red-soft: rgba(225, 6, 26, .08); }
-:root[data-theme="dark"] { --hd-red: #e5484d; --hd-red-soft: rgba(229, 72, 77, .16); }
+:root { --hd-red: var(--brand-red); --hd-red-soft: var(--brand-red-soft); }
 
 .hd { --hd-radius: 10px; --hd-gap: 14px; color: var(--mf-text); }
 .hd-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 16px; }
@@ -27,25 +26,25 @@
 
 .hd-stat { display: flex; align-items: flex-start; gap: 16px; padding: 18px; }
 .hd-icon { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 12px; font-size: 24px; }
-.hd-icon.is-blue { color: #1d6ff2; background: rgba(29, 111, 242, .12); }
-.hd-icon.is-green { color: #16a34a; background: rgba(22, 163, 74, .12); }
-.hd-icon.is-orange { color: #f97316; background: rgba(249, 115, 22, .12); }
-.hd-icon.is-yellow { color: #d97706; background: rgba(250, 204, 21, .2); }
+.hd-icon.is-blue { color: var(--brand-black); background: var(--brand-grey-soft); }
+.hd-icon.is-green { color: var(--brand-black); background: var(--brand-grey-soft); }
+.hd-icon.is-orange { color: var(--brand-red); background: var(--brand-red-soft); }
+.hd-icon.is-yellow { color: var(--brand-red); background: var(--brand-red-soft); }
 .hd-icon.is-red { color: var(--hd-red); background: var(--hd-red-soft); }
-.hd-icon.is-purple { color: #8b5cf6; background: rgba(139, 92, 246, .12); }
+.hd-icon.is-purple { color: var(--brand-black); background: var(--brand-grey-soft); }
 .hd-stat-body { flex: 1; min-width: 0; }
 .hd-stat-title { color: var(--mf-heading); font-weight: 500; }
 .hd-stat-value { margin: 4px 0 6px; font-size: 1.6rem; font-weight: 700; color: var(--mf-strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 :root[data-theme="dark"] .hd-stat-value { color: var(--mf-heading); }
 .hd-stat-note { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--mf-muted); font-size: .82rem; }
 .hd-change { font-weight: 700; }
-.hd-change.up { color: #16a34a; }
+.hd-change.up { color: var(--brand-black); }
 .hd-change.down { color: var(--hd-red); }
 
 .hd-panel { padding: 16px 18px; }
 .hd-panel-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .hd-panel-head h3 { flex: 1; margin: 0; padding-left: 10px; border-left: 4px solid var(--hd-red); font-size: 1.02rem; font-weight: 700; line-height: 1.3; color: var(--mf-heading); }
-.hd-link { color: #1d6ff2; font-size: .85rem; white-space: nowrap; }
+.hd-link { color: var(--brand-red); font-size: .85rem; white-space: nowrap; }
 .hd-empty { padding: 24px 0 !important; margin: 0; color: var(--mf-muted) !important; text-align: center; white-space: normal !important; }
 
 .hd-donut-wrap { display: grid; grid-template-columns: minmax(150px, 1fr) minmax(0, 1.1fr); align-items: center; gap: 10px; }
@@ -72,7 +71,7 @@
 .hd .hd-table td { padding: 7px 8px; color: var(--mf-heading); border-top: 1px solid var(--mf-border); white-space: nowrap; vertical-align: middle; }
 .hd .hd-summary .hd-total td { font-weight: 700; background: var(--hd-red-soft); }
 .hd-status { display: inline-block; min-width: 92px; padding: 3px 8px; border-radius: 4px; font-size: .75rem; font-weight: 600; text-align: center; }
-.hd-status.is-pending { color: #b45309; background: rgba(245, 158, 11, .16); }
-.hd-status.is-review { color: #1d6ff2; background: rgba(29, 111, 242, .12); }
+.hd-status.is-pending { color: var(--brand-grey-dark); background: var(--brand-grey-soft); }
+.hd-status.is-review { color: var(--brand-red); background: var(--brand-red-soft); }
 .hd-view { display: inline-block; padding: 2px 12px; border: 1px solid var(--hd-red); border-radius: 4px; color: var(--hd-red); font-size: .78rem; }
 .hd-view:hover { color: #fff; background: var(--hd-red); text-decoration: none; }

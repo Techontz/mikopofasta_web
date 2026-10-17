@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 
 export function IconTile({ icon, tone }: { icon: string; tone: string }) {
   return (
-    <span className="fd-icon" style={{ color: tone, background: `${tone}1f` }}>
+    <span className="fd-icon" style={{ color: tone, background: `color-mix(in srgb, ${tone} 12%, transparent)` }}>
       <i className={icon} />
     </span>
   );

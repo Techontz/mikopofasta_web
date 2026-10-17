@@ -7,6 +7,7 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, LabelList, Legend,
 import { Loading } from "@/components/ui/Loading";
 import { useAuth } from "@/lib/auth";
 import { money } from "@/lib/format";
+import { BRAND, BRAND_SERIES } from "@/lib/brand";
 import { useApi } from "@/lib/hooks";
 
 interface PendingRequest {
@@ -51,10 +52,10 @@ export interface HrDashboardData {
   pending: PendingRequest[];
 }
 
-/** Colours of the HR dashboard design. */
-const C = { blue: "#1d6ff2", green: "#16a34a", orange: "#f59e0b", red: "#e1061a", purple: "#8b5cf6", grey: "#9ca3af", sky: "#60a5fa" };
-const DEPARTMENT_COLOURS = [C.blue, C.red, C.green, C.orange, C.purple, C.grey, C.sky, "#14b8a6", "#f472b6"];
-const TYPE_COLOURS: Record<string, string> = { staff_loan: C.blue, salary_advance: C.green, allowance: "#facc15", benefit_claim: C.red, leave: C.purple, other: C.grey };
+/** Brand palette: red, black and white. */
+const C = BRAND;
+const DEPARTMENT_COLOURS = BRAND_SERIES;
+const TYPE_COLOURS: Record<string, string> = { staff_loan: C.black, salary_advance: C.greyDark, allowance: C.redLight, benefit_claim: C.red, leave: C.redDark, other: C.grey };
 
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 
@@ -119,8 +120,8 @@ function Body({ data }: { data: HrDashboardData }) {
             <AreaChart data={data.payroll_trend} margin={{ top: 24, right: 16, left: -4, bottom: 0 }}>
               <defs>
                 <linearGradient id="hd-payroll-fill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={C.red} stopOpacity={0.22} />
-                  <stop offset="100%" stopColor={C.red} stopOpacity={0.02} />
+                  <stop offset="0%" stopColor="var(--brand-red)" stopOpacity={0.22} />
+                  <stop offset="100%" stopColor="var(--brand-red)" stopOpacity={0.02} />
                 </linearGradient>
               </defs>
               <CartesianGrid vertical={false} stroke="var(--mf-border)" />
@@ -159,8 +160,8 @@ function Body({ data }: { data: HrDashboardData }) {
               <YAxis tickFormatter={short} tickLine={false} axisLine={false} tick={{ fill: "var(--mf-muted)", fontSize: 11 }} width={44} />
               <Tooltip formatter={(value) => `TZS ${money(Number(value))}`} cursor={{ fill: "var(--mf-surface-hover)" }} />
               <Legend verticalAlign="top" iconType="square" wrapperStyle={{ fontSize: 12, paddingBottom: 8 }} />
-              <Bar dataKey="contributions" name="Staff Contribution" fill={C.blue} maxBarSize={18} />
-              <Bar dataKey="benefits_paid" name="Benefits Paid" fill={C.orange} maxBarSize={18} />
+              <Bar dataKey="contributions" name="Staff Contribution" fill={C.black} maxBarSize={18} />
+              <Bar dataKey="benefits_paid" name="Benefits Paid" fill={C.redLight} maxBarSize={18} />
               <Bar dataKey="pending_claims" name="Pending Claims" fill={C.red} maxBarSize={18} />
             </BarChart>
           </ResponsiveContainer>
