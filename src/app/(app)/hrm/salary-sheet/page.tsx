@@ -150,12 +150,12 @@ export default function SalarySheetPage() {
         />
       </Card>
 
-      <Modal open={modal === "pay"} onClose={() => setModal(null)} title="Pay Salary" submitLabel="Pay" submitting={pay.isPending} onSubmit={() => run && pay.mutate({ id: run.id, ac_id: "interest" }, { onSuccess: () => setModal(null) })}>
+      <Modal open={modal === "pay"} onClose={() => setModal(null)} title="Pay Salary" submitLabel="Pay" submitting={pay.isPending} onSubmit={() => run && pay.mutate({ id: run.id, ac_id: "operation_income" }, { onSuccess: () => setModal(null) })}>
         <span>Account:</span>
-        <select className="form-control" required defaultValue="interest">
-          <option value="interest">INTEREST ACC</option>
+        <select className="form-control" required defaultValue="operation_income">
+          <option value="operation_income">OPERATION INCOME</option>
         </select>
-        <small className="text-muted">Branch staff are paid from their branch INTEREST ACC, HQ staff from the COMPANY ACCOUNT. Take home: <b>{money(sum(rows, (row) => row.take_home))}</b></small>
+        <small className="text-muted">Branch staff are paid from OPERATION INCOME, HQ staff from the COMPANY ACCOUNT. Take home: <b>{money(sum(rows, (row) => row.take_home))}</b></small>
       </Modal>
 
       <Modal open={modal === "paid"} onClose={() => setModal(null)} title="Salary Paid" size="xl">
