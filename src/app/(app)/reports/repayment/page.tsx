@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { cleanQuery, FilterModal, SearchButton, TotalsRow, type LoanReportRow, type ReportFilters, type ReportRows } from "@/components/reports/ReportKit";
+import { cleanQuery, PrintDetails, currentMonthFilters, FilterModal, SearchButton, TotalsRow, type LoanReportRow, type ReportFilters, type ReportRows } from "@/components/reports/ReportKit";
 import { Card } from "@/components/ui/Card";
 import { DataTable } from "@/components/ui/DataTable";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -11,13 +11,14 @@ import { useApi } from "@/lib/hooks";
 
 /** Report → Loan Repayment (live admin/repaymant_data): the loan book still being repaid. */
 export default function LoanRepaymentPage() {
-  const [filters, setFilters] = useState<ReportFilters>({});
+  // Opens on the current month (enhancement §10.3–10.6); clearing the dates in the filter shows every month.
+  const [filters, setFilters] = useState<ReportFilters>(currentMonthFilters);
   const [filtering, setFiltering] = useState(false);
   const { data, isLoading } = useApi<ReportRows<LoanReportRow>>("reports/repayment", cleanQuery(filters));
 
   return (
     <>
-      <PageHeader crumbs={["Report", "Loan Repayment"]} />
+      <PageHeader crumbs={["Report", "Loan Repayment"]} printDetails={<PrintDetails filters={filters} records={data?.rows.length} figures={data ? [["Principal", money(data.totals.amount_approved)], ["Total payable", money(data.totals.total_payable)]] : []} />} />
 
       <Card title="Loan Repayment" actions={<SearchButton onClick={() => setFiltering(true)} />}>
         <DataTable
@@ -40,7 +41,7 @@ export default function LoanRepaymentPage() {
         />
       </Card>
 
-      <FilterModal open={filtering} onClose={() => setFiltering(false)} title="Filter Loan Repayment" withDates={false} branchPlaceholder="---Select Branch---" onApply={setFilters} />
+      <FilterModal open={filtering} onClose={() => setFiltering(false)} title="Filter Loan Repayment" datesOptional initial={currentMonthFilters()} branchPlaceholder="---Select Branch---" onApply={setFilters} />
     </>
   );
 }

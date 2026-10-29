@@ -21,6 +21,8 @@ interface CrmDashboardData {
   cases_by_category: { total: number; rows: Array<{ category: string; label: string; count: number; percent: number }> };
   case_status: Array<{ status: string; label: string; count: number }>;
   pending_kyc: Array<{ id: number; customer_code: string | null; name: string; phone: string | null; submitted_on: string | null }>;
+  /** Pending Approvals / Applications (enhancement §17): KYC registrations and profile changes awaiting re-approval. */
+  kyc_pipeline: Array<{ key: string; label: string; count: number; registrations: number; profile_changes: number; link: string }>;
   recent_updates: Array<{ request_id: number; customer_id: number; customer_code: string | null; name: string | null; field: string; old: string; new: string; updated_on: string | null; by: string | null }>;
 }
 
@@ -30,8 +32,9 @@ const CATEGORY_COLOURS = BRAND_SERIES;
 
 const STATUS_COLOURS: Record<string, string> = { open: C.red, in_progress: C.black, waiting: C.greyLight, resolved: C.greyDark, closed: C.grey };
 
+// Summary cards only (§11.1: not clickable). The customer count is no longer shown on the dashboard (§16.5); it is still
+// returned and used elsewhere.
 const CARDS: Array<{ field: keyof CrmDashboardData["cards"]; title: string; icon: string; tone: string; compare: string; href: string }> = [
-  { field: "total_customers", title: "Total Customers", icon: "fa fa-users", tone: C.black, compare: "vs last month", href: "/customers" },
   { field: "pending_kyc", title: "Pending KYC", icon: "fa fa-shield", tone: C.greyDark, compare: "vs last month", href: "/customers/approvals" },
   { field: "kyc_approved", title: "KYC Approved", icon: "fa fa-check-circle", tone: C.redDark, compare: "this month", href: "/customers?approval_status=approved" },
   { field: "kyc_rejected", title: "KYC Rejected", icon: "fa fa-times-circle", tone: C.red, compare: "this month", href: "/customers?approval_status=rejected" },
@@ -78,7 +81,7 @@ function Body({ data }: { data: CrmDashboardData }) {
       <div className="fd-grid fd-grid-4">
         {CARDS.slice(0, 4).map((card) => <CountCard key={card.field} {...card} data={data.cards[card.field]} />)}
       </div>
-      <div className="fd-grid fd-grid-4">
+      <div className="fd-grid fd-grid-3">
         {CARDS.slice(4).map((card) => <CountCard key={card.field} {...card} data={data.cards[card.field]} />)}
       </div>
 
@@ -92,8 +95,8 @@ function Body({ data }: { data: CrmDashboardData }) {
       </div>
 
       <div className="fd-grid crm-grid-2">
-        <Panel title="Pending KYC Approval" action={<Link href="/customers/approvals" className="fd-view-all">View All</Link>}>
-          <PendingKyc rows={data.pending_kyc} />
+        <Panel title="Pending Approvals / Applications" action={<Link href="/customers/approvals" className="fd-view-all">View All</Link>}>
+          <KycPipeline rows={data.kyc_pipeline ?? []} />
         </Panel>
         <Panel title="Recent Customer Updates" action={<Link href="/crm/updates?status=approved" className="fd-view-all">View All</Link>}>
           <RecentUpdates rows={data.recent_updates} />
@@ -103,9 +106,9 @@ function Body({ data }: { data: CrmDashboardData }) {
   );
 }
 
-function CountCard({ title, icon, tone, compare, href, data }: (typeof CARDS)[number] & { data: Card }) {
+function CountCard({ title, icon, tone, compare, data }: (typeof CARDS)[number] & { data: Card }) {
   return (
-    <Link href={href} className="fd-card fd-stat crm-card">
+    <div className="fd-card fd-stat crm-card">
       <IconTile icon={icon} tone={tone} />
       <div className="fd-stat-body">
         <div className="fd-stat-title">{title}</div>
@@ -114,7 +117,7 @@ function CountCard({ title, icon, tone, compare, href, data }: (typeof CARDS)[nu
           <Change value={data.change} compare={compare} />
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
 
@@ -168,29 +171,24 @@ function CaseStatus({ rows }: { rows: CrmDashboardData["case_status"] }) {
   );
 }
 
-function PendingKyc({ rows }: { rows: CrmDashboardData["pending_kyc"] }) {
-  if (rows.length === 0) {
-    return <p className="fd-empty">No registration is waiting for KYC approval.</p>;
-  }
+/**
+ * Pending Approvals / Applications (§17): the only dashboard part that opens records. Pending stays until decided; the red
+ * outline shows while anything waits (§11.3).
+ */
+function KycPipeline({ rows }: { rows: CrmDashboardData["kyc_pipeline"] }) {
   return (
-    <div className="table-responsive">
-      <table className="table table-sm mb-0 crm-table">
-        <thead><tr><th>#</th><th>Customer No</th><th>Name</th><th>Phone</th><th>Submitted On</th><th>Status</th><th className="text-center">Action</th></tr></thead>
-        <tbody>
-          {rows.map((row, index) => (
-            <tr key={row.id}>
-              <td>{index + 1}</td>
-              <td>{row.customer_code ?? "—"}</td>
-              <td>{row.name}</td>
-              <td>{row.phone ?? "—"}</td>
-              <td>{row.submitted_on ?? "—"}</td>
-              <td><span className="crm-pill warning">Pending</span></td>
-              <td className="text-center"><Link href={`/customers/${row.id}`} className="btn btn-sm btn-outline-danger">View</Link></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <ul className="fd-approvals crm-kyc-pipeline">
+      {rows.map((row) => (
+        <li key={row.key}>
+          <b className={`fd-approval-count${row.key === "pending" && row.count > 0 ? " mf-pending-alert" : ""}`}>{row.count}</b>
+          <span className="fd-approval-label">
+            {row.label}
+            <small className="d-block text-muted">{row.registrations} registration{row.registrations === 1 ? "" : "s"} · {row.profile_changes} profile change{row.profile_changes === 1 ? "" : "s"}</small>
+          </span>
+          <Link href={row.link} className="btn btn-sm btn-outline-danger">View</Link>
+        </li>
+      ))}
+    </ul>
   );
 }
 

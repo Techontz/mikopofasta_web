@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { cleanQuery, FilterModal, SearchButton, StatusBadge, TotalsRow, type LoanReportRow, type ReportFilters, type ReportRows } from "@/components/reports/ReportKit";
+import { cleanQuery, PrintDetails, currentMonthFilters, FilterModal, SearchButton, StatusBadge, TotalsRow, type LoanReportRow, type ReportFilters, type ReportRows } from "@/components/reports/ReportKit";
 import { Card } from "@/components/ui/Card";
 import { DataTable } from "@/components/ui/DataTable";
 import { Field } from "@/components/ui/Field";
@@ -18,13 +18,14 @@ const STATUSES: [value: string, label: string][] = [["PENDING", "PENDING"], ["AP
  * Penalty Amount = unpaid penalty (allocation Principal → Penalty → Interest).
  */
 export default function LoanCollectionPage() {
-  const [filters, setFilters] = useState<ReportFilters>({});
+  // Opens on the current month (enhancement §10.3–10.6); clearing the dates in the filter shows every month.
+  const [filters, setFilters] = useState<ReportFilters>(currentMonthFilters);
   const [filtering, setFiltering] = useState(false);
   const { data, isLoading } = useApi<ReportRows<LoanReportRow>>("reports/collection", cleanQuery(filters));
 
   return (
     <>
-      <PageHeader crumbs={["Report", "Loan Collection"]} />
+      <PageHeader crumbs={["Report", "Loan Collection"]} printDetails={<PrintDetails filters={filters} records={data?.rows.length} figures={data ? [["Total payable", money(data.totals.total_payable)], ["Paid", money(data.totals.paid)], ["Remaining", money(data.totals.remain)]] : []} />} />
 
       <Card title="Loan Collection" actions={<SearchButton onClick={() => setFiltering(true)} />}>
         <DataTable
@@ -48,7 +49,7 @@ export default function LoanCollectionPage() {
         />
       </Card>
 
-      <FilterModal open={filtering} onClose={() => setFiltering(false)} title="Filter Loan Collection" withDates={false} branchPlaceholder="---Select Branch---" onApply={setFilters}>
+      <FilterModal open={filtering} onClose={() => setFiltering(false)} title="Filter Loan Collection" datesOptional initial={currentMonthFilters()} branchPlaceholder="---Select Branch---" onApply={setFilters}>
         {(form, setForm) => (
           <Field label="Loan Status" className="col-md-12">
             <select className="form-control" value={form.loan_status ?? ""} onChange={(e) => setForm({ ...form, loan_status: e.target.value })} required>

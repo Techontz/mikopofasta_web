@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { Loading } from "@/components/ui/Loading";
@@ -32,7 +32,13 @@ export interface CreditDashboardData {
     rejected_customers: number;
     active_loans: number;
     active_customers: number;
+    applications_amount: number;
+    approved_amount: number;
+    rejected_amount: number;
+    active_amount: number;
   };
+  /** Loan Applications Pipeline (This Month), enhancement §11.4. */
+  pipeline: { key: string; label: string; count: number; amount: number; link: string }[];
   applications_trend: { month: string; label: string; applied: number; approved: number; rejected: number }[];
   collection_trend: { month: string; label: string; expected: number; collected: number; unpaid: number }[];
   approvals: { key: string; label: string; count: number; status: string; tone: "warning" | "danger"; link: string | null }[];
@@ -92,10 +98,10 @@ function Body({ data }: { data: CreditDashboardData }) {
   return (
     <>
       <div className="cd-grid cd-grid-4">
-        <KpiCard title="Total Loan Applications" value={k.applications} customers={k.applications_customers} red href="/loans/pending" />
-        <KpiCard title="Approved Loans" value={k.approved} customers={k.approved_customers} href="/loans/withdrawal" />
-        <KpiCard title="Rejected Loans" value={k.rejected} customers={k.rejected_customers} red href="/loans/rejected" />
-        <KpiCard title="Active Loans (Portfolio)" value={k.active_loans} customers={k.active_customers} href="/loans/disbursed" />
+        <KpiCard title="Total Loan Applications" amount={k.applications_amount} count={k.applications} />
+        <KpiCard title="Approved Loans" amount={k.approved_amount} count={k.approved} />
+        <KpiCard title="Rejected Loans" amount={k.rejected_amount} count={k.rejected} />
+        <KpiCard title="Active Loans (Portfolio)" amount={k.active_amount} count={k.active_loans} />
       </div>
 
       <div className="cd-grid cd-grid-3">
@@ -173,22 +179,45 @@ function Body({ data }: { data: CreditDashboardData }) {
           empty="No applications or loans."
         />
       </div>
+
+      <Panel title="Loan Applications Pipeline (This Month)" chip={data.month_label}>
+        <Pipeline stages={data.pipeline ?? []} />
+      </Panel>
     </>
   );
 }
 
-function KpiCard({ title, value, customers, red, href }: { title: string; value: number; customers: number; red?: boolean; href: string }) {
+/** A summary card (§11.1, §11.6): the loan amount first, then the number of loans; not clickable, no special colour. */
+function KpiCard({ title, amount, count }: { title: string; amount: number; count: number }) {
   return (
-    <Link href={href} className="cd-card cd-kpi cd-link">
+    <div className="cd-card cd-kpi">
       <div className="cd-card-title">{title}</div>
       <div className="cd-kpi-row">
-        <span className={`cd-kpi-value${red ? " is-red" : ""}`}>{money(value)}</span>
+        <span className="cd-kpi-value cd-kpi-money">TZS {money(amount)}</span>
         <span className="cd-kpi-side">
-          <b>{money(customers)}</b>
-          <small>Customers</small>
+          <b>{money(count)}</b>
+          <small>Loans</small>
         </span>
       </div>
-    </Link>
+    </div>
+  );
+}
+
+/** Loan Applications Pipeline (This Month), §11.4: seven stages joined by arrows; each opens the list of its stage. */
+function Pipeline({ stages }: { stages: CreditDashboardData["pipeline"] }) {
+  return (
+    <div className="cd-pipeline">
+      {stages.map((stage, index) => (
+        <Fragment key={stage.key}>
+          {index > 0 && <i className="fa fa-long-arrow-right cd-pipeline-arrow" aria-hidden="true" />}
+          <Link href={stage.link} className={`cd-card cd-pipeline-stage${stage.key === "rejected" ? " is-rejected" : ""}`}>
+            <span className="cd-pipeline-label">{stage.label}</span>
+            <b className="cd-pipeline-count">{money(stage.count)}</b>
+            <small>TZS {money(stage.amount)}</small>
+          </Link>
+        </Fragment>
+      ))}
+    </div>
   );
 }
 
@@ -275,7 +304,7 @@ function Approvals({ rows }: { rows: CreditDashboardData["approvals"] }) {
       {rows.slice(0, APPROVALS_SHOWN).map((row) => (
         <li key={row.key}>
           <i className={`${APPROVAL_ICONS[row.key] ?? "fa fa-file-o"} cd-approval-icon`} />
-          <b className="cd-approval-count">{row.count}</b>
+          <b className={`cd-approval-count${row.count > 0 ? " mf-pending-alert" : ""}`}>{row.count}</b>
           <span className="cd-approval-label">{row.label}</span>
           <span className={`cd-approval-status ${row.tone}`}>{row.status}</span>
           {row.link ? (

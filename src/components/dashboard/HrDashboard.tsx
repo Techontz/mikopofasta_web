@@ -1,5 +1,6 @@
 "use client";
 
+import { PendingApprovalsPanel } from "@/components/dashboard/PendingApprovalsPanel";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, LabelList, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -210,6 +211,8 @@ function Body({ data }: { data: HrDashboardData }) {
           cells={(row) => [row.staff ?? "—", row.detail ?? "—", money(row.amount)]}
         />
       </div>
+
+      <PendingApprovalsPanel />
     </>
   );
 }
@@ -239,7 +242,9 @@ function StatCard({ icon, tone, title, value, change, note, href }: { icon: stri
     </>
   );
 
-  return href ? <Link href={href} className="hd-card hd-stat hd-card-link">{body}</Link> : <div className="hd-card hd-stat">{body}</div>;
+  // Summary cards show figures only (enhancement §11.1); `href` is kept at the call sites but no longer followed.
+  void href;
+  return <div className="hd-card hd-stat">{body}</div>;
 }
 
 function Panel({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {

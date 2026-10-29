@@ -43,7 +43,7 @@ export function SwitchRole() {
         <li className="dropdown-header">Switch role</li>
         {roles.map((role) => (
           <li key={role.id}>
-            <a href="#" className={`dropdown-item ${role.id === user.role?.id ? "active" : ""}`} aria-selected={role.id === user.role?.id} onClick={(event) => { event.preventDefault(); void choose(role.id); }}>
+            <a href="#" role="option" className={`dropdown-item ${role.id === user.role?.id ? "active" : ""}`} aria-selected={role.id === user.role?.id} onClick={(event) => { event.preventDefault(); void choose(role.id); }}>
               {role.name}{role.primary ? " (primary)" : ""}
             </a>
           </li>

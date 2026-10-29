@@ -257,7 +257,7 @@ export const menu: MenuTab[] = [
     items: [
       { label: "Cash Transaction", icon: "icon-wallet", href: "/reports/cash", permission: ["reports.view", "reports.operations"] },
       { label: "Branch Wise Report", icon: "icon-list", href: "/reports/branchwise", permission: ["reports.view", "reports.operations"] },
-      { label: "File", icon: "icon-list", href: "/reports/file", permission: ["reports.view", "reports.loans"] },
+      { label: "File", icon: "icon-list", href: "/reports/file/new-loans", permission: ["reports.view", "reports.loans"] },
       { label: "Penalty", icon: "icon-list", href: "/reports/penalties", permission: ["reports.view", "reports.loans"] },
       { label: "Loan Pending", icon: "icon-list", href: "/reports/pending", permission: ["reports.view", "reports.loans"] },
       { label: "Loan Repayment", icon: "icon-list", href: "/reports/repayment", permission: ["reports.view", "reports.loans"] },

@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 
 import { SALARY_TYPES, STAFF_BANKS, statusTone } from "@/components/hrm/common";
+import { EmployeeDocumentsCard, EmployeeKycCard } from "@/components/hrm/EmployeeKyc";
 import { StaffCreditStatus } from "@/components/hrm/StaffCreditActions";
 import { StaffForm, staffToForm, type StaffFormValues } from "@/components/hrm/StaffForm";
 import type { AmountItem, StaffDetail } from "@/components/hrm/types";
@@ -20,6 +21,7 @@ import { useAction, useApi } from "@/lib/hooks";
 
 const TABS = [
   ["Basic", "Basic"],
+  ["documents", "Documents"],
   ["Salary", "Salary"],
   ["allowance", "Allowance"],
   ["advance", "Salary Advance"],
@@ -62,6 +64,8 @@ export default function StaffProfilePage() {
   const isSelf = user !== null && staff !== undefined && user.id === staff.id;
   const [tab, setTab] = useState<string>("Basic");
   const [form, setForm] = useState<StaffFormValues | null>(null);
+  const [changeReason, setChangeReason] = useState("");
+  const kycLocked = staff?.kyc_status === "approved";
   const [passwords, setPasswords] = useState({ oldpass: "", newpass: "", passconf: "" });
   const [salaryOpen, setSalaryOpen] = useState(false);
   const [salary, setSalary] = useState<SalaryForm>({ salary: "", account_name: "", bank_name: "", account_number: "", fee_salary: "0", salary_type: "branch", commission_eligible: true, payment_method: "bank" });
@@ -140,14 +144,23 @@ export default function StaffProfilePage() {
         </div>
       </div>
 
+      {tab === "documents" && staff && <EmployeeDocumentsCard employeeId={staff.id} />}
+
       {tab === "Basic" && basic && (
         <>
+          {staff && <EmployeeKycCard employeeId={staff.id} status={staff.kyc_status ?? "pending"} decidedAt={staff.kyc_decided_at} rejection={staff.kyc_rejection_reason} />}
           <div className="card" id="role">
             <div className="body">
               <h6>Basic Information</h6>
-              <form onSubmit={(e) => { e.preventDefault(); update.mutate(basic); }}>
+              <form onSubmit={(e) => { e.preventDefault(); update.mutate({ ...basic, change_reason: changeReason } as StaffFormValues, { onSuccess: () => setChangeReason("") }); }}>
                 <StaffForm form={basic} setForm={setForm} fieldError={update.fieldError} locked={isSelf ? { role: staff.role?.name ?? null, branch: staff.branch ?? null, zone: staff.zone ?? null } : undefined} />
                 {isSelf && <small className="text-muted d-block mt-2">Your role, branch, zone and position can only be changed by an Admin or Super Admin.</small>}
+                {kycLocked && isSelf && <small className="text-danger d-block mt-1">Your details are KYC-approved: only another HR user can change your names, contacts, date of birth or photo.</small>}
+                {kycLocked && !isSelf && (
+                  <Field label="Reason for changing KYC-approved details:" className="mt-2" error={update.fieldError("change_reason")}>
+                    <input className="form-control" maxLength={1000} value={changeReason} onChange={(e) => setChangeReason(e.target.value)} placeholder="Required when names, contacts or date of birth change" />
+                  </Field>
+                )}
                 <br />
                 <div className="text-center">
                   <button type="submit" className="btn btn-primary" disabled={update.isPending}>Update</button>

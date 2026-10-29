@@ -12,7 +12,8 @@ import { Card } from "@/components/ui/Card";
 import { DataTable } from "@/components/ui/DataTable";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { confirmAction } from "@/components/ui/notify";
+import { confirmAction, notifyError } from "@/components/ui/notify";
+import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useAction, useApi } from "@/lib/hooks";
 
@@ -22,7 +23,20 @@ export default function AllStaffPage() {
   const [registering, setRegistering] = useState(false);
   const [form, setForm] = useState<StaffFormValues>(EMPTY_STAFF);
 
-  const create = useAction<StaffFormValues>("post", "hrm/staff");
+  const create = useAction<StaffFormValues, { data: Staff }>("post", "hrm/staff");
+  // Enhancement §12.1: CV, certificates and employment contract (PDF), uploaded to the new employee once registered.
+  const [documents, setDocuments] = useState<Record<string, File | null>>({ cv: null, certificate: null, contract: null });
+  const uploadDocuments = async (employeeId: number) => {
+    for (const [type, file] of Object.entries(documents)) {
+      if (file) {
+        const body = new FormData();
+        body.append("type", type);
+        body.append("file", file);
+        await api.post(`hrm/staff/${employeeId}/documents`, body).catch((error) => notifyError(error));
+      }
+    }
+    setDocuments({ cv: null, certificate: null, contract: null });
+  };
   const blockAll = useAction<{ block: boolean }>("post", "hrm/staff/block-all");
   const act = useAction<{ id: number; action: string }>("post", (body) => `hrm/staff/${body.id}/${body.action}`);
   const remove = useAction<{ id: number }>("delete", (body) => `hrm/staff/${body.id}`);
@@ -116,9 +130,17 @@ export default function AllStaffPage() {
         size="lg"
         submitLabel="Register"
         submitting={create.isPending}
-        onSubmit={() => create.mutate(form, { onSuccess: () => { setRegistering(false); setForm(EMPTY_STAFF); } })}
+        onSubmit={() => create.mutate(form, { onSuccess: (result) => { void uploadDocuments(result.data.id); setRegistering(false); setForm(EMPTY_STAFF); } })}
       >
         <StaffForm form={form} setForm={setForm} fieldError={create.fieldError} registering />
+        <div className="row mt-2">
+          {([["cv", "CV (PDF)"], ["certificate", "Certificates (PDF)"], ["contract", "Employment Contract (PDF)"]] as const).map(([type, label]) => (
+            <div className="col-md-4 form-group" key={type}>
+              <label htmlFor={`register-${type}`}>{label}</label>
+              <input id={`register-${type}`} type="file" className="form-control" accept="application/pdf,.pdf" onChange={(event) => setDocuments({ ...documents, [type]: event.target.files?.[0] ?? null })} />
+            </div>
+          ))}
+        </div>
       </Modal>
     </>
   );

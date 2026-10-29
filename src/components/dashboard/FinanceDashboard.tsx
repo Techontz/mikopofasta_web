@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type KeyboardEvent } from "react";
+import { useState } from "react";
 import { Bar, BarChart, Cell, LabelList, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { BranchListModal, type BranchAccounts } from "@/components/dashboard/BranchListModal";
 import { Change, IconTile, Panel } from "@/components/dashboard/parts";
 import { Loading } from "@/components/ui/Loading";
-import { Modal } from "@/components/ui/Modal";
 import { SelectBox } from "@/components/ui/SelectBox";
 import { useAuth } from "@/lib/auth";
 import { money } from "@/lib/format";
@@ -103,22 +102,21 @@ export function FinanceDashboard() {
 function Body({ data }: { data: FinanceDashboardData }) {
   const k = data.cards;
   const monthLabel = data.month_label;
-  const [accountsOpen, setAccountsOpen] = useState(false);
 
   return (
     <>
       <div className="fd-grid fd-grid-4">
-        <StatCard icon="fa fa-briefcase" tone={C.black} title="Total Cash & Account Balance" value={k.cash_balance} change={k.cash_balance_change} compare="vs last month" href="/reports/cash-flow" onOpen={() => setAccountsOpen(true)} />
-        <StatCard icon="fa fa-paper-plane" tone={C.red} title="Disbursed Today" value={k.disbursed_today} change={k.disbursed_today_change} compare="vs yesterday" href="/loans/disbursed" />
-        <StatCard icon="fa fa-bar-chart" tone={C.greyDark} title="Collection Today" value={k.collected_today} change={k.collected_today_change} compare="vs yesterday" href="/reports/collections" />
-        <StatCard icon="fa fa-database" tone={C.redDark} title="Total Loan Outstanding" value={k.loan_outstanding} change={k.loan_outstanding_change} compare="vs last month" href="/reports/portfolio" />
+        <StatCard icon="fa fa-briefcase" tone={C.black} title="Total Cash & Account Balance" value={k.cash_balance} change={k.cash_balance_change} compare="vs last month" />
+        <StatCard icon="fa fa-paper-plane" tone={C.red} title="Disbursed Today" value={k.disbursed_today} change={k.disbursed_today_change} compare="vs yesterday" />
+        <StatCard icon="fa fa-bar-chart" tone={C.greyDark} title="Collection Today" value={k.collected_today} change={k.collected_today_change} compare="vs yesterday" />
+        <StatCard icon="fa fa-database" tone={C.redDark} title="Total Loan Outstanding" value={k.loan_outstanding} change={k.loan_outstanding_change} compare="vs last month" />
       </div>
 
       <div className="fd-grid fd-grid-4">
-        <ProgressCard icon="fa fa-calendar" tone={C.black} title="Expected This Month" value={k.expected_month} percent={k.collected_month_percent} href="/reports/collections" />
-        <ProgressCard icon="fa fa-database" tone={C.greyDark} title="Actual Collection This Month" value={k.collected_month} percent={k.collected_month_percent} href="/reports/collections" />
-        <ProgressCard icon="fa fa-clock-o" tone={C.redLight} title="Arrears (Within Term)" value={k.arrears_within_term} percent={k.arrears_percent} href="/reports/arrears" />
-        <ProgressCard icon="fa fa-exclamation-triangle" tone={C.red} title="Default (Overdue)" value={k.default_outstanding} percent={k.default_percent} href="/reports/default" />
+        <ProgressCard icon="fa fa-calendar" tone={C.black} title="Expected This Month" value={k.expected_month} percent={k.collected_month_percent} />
+        <ProgressCard icon="fa fa-database" tone={C.greyDark} title="Actual Collection This Month" value={k.collected_month} percent={k.collected_month_percent} />
+        <ProgressCard icon="fa fa-clock-o" tone={C.redLight} title="Arrears (Within Term)" value={k.arrears_within_term} percent={k.arrears_percent} />
+        <ProgressCard icon="fa fa-exclamation-triangle" tone={C.red} title="Default (Overdue)" value={k.default_outstanding} percent={k.default_percent} />
       </div>
 
       <div className="fd-grid fd-grid-3">
@@ -145,72 +143,31 @@ function Body({ data }: { data: FinanceDashboardData }) {
         </Panel>
       </div>
 
-      <Modal open={accountsOpen} onClose={() => setAccountsOpen(false)} title={`Total Cash & Account Balance — ${monthLabel}`}>
-        <CashAccounts rows={k.cash_accounts} total={k.cash_balance} />
-      </Modal>
     </>
   );
 }
 
-function Arrow({ href, onOpen }: { href: string; onOpen?: () => void }) {
-  if (onOpen) {
-    return (
-      <button type="button" className="fd-arrow border-0" aria-label="Show the accounts" onClick={(event) => { event.stopPropagation(); onOpen(); }}>
-        <i className="fa fa-chevron-right" />
-      </button>
-    );
-  }
+/**
+ * A summary card: figures only (enhancement §11.1 — not clickable) and no icon (§11.5); colours, labels and sizes are kept.
+ * `icon` and `tone` stay in the call sites as the cards' identity.
+ */
+function StatCard({ title, value, change, compare }: { icon: string; tone: string; title: string; value: number; change: number | null; compare: string }) {
   return (
-    <Link href={href} className="fd-arrow" aria-label="Open the detail">
-      <i className="fa fa-chevron-right" />
-    </Link>
-  );
-}
-
-/** A stat card; with `onOpen` the whole card is clickable and opens its detail instead of following `href`. */
-function StatCard({ icon, tone, title, value, change, compare, href, onOpen }: { icon: string; tone: string; title: string; value: number; change: number | null; compare: string; href: string; onOpen?: () => void }) {
-  const clickable = onOpen ? { role: "button", tabIndex: 0, onClick: onOpen, onKeyDown: (event: KeyboardEvent) => (event.key === "Enter" || event.key === " ") && (event.preventDefault(), onOpen()) } : {};
-  return (
-    <div className={`fd-card fd-stat${onOpen ? " fd-clickable" : ""}`} {...clickable}>
-      <IconTile icon={icon} tone={tone} />
+    <div className="fd-card fd-stat">
       <div className="fd-stat-body">
         <div className="fd-stat-title">{title}</div>
         <div className="fd-stat-value">TZS {money(value)}</div>
         <div className="fd-stat-foot">
           <Change value={change} compare={compare} />
-          <Arrow href={href} onOpen={onOpen} />
         </div>
       </div>
     </div>
   );
 }
 
-/** The accounts behind the Total Cash card, with their total (the card's figure) and a link to the Cash Flow report. */
-function CashAccounts({ rows, total }: { rows: FinanceDashboardData["cards"]["cash_accounts"]; total: number }) {
-  return (
-    <div className="table-responsive">
-      <table className="table table-bordered mb-2">
-        <thead className="thead-info"><tr><th>A/c Name</th><th className="text-right">Amount</th></tr></thead>
-        <tbody>
-          {rows.length === 0 && <tr><td colSpan={2} className="text-center text-muted">No money in any account.</td></tr>}
-          {rows.map((row) => (
-            <tr key={row.label} className={row.amount < 0 ? "text-danger" : row.in_total ? undefined : "text-muted font-italic"} title={row.in_total ? undefined : "Not added to the total: this money is already counted in OPERATION INCOME"}>
-              <td>{row.label}</td>
-              <td className="text-right">{row.in_total ? money(row.amount) : `(${money(row.amount)})`}</td>
-            </tr>
-          ))}
-          <tr><th>TOTAL:</th><th className="text-right">{money(total)}</th></tr>
-        </tbody>
-      </table>
-      <Link href="/reports/cash-flow" className="fd-view-all">Open the Cash Flow report</Link>
-    </div>
-  );
-}
-
-function ProgressCard({ icon, tone, title, value, percent, href }: { icon: string; tone: string; title: string; value: number; percent: number; href: string }) {
+function ProgressCard({ tone, title, value, percent }: { icon: string; tone: string; title: string; value: number; percent: number }) {
   return (
     <div className="fd-card fd-stat">
-      <IconTile icon={icon} tone={tone} />
       <div className="fd-stat-body">
         <div className="fd-stat-title">{title}</div>
         <div className="fd-stat-value">TZS {money(value)}</div>
@@ -219,7 +176,6 @@ function ProgressCard({ icon, tone, title, value, percent, href }: { icon: strin
             <span style={{ width: `${Math.min(100, Math.max(0, percent))}%`, background: tone }} />
           </div>
           <span className="fd-percent" style={tone === C.redLight ? { color: tone } : undefined}>{percent.toFixed(1)}%</span>
-          <Arrow href={href} />
         </div>
       </div>
     </div>
@@ -423,7 +379,7 @@ function Approvals({ rows }: { rows: FinanceDashboardData["approvals"] }) {
       {rows.slice(0, APPROVALS_SHOWN).map((row) => (
         <li key={row.workflow}>
           <i className={`${APPROVAL_ICONS[row.workflow] ?? "fa fa-database"} fd-approval-icon`} />
-          <b className="fd-approval-count">{row.count}</b>
+          <b className={`fd-approval-count${row.count > 0 ? " mf-pending-alert" : ""}`}>{row.count}</b>
           <span className="fd-approval-label">{row.label}</span>
           <span className={`fd-approval-status ${/finance/i.test(row.status) ? "finance" : "pending"}`}>{row.status}</span>
           <Link href={row.link} className="fd-arrow" aria-label={`Open ${row.label}`}>

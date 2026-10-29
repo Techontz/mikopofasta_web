@@ -22,6 +22,8 @@ interface StatementRow {
   receipt_number: string | null;
   deposit: number;
   withdrawal: number;
+  /** Approved loan discount / waiver (enhancement §6): lowers the debt, never cash. */
+  discount?: number;
   principal: number;
   penalty: number;
   interest: number;
@@ -36,6 +38,7 @@ interface Statement {
   loan: {
     loan_number: string;
     product: string | null;
+    reference_number?: string | null;
     branch: string | null;
     amount: number;
     total_payable: number;
@@ -106,8 +109,8 @@ function StatementReport() {
                   {data.loan && (
                     <>
                       <tr>
-                        <td><b>Loan Ac:</b> {data.loan.loan_number}</td>
-                        <td><b>Loan Product:</b> {data.loan.product}</td>
+                        <td><b>Loan ID:</b> {data.loan.loan_number}</td>
+                        <td><b>Reference No:</b> {data.loan.reference_number ?? "—"}</td>
                         <td><b>Loan Amount:</b> {money(data.loan.amount)}</td>
                         <td><b>Principal + Interest:</b> {money(data.loan.total_payable)}</td>
                       </tr>
@@ -137,11 +140,13 @@ function StatementReport() {
             pageSize={100}
             columns={[
               { key: "date", header: "Date" },
-              ...(data?.loan ? [] : [{ key: "loan_number", header: "Loan Ac" }]),
+              // Enhancement §10.7: every record names its Loan ID (newest first, as the API returns them).
+              { key: "loan_number", header: "Loan ID" },
               { key: "description", header: "Description" },
               { key: "receipt_number", header: "Receipt" },
               { key: "deposit", header: "Deposit", render: (row) => money(row.deposit) },
               { key: "withdrawal", header: "Withdrawal", render: (row) => money(row.withdrawal) },
+              { key: "discount", header: "Discount / Waiver", render: (row) => money(row.discount ?? 0) },
               { key: "principal", header: "Principal", render: (row) => money(row.principal) },
               { key: "penalty", header: "Penalty", render: (row) => money(row.penalty) },
               { key: "interest", header: "Interest", render: (row) => money(row.interest) },
@@ -153,11 +158,12 @@ function StatementReport() {
               data && (
                 <TotalsRow
                   cells={[
-                    ...(data.loan ? [] : [""]),
+                    "",
                     "",
                     "",
                     money(data.totals.deposit),
                     money(data.totals.withdrawal),
+                    money(data.totals.discount ?? 0),
                     money(data.totals.principal),
                     money(data.totals.penalty),
                     money(data.totals.interest),

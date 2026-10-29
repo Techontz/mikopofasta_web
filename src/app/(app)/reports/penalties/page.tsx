@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import { cleanQuery, FilterModal, PrintButton, SearchButton, TotalsRow, type ReportFilters, type Totals } from "@/components/reports/ReportKit";
+import { cleanQuery, PrintDetails, currentMonthFilters, FilterModal, PrintButton, SearchButton, TotalsRow, type ReportFilters, type Totals } from "@/components/reports/ReportKit";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -52,7 +52,8 @@ interface PenaltyReport {
  * A negative Penalty Amount is a waiver or correction the old system printed as a negative figure, kept as printed.
  */
 export default function PenaltyReportPage() {
-  const [filters, setFilters] = useState<ReportFilters>({});
+  // Opens on the current month (enhancement §10.3–10.6); clearing the dates in the filter shows every month.
+  const [filters, setFilters] = useState<ReportFilters>(currentMonthFilters);
   const [filtering, setFiltering] = useState(false);
   const { data, isLoading } = useApi<PenaltyReport>("reports/penalties", cleanQuery(filters));
 
@@ -88,7 +89,7 @@ export default function PenaltyReportPage() {
 
   return (
     <>
-      <PageHeader crumbs={["Report", "Penalty"]} />
+      <PageHeader crumbs={["Report", "Penalty"]} printDetails={<PrintDetails filters={filters} records={data?.rows.length} figures={data ? [["Penalty amount", money(data.totals.penalty_amount)]] : []} />} />
 
       {historical.length > 0 && (
         <div className="alert alert-info">
@@ -140,7 +141,7 @@ export default function PenaltyReportPage() {
         />
       </Card>
 
-      <FilterModal open={filtering} onClose={() => setFiltering(false)} title="Filter Penalty" onApply={setFilters} />
+      <FilterModal open={filtering} onClose={() => setFiltering(false)} title="Filter Penalty" datesOptional initial={currentMonthFilters()} onApply={setFilters} />
     </>
   );
 }

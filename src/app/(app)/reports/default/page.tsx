@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { cleanQuery, FilterModal, PaneCard, ReportTabs, SearchButton, sumBy, TotalsRow, type LoanReportRow, type ReportFilters, type ReportRows } from "@/components/reports/ReportKit";
+import { cleanQuery, PrintDetails, currentMonthFilters, FilterModal, PaneCard, ReportTabs, SearchButton, sumBy, TotalsRow, type LoanReportRow, type ReportFilters, type ReportRows } from "@/components/reports/ReportKit";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { confirmAction } from "@/components/ui/notify";
@@ -24,7 +24,8 @@ const PANES: Record<Tab, [string, DefaultRow["duration"] | null]> = {
 export default function DefaultLoanPage() {
   const { can } = useAuth();
   const [tab, setTab] = useState<Tab>("Basic");
-  const [filters, setFilters] = useState<ReportFilters>({});
+  // Opens on the current month (enhancement §10.3–10.6); clearing the dates in the filter shows every month.
+  const [filters, setFilters] = useState<ReportFilters>(currentMonthFilters);
   const [filtering, setFiltering] = useState(false);
   const { data, isLoading } = useApi<ReportRows<DefaultRow>>("reports/default", cleanQuery(filters));
   const writeOff = useAction<{ id: number }>("post", (body) => `loans/${body.id}/write-off`);
@@ -63,7 +64,7 @@ export default function DefaultLoanPage() {
 
   return (
     <>
-      <PageHeader crumbs={["Report", "Default Loan"]} />
+      <PageHeader crumbs={["Report", "Default Loan"]} printDetails={<PrintDetails filters={filters} records={data?.rows.length} />} />
       <ReportTabs tabs={[["Basic", "All"], ["aditinal", "Monthly"], ["Account", "Weekly"], ["General", "Daily"]]} value={tab} onChange={setTab} />
 
       <PaneCard title={title} actions={tab === "Basic" && <SearchButton onClick={() => setFiltering(true)} />}>
@@ -84,7 +85,7 @@ export default function DefaultLoanPage() {
         />
       </PaneCard>
 
-      <FilterModal open={filtering} onClose={() => setFiltering(false)} title="Filter" withDates={false} onApply={setFilters} />
+      <FilterModal open={filtering} onClose={() => setFiltering(false)} title="Filter" datesOptional initial={currentMonthFilters()} onApply={setFilters} />
     </>
   );
 }

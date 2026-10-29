@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Loading } from "@/components/ui/Loading";
 
 export interface Column<T> {
@@ -44,6 +44,18 @@ export function DataTable<T>({
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
+  // Print / PDF (enhancement §10.9): every filtered row, not only the page on screen.
+  const [printing, setPrinting] = useState(false);
+  useEffect(() => {
+    const before = () => setPrinting(true);
+    const after = () => setPrinting(false);
+    window.addEventListener("beforeprint", before);
+    window.addEventListener("afterprint", after);
+    return () => {
+      window.removeEventListener("beforeprint", before);
+      window.removeEventListener("afterprint", after);
+    };
+  }, []);
 
   const cellValue = (column: Column<T>, row: T) => (column.value ? column.value(row) : (row as Record<string, unknown>)[column.key]) as string | number | null | undefined;
 
@@ -71,7 +83,9 @@ export function DataTable<T>({
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pages);
   const start = (currentPage - 1) * pageSize;
-  const visible = filtered.slice(start, start + pageSize);
+  const visible = printing ? filtered : filtered.slice(start, start + pageSize);
+  /** The Action column (buttons) never prints. */
+  const cellClass = (column: Column<T>) => `${column.className ?? ""}${column.key === "action" || column.header === "Action" ? " mf-no-print" : ""}`;
 
   const toggleSort = (key: string) => {
     setSort((current) => (current?.key === key ? { key, direction: current.direction === "asc" ? "desc" : "asc" } : { key, direction: "asc" }));
@@ -101,7 +115,7 @@ export function DataTable<T>({
           <thead className={headClassName}>
             <tr>
               {columns.map((column) => (
-                <th key={column.key} className={`${column.sortable === false ? "" : "sortable"} ${column.className ?? ""}`} onClick={() => column.sortable !== false && toggleSort(column.key)}>
+                <th key={column.key} className={`${column.sortable === false ? "" : "sortable"} ${cellClass(column)}`} onClick={() => column.sortable !== false && toggleSort(column.key)}>
                   {column.header}
                   {sort?.key === column.key ? (sort.direction === "asc" ? " ▲" : " ▼") : ""}
                 </th>
@@ -117,7 +131,7 @@ export function DataTable<T>({
               visible.map((row, index) => (
                 <tr key={rowKey ? rowKey(row, index) : index}>
                   {columns.map((column) => (
-                    <td key={column.key} className={column.className}>
+                    <td key={column.key} className={cellClass(column)}>
                       {column.render ? column.render(row, start + index) : String(cellValue(column, row) ?? "")}
                     </td>
                   ))}

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import { cleanQuery, FilterModal, PrintButton, SearchButton, StatusBadge, TotalsRow, type LoanReportRow, type ReportFilters, type Totals } from "@/components/reports/ReportKit";
+import { cleanQuery, PrintDetails, FilterModal, PrintButton, SearchButton, StatusBadge, TotalsRow, type LoanReportRow, type ReportFilters, type Totals } from "@/components/reports/ReportKit";
 import { Card } from "@/components/ui/Card";
 import { DataTable } from "@/components/ui/DataTable";
 import { Field } from "@/components/ui/Field";
@@ -26,7 +26,7 @@ export default function FileNewLoansPage() {
 
   return (
     <>
-      <PageHeader crumbs={["Report", "File"]} />
+      <PageHeader crumbs={["Report", "File — New Loans"]} printDetails={<PrintDetails filters={filters} records={data?.rows.length} figures={data ? [["Loan amount", money(data.totals.total_payable)], ["Paid", money(data.totals.paid)], ["Remaining", money(data.totals.remain)]] : []} />} />
 
       <Card
         title={`FILE REPORT NEW LOAN / Year (${data?.year ?? new Date().getFullYear()})`}

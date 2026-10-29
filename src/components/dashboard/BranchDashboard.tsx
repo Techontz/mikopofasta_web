@@ -145,9 +145,10 @@ function Change({ value, compare }: { value: number | null; compare: string }) {
   );
 }
 
-export function BookCard({ title, figure, change, href, filled }: { title: string; figure: Figure; change?: number | null; href: string; filled?: boolean }) {
+/** Summary card: figures only, not clickable (enhancement §11.1). */
+export function BookCard({ title, figure, change, filled }: { title: string; figure: Figure; change?: number | null; href?: string; filled?: boolean }) {
   return (
-    <Link href={href} className={`cd-card bd-book cd-link${filled ? " is-filled" : ""}`}>
+    <div className={`cd-card bd-book${filled ? " is-filled" : ""}`}>
       <div className="bd-book-value">
         <span>TZS {money(figure.amount)}</span>
         <i aria-hidden="true">|</i>
@@ -157,20 +158,21 @@ export function BookCard({ title, figure, change, href, filled }: { title: strin
         <span className="bd-book-title">{title}</span>
         <Change value={change ?? null} compare="vs last month" />
       </div>
-    </Link>
+    </div>
   );
 }
 
-export function TodayCard({ title, amount, loans, change, href }: { title: string; amount: number; loans?: number; change: number | null; href: string }) {
+/** Summary card: figures only, not clickable (enhancement §11.1). */
+export function TodayCard({ title, amount, loans, change }: { title: string; amount: number; loans?: number; change: number | null; href?: string }) {
   return (
-    <Link href={href} className="cd-card cd-kpi cd-link bd-today-card">
+    <div className="cd-card cd-kpi bd-today-card">
       <div className="cd-card-title">{title}</div>
       <div className="bd-today-row">
         <span className="bd-today-value">TZS {money(amount)}</span>
         {loans !== undefined && <span className="bd-today-loans" title="Loans">{money(loans)}</span>}
         <Change value={change} compare="vs yesterday" />
       </div>
-    </Link>
+    </div>
   );
 }
 
@@ -331,7 +333,7 @@ export function Approvals({ rows }: { rows: BranchDashboardData["approvals"] }) 
       {rows.slice(0, APPROVALS_SHOWN).map((row) => (
         <li key={row.key}>
           <i className={`${APPROVAL_ICONS[row.key] ?? "fa fa-file-o"} cd-approval-icon`} />
-          <b className="cd-approval-count">{row.count}</b>
+          <b className={`cd-approval-count${row.count > 0 ? " mf-pending-alert" : ""}`}>{row.count}</b>
           <span className="cd-approval-label">{row.label}</span>
           <span className={`cd-approval-status ${row.tone}`}>{row.status}</span>
           {row.link ? (

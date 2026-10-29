@@ -83,15 +83,16 @@ export default function LoanPortfolioPage() {
           <Loading />
         ) : (
           <div className="row">
-            <Stat tone="primary" label="Total Loans Issued" value={`${s.issued_count} / ${money(s.issued_amount)}`} />
-            <Stat tone="success" label="Active Loans" value={s.active_count} />
-            <Stat tone="info" label="Completed Loans" value={s.completed_count} />
+            {/* Enhancement §10.8: Active and Completed lead with the money, then the count; only Default and Outstanding Penalty stay red. */}
+            <Stat tone="plain" label="Active Loans" value={<>TZS {money(s.active_amount ?? 0)} <small>· {s.active_count} loans</small></>} />
+            <Stat tone="plain" label="Completed Loans" value={<>TZS {money(s.completed_amount ?? 0)} <small>· {s.completed_count} loans</small></>} />
+            <Stat tone="plain" label="Total Loans Issued" value={`${s.issued_count} / ${money(s.issued_amount)}`} />
+            <Stat tone="plain" label="Outstanding Principal" value={money(s.outstanding_principal)} />
+            <Stat tone="plain" label="Outstanding Interest" value={money(s.outstanding_interest)} />
+            <Stat tone="plain" label={`Total Outstanding (${s.active_customers} customers)`} value={money(s.outstanding_total)} />
             <Stat tone="danger" label={`Default Loans (${s.default_customers ?? 0} customers)`} value={`${s.default_count} / ${money(s.default_outstanding ?? 0)}`} />
-            <Stat tone="primary" label="Outstanding Principal" value={money(s.outstanding_principal)} />
-            <Stat tone="warning" label="Outstanding Interest" value={money(s.outstanding_interest)} />
             <Stat tone="danger" label="Outstanding Penalty" value={money(s.outstanding_penalty)} />
-            <Stat tone="success" label={`Total Outstanding (${s.active_customers} customers)`} value={money(s.outstanding_total)} />
-            <Stat tone="info" label={`Written Off — excluded from portfolio (${s.written_off_count} loans, principal ${money(s.written_off_principal)})`} value={money(s.written_off_outstanding)} />
+            <Stat tone="plain" label={`Written Off — excluded from portfolio (${s.written_off_count} loans, principal ${money(s.written_off_principal)})`} value={money(s.written_off_outstanding)} />
           </div>
         )}
       </Card>
