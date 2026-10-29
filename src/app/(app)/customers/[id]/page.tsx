@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 
 import { AccessDenied } from "@/components/customers/AccessDenied";
+import { BranchTransferModal } from "@/components/customers/BranchTransferModal";
 import { CustomerAvatar, CustomerStatusBadges } from "@/components/customers/common";
 import {
   AuditTrailTab,
@@ -47,6 +48,7 @@ export default function CustomerProfilePage() {
   const { data: masterData } = useApi<MasterData>(allowed ? "master-data" : null);
   const [tab, setTab] = useState<Tab>("overview");
   const [smsOpen, setSmsOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
   const [smsText, setSmsText] = useState("");
   const [busy, setBusy] = useState(false);
   const sendSms = useAction<{ message: string }>("post", `customers/${id}/sms`);
@@ -143,6 +145,11 @@ export default function CustomerProfilePage() {
             {(can("customers.manage") || can("messages.use")) && (
               <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setSmsOpen(true)}>Send SMS</button>
             )}
+            {can("customers.transfer") && !customer.deletedAt && (
+              <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setTransferOpen(true)}>
+                <i className="icon-shuffle" /> Transfer Customer
+              </button>
+            )}
             {canManage && (
               <button type="button" className="btn btn-sm btn-outline-secondary" disabled={mark.isPending} onClick={() => mark.mutate(undefined)}>
                 {customer.isMarked ? "Unmark" : "Mark"}
@@ -160,6 +167,8 @@ export default function CustomerProfilePage() {
           </div>
         </div>
       </Card>
+
+      <BranchTransferModal customer={customer} open={transferOpen} onClose={() => setTransferOpen(false)} />
 
       <Card>
         <ul className="mf-tabs" role="tablist">
