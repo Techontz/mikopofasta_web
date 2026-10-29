@@ -27,6 +27,8 @@ export interface LoanCategory {
   has_penalty: boolean;
   approve_level: string;
   requires_mandate: boolean;
+  /** Enhancement §4–5: normal, e_mandate or phone_bond. */
+  loan_method?: string;
   topup_percent: number;
   /** Re-borrowing freeze length in days (0 = no freeze). */
   freeze_time_days: number;
@@ -50,6 +52,7 @@ export interface LoanCategoryForm {
   penart: string;
   aprove_status: string;
   requires_mandate: string;
+  loan_method: string;
   topup_percent: string;
   freeze_time_days: string;
   take_home_percent: string;
@@ -59,7 +62,7 @@ export interface LoanCategoryForm {
 
 export const EMPTY_LOAN_CATEGORY: LoanCategoryForm = {
   loan_name: "", loan_price: "", loan_perday: "", interest_formular: "", formular: "", duration: "", from_repayment: "", to_repayment: "",
-  fee_deduct: "", penart: "", aprove_status: "", requires_mandate: "", topup_percent: "", freeze_time_days: "", take_home_percent: "", customer_type_id: "",
+  fee_deduct: "", penart: "", aprove_status: "", requires_mandate: "", loan_method: "", topup_percent: "", freeze_time_days: "", take_home_percent: "", customer_type_id: "",
 };
 
 const yesNo = (value: boolean) => (value ? "YES" : "NO");
@@ -87,6 +90,7 @@ export function toLoanCategoryForm(category: LoanCategory): LoanCategoryForm {
     penart: yesNo(category.has_penalty),
     aprove_status: category.approve_level,
     requires_mandate: yesNo(category.requires_mandate),
+    loan_method: category.loan_method ?? (category.requires_mandate ? "e_mandate" : "normal"),
     topup_percent: String(category.topup_percent),
     freeze_time_days: String(category.freeze_time_days ?? 0),
     take_home_percent: String(category.take_home_percent),
@@ -182,8 +186,18 @@ export function LoanCategoryFields({ form, setForm, fieldError, creating = false
       <Field label="Take Home Percent (%)" className="col-lg-4 col-6" error={fieldError("take_home_percent")}>
         <input className="form-control" placeholder="Take Home Percent (%)" value={form.take_home_percent} onChange={set("take_home_percent")} required />
       </Field>
-      <Field label="Requires E-Mandate? (Bank deduction)" required className="col-lg-4 col-6" error={fieldError("requires_mandate")}>
-        {select("requires_mandate", "Select", yesNoOptions)}
+      <Field label="Loan Method" required className="col-lg-4 col-6" error={fieldError("loan_method") ?? fieldError("requires_mandate")}>
+        <select
+          className="form-control"
+          value={form.loan_method}
+          onChange={(event) => setForm({ ...form, loan_method: event.target.value, requires_mandate: event.target.value === "e_mandate" ? "YES" : "NO" })}
+          required
+        >
+          {(creating || form.loan_method === "") && <option value="">Select</option>}
+          <option value="normal">Normal</option>
+          <option value="e_mandate">E-Mandate (bank deduction)</option>
+          <option value="phone_bond">Phone Bond (Linda device)</option>
+        </select>
       </Field>
     </div>
   );

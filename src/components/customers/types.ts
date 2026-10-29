@@ -280,6 +280,8 @@ export interface Customer {
   statusRemarks: string | null;
   statusChangedAt: string | null;
   approvalStatus: "not_required" | "pending" | "approved" | "rejected" | string;
+  /** Changes to the approved profile waiting for re-approval (enhancement §2.2). */
+  pendingProfileChanges?: boolean;
   approvedBy: number | string | null;
   approvedByName?: string | null;
   approvedAt: string | null;

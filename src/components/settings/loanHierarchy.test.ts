@@ -74,7 +74,7 @@ describe("loan category form and list", () => {
       "Top-up Percent (%)",
       "Freeze Time (Days)",
       "Take Home Percent (%)",
-      "Requires E-Mandate? (Bank deduction)",
+      "Loan Method",
     ]);
   });
 

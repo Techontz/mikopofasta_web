@@ -168,6 +168,8 @@ export const menu: MenuTab[] = [
           { label: "Credit Review", href: "/loans/credit-review", permission: "loans.credit_review" },
           { label: "Credit Assessment", href: "/loans/credit-assessments", permission: ["loans.credit_review", "loans.approve_manager"] },
           { label: "Ready to Pay Out", href: "/loans/disbursement", permission: ["loans.prepare_disbursement", "loans.disburse"] },
+          { label: "E-Mandate", href: "/loans/mandates", permission: "loans.view" },
+          { label: "Phone Bond", href: "/phone-bond", permission: ["phone_bond.manage", "phone_bond.lock", "loans.view"] },
           { label: "Disbursement", href: "/loans/withdrawal", permission: "loans.view" },
           { label: "Active Loans", href: "/loans/disbursed", permission: "loans.view" },
           { label: "Rejected Loans", href: "/loans/rejected", permission: "loans.view" },
