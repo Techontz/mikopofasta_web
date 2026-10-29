@@ -131,7 +131,7 @@ export default function CustomerProfilePage() {
             {customer.kycStatus === "completed" && can("loans.apply") && (
               <Link href={`/loans/apply?customer_id=${customer.id}`} className="btn btn-sm btn-info">Loan Application</Link>
             )}
-            {can("reports.view") && <Link href={`/reports/statement?customer_id=${customer.id}`} className="btn btn-sm btn-outline-primary">Statement</Link>}
+            {can(["reports.view", "reports.customers"]) && <Link href={`/reports/statement?customer_id=${customer.id}`} className="btn btn-sm btn-outline-primary">Statement</Link>}
             {canEdit && (
               <Link href={`/customers/${customer.id}/edit`} className="btn btn-sm btn-primary">
                 <i className="icon-pencil" /> Edit

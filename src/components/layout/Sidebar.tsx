@@ -5,9 +5,9 @@ import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import type { CrmBadges } from "@/components/crm/types";
-import { useAuth } from "@/lib/auth";
+import { HRM_ROLES, useAuth } from "@/lib/auth";
 import { useApi } from "@/lib/hooks";
-import { crmMenu, menu, type MenuBadge, type MenuItem, type MenuLink } from "@/lib/menu";
+import { crmMenu, menu, type MenuBadge, type MenuItem, type MenuLink, type MenuTab } from "@/lib/menu";
 
 /** Red count beside a CRM queue; nothing when the queue is empty. */
 function Count({ badge, counts }: { badge?: MenuBadge; counts?: CrmBadges }) {
@@ -30,16 +30,37 @@ function isActiveChild(pathname: string, href: string, siblings: MenuLink[]): bo
   return isActive(pathname, href) && !siblings.some((sibling) => sibling.href.length > href.length && isActive(pathname, sibling.href));
 }
 
+/**
+ * HRM tab only for HR, Admin and Super Admin (enhancement §14, by the role the session acts as). Other roles keep the HRM
+ * entries their permissions allow (Finance's payroll, everyone's own requests) in a Payroll & Staff group of the Menu tab.
+ */
+function withoutHrmTab(tabs: MenuTab[], showsHrm: boolean): MenuTab[] {
+  const hrm = tabs.find((tab) => tab.key === "setting");
+  if (showsHrm || !hrm) {
+    return tabs;
+  }
+  const moved: MenuItem = {
+    label: "Payroll & Staff",
+    icon: "icon-briefcase",
+    children: hrm.items.filter((item) => item.href).map((item) => ({ label: item.label, href: item.href as string, permission: item.permission, roles: item.roles })),
+  };
+
+  return tabs
+    .filter((tab) => tab.key !== "setting")
+    .map((tab) => (tab.key === "menu" ? { ...tab, items: [...tab.items, moved] } : tab));
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const { user, can, logout } = useAuth();
 
-  const allowed = (entry: MenuItem | MenuLink) => !entry.permission || can(entry.permission);
+  const roleKey = user?.role?.key ?? "";
+  const allowed = (entry: MenuItem | MenuLink) => (!entry.permission || can(entry.permission)) && (!entry.roles || entry.roles.includes(roleKey));
   const { data: counts } = useApi<CrmBadges>(user && can("crm.use") ? "crm/badges" : null);
 
   const tabs = useMemo(
     () =>
-      (user?.role?.key === "crm" ? crmMenu : menu)
+      withoutHrmTab(user?.role?.key === "crm" ? crmMenu : menu, HRM_ROLES.includes(roleKey))
         .map((tab) => ({
           ...tab,
           items: tab.items
