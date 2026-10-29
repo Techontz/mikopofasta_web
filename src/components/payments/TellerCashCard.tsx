@@ -10,7 +10,7 @@ import { DataTable } from "@/components/ui/DataTable";
 import { Field } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
 import { SelectBox } from "@/components/ui/SelectBox";
-import { api } from "@/lib/api";
+import { api, backendUrl } from "@/lib/api";
 import { money, todayIso } from "@/lib/format";
 import { useAction, useApi } from "@/lib/hooks";
 import { useQuery } from "@tanstack/react-query";
@@ -24,10 +24,33 @@ interface SlipForm {
   /** Set when correcting a MISMATCH slip. */
   id?: number;
   bank_account_id: string;
+  /** Kept on slips registered before enhancement §8.3; no longer asked. */
   slip_number: string;
   amount: string;
+  /** Optional bank receipt (PDF or image). */
+  receipt?: File | null;
   deposit_date: string;
   payment_ids: number[];
+}
+
+/** The slip as multipart form data (receipt optional; no slip number asked, an existing one is kept). */
+function slipFormData(form: SlipForm): FormData {
+  const body = new FormData();
+  body.append("bank_account_id", form.bank_account_id);
+  body.append("amount", String(Number(form.amount)));
+  body.append("deposit_date", form.deposit_date);
+  form.payment_ids.forEach((id) => body.append("payment_ids[]", String(id)));
+  if (form.slip_number) {
+    body.append("slip_number", form.slip_number);
+  }
+  if (form.receipt) {
+    body.append("receipt", form.receipt);
+  }
+  if (form.id) {
+    body.append("_method", "PUT");
+    body.append("_deposit_id", String(form.id));
+  }
+  return body;
 }
 
 const EMPTY: SlipForm = { bank_account_id: "", slip_number: "", amount: "", deposit_date: todayIso(), payment_ids: [] };
@@ -42,8 +65,9 @@ export function TellerCashCard() {
   const { data: slips, isLoading: slipsLoading } = useApi<TellerDeposit[]>("teller/bank-deposits");
   const [form, setForm] = useState<SlipForm | null>(null);
   const [editing, setEditing] = useState<TellerDeposit | null>(null);
-  const submit = useAction<Omit<SlipForm, "amount"> & { amount: number }>("post", "teller/bank-deposits");
-  const update = useAction<Omit<SlipForm, "amount"> & { amount: number }>("put", (body) => `teller/bank-deposits/${body.id}`);
+  // Multipart so the optional receipt travels with the slip; a correction goes as POST + _method=PUT (files need POST).
+  const submit = useAction<FormData>("post", "teller/bank-deposits");
+  const update = useAction<FormData>("post", (body) => `teller/bank-deposits/${body.get("_deposit_id")}`);
   const action = form?.id ? update : submit;
 
   const pendingOnly = (cash?.data ?? []).filter((payment) => payment.status === "pending_verification");
@@ -68,7 +92,7 @@ export function TellerCashCard() {
     setForm({
       id: slip.id,
       bank_account_id: String(slip.bank_account_id),
-      slip_number: slip.slip_number,
+      slip_number: slip.slip_number ?? "",
       amount: String(slip.amount),
       deposit_date: slip.deposit_date,
       payment_ids: slip.payments.map((payment) => payment.id),
@@ -113,7 +137,7 @@ export function TellerCashCard() {
           rowKey={(row) => row.id}
           columns={[
             { key: "sn", header: "S/No.", render: (_, index) => `${index + 1}.`, sortable: false },
-            { key: "slip_number", header: "Slip Number" },
+            { key: "slip_number", header: "Slip / Receipt", render: (row) => <>{row.slip_number ?? "—"}{row.has_receipt && <a className="ml-1" href={backendUrl(`payments/reconciliation/${row.id}/receipt`)} target="_blank" rel="noopener noreferrer" title="View receipt"><i className="icon-paper-clip" /></a>}</> },
             { key: "bank_account", header: "Bank" },
             { key: "branch", header: "Branch Name" },
             { key: "amount", header: "Amount", render: (row) => money(row.amount) },
@@ -144,11 +168,11 @@ export function TellerCashCard() {
       <Modal
         open={form !== null}
         onClose={close}
-        title={editing ? `Edit Mismatched Slip ${editing.slip_number}` : "Bank Deposit"}
+        title={editing ? `Edit Mismatched Deposit ${editing.slip_number ?? `#${editing.id}`}` : "Bank Deposit"}
         size="lg"
         submitLabel={editing ? "Update & Send to Finance" : "Save"}
         submitting={action.isPending}
-        onSubmit={() => form && action.mutate({ ...form, amount: Number(form.amount) }, { onSuccess: close })}
+        onSubmit={() => form && action.mutate(slipFormData(form), { onSuccess: close })}
       >
         {form && (
           <div className="row">
@@ -163,8 +187,9 @@ export function TellerCashCard() {
             <Field label="Select Bank:" required className="col-md-6" error={action.fieldError("bank_account_id")}>
               <SelectBox placeholder="Select Account" optionsUrl="teller/bank-accounts" value={form.bank_account_id} onChange={(value) => setForm({ ...form, bank_account_id: value ?? "" })} />
             </Field>
-            <Field label="Slip Number:" required className="col-md-6" error={action.fieldError("slip_number")}>
-              <input className="form-control" placeholder="Enter slip number" value={form.slip_number} onChange={(e) => setForm({ ...form, slip_number: e.target.value })} required />
+            <Field label="Upload Receipt (optional):" className="col-md-6" error={action.fieldError("receipt")}>
+              <input type="file" className="form-control" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*" onChange={(e) => setForm({ ...form, receipt: e.target.files?.[0] ?? null })} />
+              <small className="text-muted">PDF or image, up to 5 MB. {editing?.has_receipt ? "A new file replaces the receipt already attached." : "The deposit can be saved without it."}</small>
             </Field>
             <Field label="Amount (as on the slip):" required className="col-md-6" error={action.fieldError("amount")}>
               <input type="number" step="0.01" className="form-control" placeholder="Enter Amount" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required />

@@ -1,5 +1,6 @@
 "use client";
 
+import { localToday } from "@/components/ui/PeriodFilter";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -29,7 +30,8 @@ export default function CrmPage() {
   const [tab, setTab] = useState<Tab>("log");
   const [modal, setModal] = useState<ModalName>(null);
   const [callCustomer, setCallCustomer] = useState<number | null>(null);
-  const [filters, setFilters] = useState({ branch_id: "", from: "", to: "" });
+  // Calls, SMS and reports open on today (§9.1); the filter reaches earlier records and other branches.
+  const [filters, setFilters] = useState(() => ({ branch_id: "", from: localToday(), to: localToday() }));
   const [logType, setLogType] = useState("all");
   const [followStatus, setFollowStatus] = useState("due");
   const [mine, setMine] = useState(false);
@@ -37,7 +39,7 @@ export default function CrmPage() {
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
   const [completing, setCompleting] = useState<number | null>(null);
 
-  const { data: summary } = useApi<CrmSummary>("crm/summary");
+  const { data: summary } = useApi<CrmSummary>("crm/summary", { branch_id: filters.branch_id || undefined });
   const log = useApi<Interaction[]>(tab === "log" ? "crm/interactions" : null, { ...filters, type: logType, mine: mine ? 1 : undefined });
   const followUps = useApi<Interaction[]>(tab === "follow_ups" ? "crm/follow-ups" : null, { branch_id: filters.branch_id, status: followStatus, mine: mine ? 1 : undefined });
   const tickets = useApi<Ticket[]>(tab === "reports" ? "crm/tickets" : null, { ...filters, status: ticketStatus, mine: mine ? 1 : undefined });

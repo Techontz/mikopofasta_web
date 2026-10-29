@@ -93,6 +93,7 @@ export interface Loan {
   disbursed_at: string | null;
   withdrawn_at: string | null;
   end_date: string | null;
+  start_date?: string | null;
   closed_at: string | null;
   /** Early full settlement freeze: disbursement (ISO) → expected completion → settlement → freeze window. */
   disbursed_at_iso: string | null;
@@ -305,6 +306,8 @@ export interface LoanForm {
   fee_status: string;
   reason: string;
   instalment?: string;
+  /** First repayment date, today or later (enhancement §3.2). */
+  start_date: string;
 }
 
-export const EMPTY_LOAN_FORM: LoanForm = { category_id: "", group_id: "", how_loan: "", day: "", session: "", rate: "", fee_status: "", reason: "" };
+export const EMPTY_LOAN_FORM: LoanForm = { category_id: "", group_id: "", how_loan: "", day: "", session: "", rate: "", fee_status: "", reason: "", start_date: "" };
