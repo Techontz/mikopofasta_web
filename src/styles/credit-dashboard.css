@@ -226,3 +226,12 @@ body.theme-brand .page-item.active .page-link { background-color: var(--cd-red);
 @media (max-width: 1199.98px) { .bd-charts { grid-template-columns: 1fr; } }
 @media (max-width: 767.98px) { .bd-today { grid-template-columns: 1fr; } }
 @media (max-width: 575.98px) { .bd-donut-chart { flex-basis: 100%; width: 100%; } }
+
+/* Loan Applications Pipeline (This Month), enhancement §11.4 */
+.cd-pipeline { display: flex; align-items: stretch; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.cd-pipeline-stage { flex: 1 0 128px; display: flex; flex-direction: column; gap: 2px; padding: 12px; text-decoration: none; color: inherit; }
+.cd-pipeline-stage:hover { box-shadow: 0 0 0 2px var(--mf-border-strong); text-decoration: none; }
+.cd-pipeline-label { font-size: 12px; color: var(--mf-muted); }
+.cd-pipeline-count { font-size: 22px; line-height: 1.2; }
+.cd-pipeline-stage.is-rejected .cd-pipeline-count { color: var(--mf-danger); }
+.cd-pipeline-arrow { align-self: center; color: var(--mf-muted); flex: 0 0 auto; }

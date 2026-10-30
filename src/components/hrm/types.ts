@@ -24,6 +24,10 @@ export interface Staff {
   gender: string | null;
   position: string;
   status: string;
+  /** Employee KYC (enhancement §12.2). */
+  kyc_status?: string;
+  kyc_decided_at?: string | null;
+  kyc_rejection_reason?: string | null;
   photo_url: string;
   branch_id: number | null;
   branch?: string | null;

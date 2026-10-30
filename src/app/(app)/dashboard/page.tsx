@@ -1,5 +1,6 @@
 "use client";
 
+import { PendingApprovalsPanel } from "@/components/dashboard/PendingApprovalsPanel";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -128,13 +129,12 @@ function GeneralDashboard() {
       <Card actions={data.branch_accounts && <button type="button" className="btn btn-info btn-sm" onClick={() => setBranchesOpen(true)}><i className="icon-list" />Branch</button>}>
         <div className="row clearfix">
           <div className="col-md-3">
-            <a href="#" onClick={(e) => { e.preventDefault(); if (data.account_balances) { setAccountsOpen(true); } }}>
-              <div className="body dashboard-stat bg-success text-light">
-                <h4><i className="icon-wallet" /> {money(data.cards.account_balance)}</h4>
-                <span>{data.cards.account_balance_title}</span>
-                <small className="d-block">{data.cards.account_balance_label}</small>
-              </div>
-            </a>
+            {/* Summary card: figures only (enhancement §11.1). */}
+            <div className="body dashboard-stat bg-success text-light">
+              <h4><i className="icon-wallet" /> {money(data.cards.account_balance)}</h4>
+              <span>{data.cards.account_balance_title}</span>
+              <small className="d-block">{data.cards.account_balance_label}</small>
+            </div>
           </div>
           <div className="col-md-3">
             <div className="body dashboard-stat bg-warning text-light">
@@ -255,6 +255,8 @@ function GeneralDashboard() {
           </table>
         </div>
       </Card>
+
+      <PendingApprovalsPanel />
 
       <div className="row clearfix w_social3">
         {TILES.map(([href, image, label]) => (

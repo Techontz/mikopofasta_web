@@ -1,5 +1,6 @@
 "use client";
 
+import { useApi } from "@/lib/hooks";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 
@@ -10,6 +11,13 @@ import { SelectBox } from "@/components/ui/SelectBox";
 import { todayIso } from "@/lib/format";
 
 export type ReportFilters = Record<string, string | undefined>;
+
+/** The current month as From / To, for reports that open on this month (enhancement §10.3–10.6). */
+export function currentMonthFilters(): ReportFilters {
+  const now = new Date();
+  const iso = (date: Date) => new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  return { branch_id: "all", from: iso(new Date(now.getFullYear(), now.getMonth(), 1)), to: iso(new Date(now.getFullYear(), now.getMonth() + 1, 0)) };
+}
 
 export interface Totals {
   [column: string]: number;
@@ -234,11 +242,33 @@ export function StatusBadge({ label, tone }: { label: string | null | undefined;
   return <a href="#" onClick={(event) => event.preventDefault()} className={`badge badge-${tone ?? "default"}`}>{label}</a>;
 }
 
+/**
+ * Period, filters and key figures under the report name in print / PDF (enhancement §10.9), from the filters the page applied.
+ */
+export function PrintDetails({ filters, records, figures = [] }: { filters: ReportFilters; records?: number; figures?: Array<[string, string]> }) {
+  const { data: branches = [] } = useApi<Array<{ value: string; label: string }>>("options/branches", { with_all: 1 });
+  const branch = !filters.branch_id || filters.branch_id === "all" ? "All branches" : branches.find((option) => option.value === filters.branch_id)?.label ?? filters.branch_id;
+  const period = filters.from || filters.to ? `${filters.from ?? "…"} to ${filters.to ?? "…"}` : filters.year ? `Year ${filters.year}${filters.month ? `, month ${filters.month}` : ""}` : "All time";
+  const extra = Object.entries(filters).filter(([key, value]) => value && !["branch_id", "from", "to", "year", "month"].includes(key));
+
+  return (
+    <>
+      <span>Period: <b>{period}</b></span>
+      <span>Branch: <b>{branch}</b></span>
+      {extra.map(([key, value]) => <span key={key}>{key.replace(/_/g, " ")}: <b>{value}</b></span>)}
+      {records !== undefined && <span>Records: <b>{records}</b></span>}
+      {figures.map(([label, value]) => <span key={label}>{label}: <b>{value}</b></span>)}
+    </>
+  );
+}
+
 /** Summary tile used by the Portfolio & Risk pages (dashboard `.dashboard-stat` look). */
-export function Stat({ tone, label, value, className = "col-lg-3 col-md-4 col-sm-6" }: { tone: "success" | "warning" | "primary" | "danger" | "info"; label: string; value: ReactNode; className?: string }) {
+export function Stat({ tone, label, value, className = "col-lg-3 col-md-4 col-sm-6" }: { tone: "success" | "warning" | "primary" | "danger" | "info" | "plain"; label: string; value: ReactNode; className?: string }) {
+  // "plain": the normal card look without a special colour (enhancement §10.8).
+  const look = tone === "plain" ? "mf-stat-plain" : `bg-${tone} text-light`;
   return (
     <div className={`${className} mb-2`}>
-      <div className={`body dashboard-stat bg-${tone} text-light`} style={{ borderRadius: 3, padding: "14px 16px" }}>
+      <div className={`body dashboard-stat ${look}`} style={{ borderRadius: 3, padding: "14px 16px" }}>
         <h4 style={{ margin: 0 }}>{value}</h4>
         <span>{label}</span>
       </div>

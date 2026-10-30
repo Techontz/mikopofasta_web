@@ -214,3 +214,31 @@ body.font-ubuntu,
 .mf-switch-role .btn { white-space: nowrap; }
 .mf-switch-role .dropdown-menu { min-width: 200px; }
 .mf-switch-role .dropdown-item.active { font-weight: 600; }
+
+/* Red indicator around a pending count greater than zero (enhancement §11.3). */
+.mf-pending-alert { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 26px; padding: 0 6px; border: 2px solid var(--mf-danger); border-radius: 13px; color: var(--mf-danger); font-weight: 700; }
+
+/* Report summary card without a special colour (enhancement §10.8). */
+.mf-stat-plain { background: var(--mf-surface); color: var(--mf-text); border: 1px solid var(--mf-border); }
+.mf-stat-plain small { color: var(--mf-muted); }
+
+/* Print / PDF layout of every report (enhancement §10.9): logo and report header first, then the table without actions,
+   with repeated table headers, rows kept whole and page numbers. Nothing on screen changes. */
+.mf-print-only { display: none; }
+@media print {
+  .mf-print-only { display: block !important; }
+  #left-sidebar, .navbar-fixed-top, .block-header, .mf-no-print, .mf-table-controls, .mf-table-footer, .mf-modal, .mf-modal-backdrop, .mf-filters, .mf-period-filter, .btn, .nav-tabs .badge { display: none !important; }
+  #main-content { margin: 0 !important; padding: 0 !important; width: 100% !important; }
+  .card { box-shadow: none !important; border: 0 !important; }
+  .table-responsive { overflow: visible !important; }
+  table { width: 100% !important; font-size: 11px; }
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+  tr, td, th { page-break-inside: avoid; break-inside: avoid; }
+  .mf-print-header { text-align: center; margin-bottom: 12px; border-bottom: 2px solid var(--mf-dark); padding-bottom: 8px; }
+  .mf-print-logo { max-height: 56px; margin-bottom: 4px; }
+  .mf-print-title { font-size: 18px; margin: 4px 0; text-transform: uppercase; }
+  .mf-print-meta, .mf-print-details { font-size: 12px; }
+  .mf-print-details span { margin: 0 8px; white-space: nowrap; }
+  @page { margin: 12mm 10mm; @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 10px; } }
+}
