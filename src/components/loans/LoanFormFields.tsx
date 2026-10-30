@@ -1,6 +1,7 @@
 "use client";
 
 import { Field } from "@/components/ui/Field";
+import { todayIso } from "@/lib/format";
 import { SelectBox, type Option } from "@/components/ui/SelectBox";
 
 import { applicationCategoryOptions } from "@/components/settings/loanHierarchy";
@@ -75,6 +76,17 @@ export function LoanFormFields({ form, setForm, categories: apiCategories, group
           <option value="FLATRATE">FLAT RATE</option>
           <option value="REDUCING">REDUCING</option>
         </select>
+      </Field>
+      <Field label="Start Date:" required className={col} error={fieldError("start_date")}>
+        <input
+          type="date"
+          className="form-control"
+          min={todayIso()}
+          value={form.start_date}
+          onChange={(e) => setForm({ ...form, start_date: e.target.value })}
+          title="First repayment date: today or later. The repayment schedule and SMS reminders follow it."
+          required
+        />
       </Field>
       <Field label="Deducted Fee:" required className={col} error={fieldError("fee_status")}>
         <select className="form-control" value={form.fee_status} onChange={(e) => setForm({ ...form, fee_status: e.target.value })} required>

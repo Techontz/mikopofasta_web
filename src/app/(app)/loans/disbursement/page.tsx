@@ -12,7 +12,8 @@ import { DataTable } from "@/components/ui/DataTable";
 import { Field } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { confirmAction } from "@/components/ui/notify";
+import { PeriodFilter, periodLabel, periodQuery, todayPeriod } from "@/components/ui/PeriodFilter";
+import { confirmAction, promptReason } from "@/components/ui/notify";
 import { backendUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { money } from "@/lib/format";
@@ -31,6 +32,14 @@ interface DisburseResult {
   portal_url?: string | null;
 }
 
+/** The stage each tab returns to (mirrors LoanWorkflow::previousStage). */
+const PREVIOUS_STAGE: Record<string, string> = {
+  pending_finance: "Credit Review",
+  awaiting_disbursement: "Pending Finance",
+  disbursement_failed: "Pending Finance",
+  escalated: "Pending Finance",
+};
+
 async function askText(title: string, placeholder: string): Promise<string | null> {
   const result = await Swal.fire({ title, input: "text", inputPlaceholder: placeholder, showCancelButton: true, confirmButtonText: "Submit", inputValidator: (value) => (!value ? "Required" : undefined) });
   return result.isConfirmed ? String(result.value) : null;
@@ -47,7 +56,10 @@ export default function DisbursementPage() {
   const [escalated, setEscalated] = useState<Loan | null>(null);
   const [decision, setDecision] = useState({ action: "", channel: "", reason: "" });
   const [preparing, setPreparing] = useState<Loan | null>(null);
-  const { data, isLoading } = useApi<Loan[]>("loans", { stage: "disbursement" });
+  // Opens on today's records; branch and Day / Week / Month / All Time narrow every tab, its count and its total (§7.2).
+  const [filter, setFilter] = useState(todayPeriod());
+  const query = periodQuery(filter);
+  const { data, isLoading } = useApi<Loan[]>("loans", { stage: "disbursement", ...query });
 
   const openPortal = (result: DisburseResult) => {
     if (result.portal_url) {
@@ -61,9 +73,38 @@ export default function DisbursementPage() {
   const requeue = useAction<{ id: number }>("post", (body) => `loans/${body.id}/requeue`);
   const confirm = useAction<{ id: number; reference: string }>("post", (body) => `loans/${body.id}/confirm-disbursement`);
   const cashOut = useAction<{ id: number; code: string }>("post", (body) => `loans/${body.id}/cash-out`);
+  const returnStage = useAction<{ id: number; reason: string }>("post", (body) => `loans/${body.id}/return-to-previous-stage`);
+
+  /** Reverse / Return to Previous Stage (§7.1): only before any money moved; a completed disbursement has its own reversal. */
+  const returnButton = (row: Loan) => {
+    const previous = PREVIOUS_STAGE[row.status];
+    const inFlight = row.latest_disbursement?.status === "requested";
+    if (!previous || inFlight || !can(["loans.disburse", "loans.prepare_disbursement"])) {
+      return null;
+    }
+    return (
+      <button
+        type="button"
+        className="btn btn-sm btn-outline-secondary ml-1"
+        disabled={returnStage.isPending}
+        title={`Return to ${previous}`}
+        onClick={async () => {
+          const reason = await promptReason(`Return ${row.customer_name} to ${previous}? Enter the reason.`);
+          if (reason) {
+            returnStage.mutate({ id: row.id, reason });
+          }
+        }}
+      >
+        <i className="icon-action-undo" /> Return
+      </button>
+    );
+  };
 
   const rows = (data ?? []).filter((row) => row.status === tab);
   const count = (status: string) => (data ?? []).filter((row) => row.status === status).length;
+  const totalApproved = rows.reduce((sum, row) => sum + Number(row.amount_approved || 0), 0);
+  const totalToSend = rows.reduce((sum, row) => sum + Number(row.latest_disbursement?.amount ?? 0), 0);
+  const fileQuery = new URLSearchParams(Object.entries({ status: tab, ...query }).filter((entry): entry is [string, string] => Boolean(entry[1]))).toString();
 
   const actions = (row: Loan) => {
     const latest = row.latest_disbursement;
@@ -95,7 +136,8 @@ export default function DisbursementPage() {
   return (
     <>
       <PageHeader crumbs={["Loan", "Ready to Pay Out"]} />
-      <Card title="Approved Loans Ready to Pay Out" actions={<a className="btn btn-sm btn-success ml-1" href={backendUrl(`loans/disbursement-file?status=${tab}`)}><i className="fa fa-download" /> Mobile Disbursement File</a>}>
+      <Card title="Approved Loans Ready to Pay Out" actions={<a className="btn btn-sm btn-success ml-1" href={backendUrl(`loans/disbursement-file?${fileQuery}`)}><i className="fa fa-download" /> Mobile Disbursement File</a>}>
+        <PeriodFilter value={filter} onChange={setFilter} idPrefix="disbursement" />
         <ul className="nav nav-tabs mb-3">
           {TABS.map((item) => (
             <li className="nav-item" key={item.status}>
@@ -105,9 +147,16 @@ export default function DisbursementPage() {
             </li>
           ))}
         </ul>
+        <div className="mf-totals mb-2">
+          <span className="mr-3"><b>{periodLabel(filter)}</b></span>
+          <span className="mr-3">Records: <b>{rows.length}</b></span>
+          <span className="mr-3">Approved: <b>{money(totalApproved)}</b></span>
+          <span>Amount to send: <b>{money(totalToSend)}</b></span>
+        </div>
         <DataTable
           rows={rows}
           loading={isLoading}
+          emptyMessage="No records match the selected branch and period."
           rowKey={(row) => row.id}
           columns={[
             { key: "sn", header: "S/no.", render: (_, index) => `${index + 1}.`, sortable: false },
@@ -123,7 +172,7 @@ export default function DisbursementPage() {
             { key: "attempts", header: "Attempts", value: (row) => row.disbursement_attempts, render: (row) => `${row.disbursement_attempts} / 3` },
             { key: "failure", header: "Reason", value: (row) => row.latest_disbursement?.failure_reason ?? "", render: (row) => row.latest_disbursement?.failure_reason ?? "" },
             { key: "status_label", header: "Status", render: (row) => <LoanStatusBadge loan={row} /> },
-            { key: "action", header: "Action", sortable: false, className: "text-nowrap", render: actions },
+            { key: "action", header: "Action", sortable: false, className: "text-nowrap", render: (row) => <>{actions(row)}{returnButton(row)}</> },
           ]}
         />
       </Card>

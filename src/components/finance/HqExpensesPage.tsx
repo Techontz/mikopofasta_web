@@ -1,5 +1,6 @@
 "use client";
 
+import { localToday } from "@/components/ui/PeriodFilter";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
@@ -34,7 +35,8 @@ const EMPTY: RequestForm = { scope: "hq", blanch_id: "", ex_id: "", req_amount: 
 export function HqExpensesPage({ approved }: { approved: boolean }) {
   const { can } = useAuth();
   const heading = approved ? "Headquarters Approved Expenses" : "Headquarters Recommended Expenses";
-  const [filters, setFilters] = useState<Filters>({});
+  // All Approved Expenses opens on today (§16.4); the pending queue keeps every request still waiting.
+  const [filters, setFilters] = useState<Filters>(() => (approved ? { from: localToday(), to: localToday() } : {}));
   const [modal, setModal] = useState<"filter" | "request" | null>(null);
   const [form, setForm] = useState<RequestForm>(EMPTY);
   const [accepting, setAccepting] = useState<ExpenseRequest | null>(null);

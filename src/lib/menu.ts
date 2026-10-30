@@ -179,6 +179,7 @@ export const menu: MenuTab[] = [
         children: [
           { label: "Loan Repayment", href: "/teller", permission: "payments.cash" },
           { label: "Bank Deposit", href: "/teller/bank-deposits", permission: "payments.cash" },
+          { label: "Loan Discount / Waiver", href: "/loans/discounts", permission: ["loans.discount_request", "loans.discount_approve"] },
         ],
       },
       {

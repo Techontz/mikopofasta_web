@@ -9,13 +9,16 @@ import { Card } from "@/components/ui/Card";
 import { DataTable } from "@/components/ui/DataTable";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { PeriodFilter, todayPeriod } from "@/components/ui/PeriodFilter";
 import { money, percent } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 import { LegacyImportButtons } from "@/components/imports/LegacyImportButtons";
 
 /** Loan → Active Loans (live disburse_loan "Loan Disbursed"): running loans with agreement upload, repayment schedule and agreement. */
 export default function LoanDisbursedPage() {
-  const { data, isLoading } = useApi<Loan[]>("loans", { stage: "disbursed" });
+  // Today's active portfolio by branch (§7.3): a branch filter only, no date picker; count and totals follow the branch.
+  const [filter, setFilter] = useState(todayPeriod());
+  const { data, isLoading } = useApi<Loan[]>("loans", { stage: "disbursed", branch_id: filter.branch_id || "all" });
   const [scheduleOf, setScheduleOf] = useState<Loan | null>(null);
   const { data: detail } = useApi<LoanDetail>(scheduleOf ? `loans/${scheduleOf.id}` : null);
 
@@ -26,7 +29,14 @@ export default function LoanDisbursedPage() {
     <>
       <PageHeader crumbs={["Loan", "Active Loans"]} />
       <Card title="Active Loans" actions={<LegacyImportButtons module="loan" />}>
+        <PeriodFilter value={filter} onChange={setFilter} branchOnly idPrefix="active-loans" />
+        <div className="mf-totals mb-2">
+          <span className="mr-3">Active loans: <b>{rows.length}</b></span>
+          <span className="mr-3">Disbursed: <b>{money(total("amount_approved"))}</b></span>
+          <span>Principal + Interest: <b>{money(total("total_payable"))}</b></span>
+        </div>
         <DataTable
+          emptyMessage="No active loans in the selected branch."
           rows={data}
           loading={isLoading}
           rowKey={(row) => row.id}

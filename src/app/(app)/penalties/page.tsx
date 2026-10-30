@@ -1,5 +1,6 @@
 "use client";
 
+import { localToday } from "@/components/ui/PeriodFilter";
 import { useState } from "react";
 
 import { PaymentFilterModal, SearchButton, type PaymentFilters } from "@/components/payments/PaymentFilterModal";
@@ -29,11 +30,12 @@ interface PenaltyRow {
 
 /** Penalty → Penalty List (live admin/get_penart_list). */
 export default function PenaltyListPage() {
-  const [filters, setFilters] = useState<PaymentFilters>({});
+  // Opens on today's penalties (§16.1); the filter's branch and dates reach every earlier one.
+  const [filters, setFilters] = useState<PaymentFilters>(() => ({ branch_id: "all", from: localToday(), to: localToday() }));
   const [filtering, setFiltering] = useState(false);
   const [paying, setPaying] = useState<PenaltyRow | null>(null);
   const [amount, setAmount] = useState("");
-  const { data: rows, isLoading } = useApi<PenaltyRow[]>("penalties", { branch_id: filters.branch_id });
+  const { data: rows, isLoading } = useApi<PenaltyRow[]>("penalties", { branch_id: filters.branch_id, from: filters.from, to: filters.to });
 
   const pay = useAction<{ id: number; penart_paid: string }>("post", (body) => `penalties/${body.id}/pay`);
   const waive = useAction<{ id: number }>("post", (body) => `penalties/${body.id}/waive`);
@@ -92,7 +94,7 @@ export default function PenaltyListPage() {
         </div>
       </Modal>
 
-      <PaymentFilterModal open={filtering} onClose={() => setFiltering(false)} onApply={setFilters} withDates={false} />
+      <PaymentFilterModal open={filtering} onClose={() => setFiltering(false)} onApply={setFilters} />
     </>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { localToday } from "@/components/ui/PeriodFilter";
 import { useState } from "react";
 
 import { ApprovalActions } from "@/components/finance/Approval";
@@ -39,7 +40,8 @@ interface PaidRow {
  */
 export default function PaidPenaltyPage() {
   const { can } = useAuth();
-  const [filters, setFilters] = useState<PaymentFilters>({});
+  // Opens on today's payments (§16.2); history through the filter.
+  const [filters, setFilters] = useState<PaymentFilters>(() => ({ branch_id: "all", from: localToday(), to: localToday() }));
   const [filtering, setFiltering] = useState(false);
   const [target, setTarget] = useState<PaidRow | null>(null);
   const { data: rows, isLoading } = useApi<PaidRow[]>("penalties/paid", { branch_id: filters.branch_id, from: filters.from, to: filters.to });

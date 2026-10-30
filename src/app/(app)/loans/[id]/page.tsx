@@ -71,7 +71,7 @@ function formFromDetail(detail: LoanDetail): LoanForm {
   const { loan } = detail;
   return {
     category_id: String(loan.loan_category_id), group_id: loan.group_id ? String(loan.group_id) : "", how_loan: String(loan.amount_applied),
-    day: loan.duration ?? "", session: String(loan.sessions), rate: loan.formula, fee_status: loan.fee_deduct ? "YES" : "NO", reason: loan.reason, instalment: String(loan.instalment),
+    day: loan.duration ?? "", session: String(loan.sessions), rate: loan.formula, fee_status: loan.fee_deduct ? "YES" : "NO", reason: loan.reason, instalment: String(loan.instalment), start_date: loan.start_date ?? "",
   };
 }
 

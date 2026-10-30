@@ -55,7 +55,9 @@ export interface TellerDeposit {
   teller: string | null;
   bank_account_id: number;
   bank_account: string | null;
-  slip_number: string;
+  slip_number: string | null;
+  has_receipt?: boolean;
+  receipt_file_name?: string | null;
   amount: number;
   expected_amount: number;
   difference: number;
