@@ -28,7 +28,7 @@ const APPROVAL: Record<string, { tone: BadgeTone; label: string }> = {
 const title = (value: string) => value.replace(/_/g, " ").replace(/^\w/, (letter) => letter.toUpperCase());
 
 /** Account status, KYC state and approval state as compact badges. */
-export function CustomerStatusBadges({ customer, showAccount = true }: { customer: Pick<Customer, "status" | "kycStatus" | "faceVerifiedAt" | "approvalStatus" | "deletedAt">; showAccount?: boolean }) {
+export function CustomerStatusBadges({ customer, showAccount = true }: { customer: Pick<Customer, "status" | "kycStatus" | "faceVerifiedAt" | "approvalStatus" | "deletedAt"> & { pendingProfileChanges?: boolean }; showAccount?: boolean }) {
   const approval = APPROVAL[customer.approvalStatus];
   return (
     <span className="d-inline-flex flex-wrap" style={{ gap: 4 }}>
@@ -42,6 +42,8 @@ export function CustomerStatusBadges({ customer, showAccount = true }: { custome
         <Badge tone="danger">KYC incomplete</Badge>
       )}
       {approval && <Badge tone={approval.tone}>{approval.label}</Badge>}
+      {/* §2.2 / §18: an approved profile with changes waiting for re-approval is not shown as fully approved. */}
+      {customer.pendingProfileChanges && <Badge tone="warning">Changes pending approval</Badge>}
     </span>
   );
 }
