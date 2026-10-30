@@ -207,3 +207,10 @@ body.font-ubuntu,
   background-color: var(--mf-surface-strong);
   border-color: var(--mf-border-strong);
 }
+
+/* Switch Role (enhancement §13): beside Log Out, shows the role the session acts as. */
+.mf-switch-role-item { display: flex; align-items: center; height: 100%; padding: 0 6px; }
+.mf-switch-role { position: relative; }
+.mf-switch-role .btn { white-space: nowrap; }
+.mf-switch-role .dropdown-menu { min-width: 200px; }
+.mf-switch-role .dropdown-item.active { font-weight: 600; }

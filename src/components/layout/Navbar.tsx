@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { SwitchRole } from "@/components/layout/SwitchRole";
 import { SelectBox } from "@/components/ui/SelectBox";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useAuth } from "@/lib/auth";
@@ -44,6 +45,7 @@ export function Navbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
             <li><a href="#" className="icon-menu" onClick={(e) => e.preventDefault()}><i className="icon-bell" /><span className="notification-dot" /></a></li>
             <li><ThemeToggle /></li>
             <li><Link href="/settings/company" className="icon-menu d-none d-sm-block"><i className="icon-equalizer" /></Link></li>
+            <li className="mf-switch-role-item"><SwitchRole /></li>
             <li>
               <button type="button" className="icon-menu btn btn-link" style={{ padding: 15 }} onClick={logout} title="Logout">
                 <i className="icon-login" />

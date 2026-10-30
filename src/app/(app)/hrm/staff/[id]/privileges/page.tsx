@@ -40,6 +40,7 @@ interface StaffPrivileges {
     status: string;
     role: { id: number; key: string; name: string; scope: string } | null;
     zone_id: number | null;
+    additional_roles: { id: number; key: string; name: string }[];
   };
   privilege_groups: PrivilegeGroup[];
   catalogue: PermissionItem[];
@@ -80,6 +81,57 @@ function RoleCard({ data }: { data: StaffPrivileges }) {
         </div>
         <small className="text-muted">The role gives the default privileges; privileges added or removed on this page are kept when the role changes.</small>
       </form>
+    </Card>
+  );
+}
+
+/**
+ * Further roles the employee may switch to (multi-role, enhancement §13). The list offers only the roles the signed-in
+ * user may give; roles already held that they may not give stay as they are.
+ */
+function AdditionalRolesCard({ data }: { data: StaffPrivileges }) {
+  const { employee } = data;
+  const client = useQueryClient();
+  const { data: roles = [] } = useApi<(Option & { scope: string })[]>("hrm/options/roles");
+  const [selected, setSelected] = useState<string[]>(employee.additional_roles.map((role) => String(role.id)));
+  const [saving, setSaving] = useState(false);
+  const offered = roles.filter((role) => role.value !== String(employee.role?.id ?? ""));
+  const locked = employee.additional_roles.filter((role) => !offered.some((option) => option.value === String(role.id)));
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const ids = [...new Set([...selected, ...locked.map((role) => String(role.id))])].map(Number);
+      await api.put(`settings/employees/${employee.id}/roles`, { role_ids: ids });
+      await client.invalidateQueries();
+      notifySuccess("Staff Roles Updated successfully");
+    } catch (error) {
+      notifyError(error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card title="Additional Roles">
+      <div className="row">
+        {offered.map((role) => (
+          <label key={role.value} className="col-6 col-md-3 mb-2">
+            <input
+              type="checkbox"
+              className="mr-1"
+              checked={selected.includes(role.value)}
+              onChange={(event) => setSelected(event.target.checked ? [...selected, role.value] : selected.filter((value) => value !== role.value))}
+            />
+            {role.label}
+          </label>
+        ))}
+      </div>
+      {locked.length > 0 && <small className="text-muted d-block mb-2">Also holds (only an Admin can change): {locked.map((role) => role.name).join(", ")}</small>}
+      <button type="button" className="btn btn-primary" disabled={saving} onClick={() => void save()}>
+        <i className="icon-drawer" /> Save Roles
+      </button>
+      <small className="text-muted d-block mt-2">The employee switches between their roles with Switch Role beside Log Out, without signing out.</small>
     </Card>
   );
 }
@@ -251,6 +303,7 @@ export default function StaffPrivilegesPage() {
           <StaffInfo employee={data.employee} />
           <PrivilegeTables key={data.permissions.join(",")} data={data} />
           {data.can_change_role && <RoleCard key={`role-${data.employee.role?.id ?? 0}`} data={data} />}
+          {data.can_change_role && <AdditionalRolesCard key={`roles-${data.employee.additional_roles.map((role) => role.id).join("-")}`} data={data} />}
         </>
       )}
     </>

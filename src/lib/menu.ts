@@ -10,6 +10,8 @@ export interface MenuLink {
   label: string;
   href: string;
   permission?: string | string[];
+  /** Only for these roles (the role the session acts as), on top of the permission. */
+  roles?: string[];
   badge?: MenuBadge;
 }
 
@@ -18,6 +20,7 @@ export interface MenuItem {
   icon: string;
   href?: string;
   permission?: string | string[];
+  roles?: string[];
   children?: MenuLink[];
   badge?: MenuBadge;
 }
@@ -54,7 +57,7 @@ export const menu: MenuTab[] = [
           { label: "Reserve Setting", href: "/settings/reserve", permission: "settings.manage" },
           { label: "Dividend Settings", href: "/settings/dividends", permission: "settings.manage" },
           { label: "Approval Policy", href: "/settings/approval-policy", permission: "settings.manage" },
-          { label: "Roles & Permissions", href: "/settings/roles", permission: "users.manage" },
+          { label: "Roles & Permissions", href: "/settings/roles", permission: "users.manage", roles: ["super_admin"] },
         ],
       },
       {
@@ -116,7 +119,6 @@ export const menu: MenuTab[] = [
         label: "Expenses",
         icon: "icon-list",
         children: [
-          { label: "Register Branch Expenses", href: "/expenses/types", permission: ["expenses.request", "settings.manage"] },
           { label: "All Expenses Request", href: "/expenses/requests", permission: ["expenses.request", "expenses.approve_branch", "expenses.approve_hq"] },
           { label: "All Accept Expenses", href: "/expenses/accepted", permission: ["expenses.approve_branch", "expenses.approve_hq", "reports.financial"] },
         ],
@@ -252,32 +254,32 @@ export const menu: MenuTab[] = [
     key: "sub_menu",
     label: "Report",
     items: [
-      { label: "Cash Transaction", icon: "icon-wallet", href: "/reports/cash", permission: "reports.view" },
-      { label: "Branch Wise Report", icon: "icon-list", href: "/reports/branchwise", permission: "reports.view" },
-      { label: "File", icon: "icon-list", href: "/reports/file", permission: "reports.view" },
-      { label: "Penalty", icon: "icon-list", href: "/reports/penalties", permission: "reports.view" },
-      { label: "Loan Pending", icon: "icon-list", href: "/reports/pending", permission: "reports.view" },
-      { label: "Loan Repayment", icon: "icon-list", href: "/reports/repayment", permission: "reports.view" },
-      { label: "Default Loan", icon: "icon-list", href: "/reports/default", permission: "reports.view" },
-      { label: "Write-off Loan", icon: "icon-list", href: "/reports/write-off", permission: "reports.view" },
-      { label: "Loan Collection", icon: "icon-list", href: "/reports/collection", permission: "reports.view" },
-      { label: "Customer statement", icon: "icon-list", href: "/reports/statement", permission: "reports.view" },
-      { label: "Today Receivable", icon: "icon-list", href: "/reports/receivable", permission: "reports.view" },
-      { label: "Today Received", icon: "icon-list", href: "/reports/received", permission: "reports.view" },
-      { label: "Daily Report", icon: "icon-wallet", href: "/reports/daily", permission: "reports.view" },
-      { label: "Customer Development", icon: "icon-list", href: "/reports/development", permission: "reports.view" },
+      { label: "Cash Transaction", icon: "icon-wallet", href: "/reports/cash", permission: ["reports.view", "reports.operations"] },
+      { label: "Branch Wise Report", icon: "icon-list", href: "/reports/branchwise", permission: ["reports.view", "reports.operations"] },
+      { label: "File", icon: "icon-list", href: "/reports/file", permission: ["reports.view", "reports.loans"] },
+      { label: "Penalty", icon: "icon-list", href: "/reports/penalties", permission: ["reports.view", "reports.loans"] },
+      { label: "Loan Pending", icon: "icon-list", href: "/reports/pending", permission: ["reports.view", "reports.loans"] },
+      { label: "Loan Repayment", icon: "icon-list", href: "/reports/repayment", permission: ["reports.view", "reports.loans"] },
+      { label: "Default Loan", icon: "icon-list", href: "/reports/default", permission: ["reports.view", "reports.loans"] },
+      { label: "Write-off Loan", icon: "icon-list", href: "/reports/write-off", permission: ["reports.view", "reports.loans"] },
+      { label: "Loan Collection", icon: "icon-list", href: "/reports/collection", permission: ["reports.view", "reports.loans"] },
+      { label: "Customer statement", icon: "icon-list", href: "/reports/statement", permission: ["reports.view", "reports.customers"] },
+      { label: "Today Receivable", icon: "icon-list", href: "/reports/receivable", permission: ["reports.view", "reports.operations"] },
+      { label: "Today Received", icon: "icon-list", href: "/reports/received", permission: ["reports.view", "reports.operations"] },
+      { label: "Daily Report", icon: "icon-wallet", href: "/reports/daily", permission: ["reports.view", "reports.operations"] },
+      { label: "Customer Development", icon: "icon-list", href: "/reports/development", permission: ["reports.view", "reports.customers"] },
       {
         label: "Portfolio & Risk",
         icon: "icon-pie-chart",
-        permission: "reports.view",
+        permission: ["reports.view", "reports.portfolio"],
         children: [
-          { label: "Loan Portfolio", href: "/reports/portfolio", permission: "reports.view" },
-          { label: "Repayment (Expected vs Actual)", href: "/reports/collections", permission: "reports.view" },
-          { label: "Arrears & PAR", href: "/reports/arrears", permission: "reports.view" },
-          { label: "Recovery", href: "/reports/recovery", permission: "reports.view" },
-          { label: "Repayment Behaviour (DPD)", href: "/reports/behaviour", permission: "reports.view" },
-          { label: "Customer Segmentation", href: "/reports/segmentation", permission: "reports.view" },
-          { label: "Age Analysis", href: "/reports/age-analysis", permission: "reports.view" },
+          { label: "Loan Portfolio", href: "/reports/portfolio", permission: ["reports.view", "reports.portfolio"] },
+          { label: "Repayment (Expected vs Actual)", href: "/reports/collections", permission: ["reports.view", "reports.portfolio"] },
+          { label: "Arrears & PAR", href: "/reports/arrears", permission: ["reports.view", "reports.portfolio"] },
+          { label: "Recovery", href: "/reports/recovery", permission: ["reports.view", "reports.portfolio"] },
+          { label: "Repayment Behaviour (DPD)", href: "/reports/behaviour", permission: ["reports.view", "reports.portfolio"] },
+          { label: "Customer Segmentation", href: "/reports/segmentation", permission: ["reports.view", "reports.portfolio"] },
+          { label: "Age Analysis", href: "/reports/age-analysis", permission: ["reports.view", "reports.portfolio"] },
         ],
       },
       {
