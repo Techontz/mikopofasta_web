@@ -147,6 +147,8 @@ export const menu: MenuTab[] = [
           { label: "All Customer", href: "/customers", permission: "customers.view" },
           { label: "Customer Profile", href: "/customers/search", permission: "customers.view" },
           { label: "KYC Approval", href: "/customers/approvals", permission: "customers.approve", badge: "kyc" },
+          { label: "Duplicate Verification", href: "/customers/duplicate-reviews", permission: "customers.approve" },
+          { label: "Branch Transfers", href: "/customers/branch-transfers", permission: ["customers.transfer", "customers.approve_transfer"] },
         ],
       },
       {
@@ -338,6 +340,8 @@ export const crmMenu: MenuTab[] = [
       { label: "Dashboard", icon: "icon-home", href: "/dashboard", permission: "dashboard.view" },
       { label: "Customers", icon: "icon-users", href: "/customers", permission: "customers.view" },
       { label: "KYC Approval", icon: "icon-shield", href: "/customers/approvals", permission: "customers.approve", badge: "kyc" },
+      { label: "Duplicate Verification", icon: "icon-layers", href: "/customers/duplicate-reviews", permission: "customers.approve" },
+      { label: "Branch Transfers", icon: "icon-shuffle", href: "/customers/branch-transfers", permission: ["customers.transfer", "customers.approve_transfer"] },
       { label: "Complaints", icon: "icon-exclamation", href: "/crm/complaints", permission: "crm.use", badge: "complaints" },
       { label: "Customer Requests", icon: "icon-doc", href: "/crm/requests", permission: "crm.use", badge: "requests" },
       { label: "Follow-ups", icon: "icon-clock", href: "/crm/follow-ups", permission: "crm.use", badge: "follow_ups" },

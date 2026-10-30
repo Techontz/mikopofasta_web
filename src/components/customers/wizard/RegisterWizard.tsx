@@ -295,7 +295,13 @@ export function RegisterWizard({ editing }: { editing?: Customer } = {}) {
     setBusy("complete");
     let customer: Customer;
     try {
-      const response = await api.post<{ data: Customer }>("customers", buildRegistrationPayload(effective, fields));
+      const response = await api.post<{ data: Customer } | { message: string; data: { duplicate_review_id: number } }>("customers", buildRegistrationPayload(effective, fields));
+      if ("duplicate_review_id" in response.data) {
+        // Possible duplicate of an existing customer: nothing was created; CRM verifies it first (the draft is kept).
+        setBusy(null);
+        toastInfo(`${"message" in response ? response.message : "Sent for verification."} Reference #${response.data.duplicate_review_id}.`);
+        return;
+      }
       customer = response.data;
     } catch (error) {
       setBusy(null);
