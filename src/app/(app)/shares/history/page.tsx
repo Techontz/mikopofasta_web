@@ -57,7 +57,7 @@ export default function ShareHistoryPage() {
       label: row.kind === "initial" ? "Initial Share Value" : "Share Value Change",
       tone: "info",
       reference: row.reference,
-      description: `${row.previous_value === null ? "" : `${money(row.previous_value)} → `}${money(row.new_value)} per share; ${sharesLabel(row.total_shares)} shares valued at ${money(row.new_total_valuation)} — ${row.reason}`,
+      description: `${row.previous_value === null ? "" : `${money(row.previous_value)} → `}${money(row.new_value)} per share; ${sharesLabel(row.total_shares)} shares valued at ${money(row.new_total_valuation)} - ${row.reason}`,
       status: row.status,
       by: row.performed_by,
     }));
@@ -72,7 +72,7 @@ export default function ShareHistoryPage() {
       <SharesNav />
       <Card title="Company Share Valuation at Each Value Change">
         <StepValueChart title="Company share valuation (total shares × share value)" points={valuationPoints} />
-        <p className="text-muted mb-0"><small>Valuations are memorandum records of ownership value — never cash or bank balances.</small></p>
+        <p className="text-muted mb-0"><small>Valuations are memorandum records of ownership value - never cash or bank balances.</small></p>
       </Card>
       <Card title="Share History">
         <DataTable
@@ -85,7 +85,7 @@ export default function ShareHistoryPage() {
             { key: "reference", header: "Reference" },
             { key: "description", header: "Details" },
             { key: "status", header: "Status", render: (row) => row.status.toUpperCase() },
-            { key: "by", header: "By", render: (row) => row.by ?? "—" },
+            { key: "by", header: "By", render: (row) => row.by ?? "-" },
           ]}
         />
       </Card>

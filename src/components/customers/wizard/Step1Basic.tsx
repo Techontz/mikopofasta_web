@@ -48,7 +48,7 @@ function TextInput({ field, value, onChange, placeholder, type = "text", inputMo
 
 export { TextInput };
 
-/** Step 1 — Basic Information: Registration, Personal details, Residence and Next of kin groups. */
+/** Step 1 - Basic Information: Registration, Personal details, Residence and Next of kin groups. */
 export function Step1Basic({ form, update, errors, profile, options, types, masterData, onTypeChange }: Step1Props) {
   const { data: regions, isLoading: regionsLoading } = useApi<GeoRow[]>("regions");
   const { data: districts, isLoading: districtsLoading } = useApi<GeoRow[]>(form.regionId ? "districts" : null, { region_id: form.regionId ?? undefined });
@@ -110,7 +110,7 @@ export function Step1Basic({ form, update, errors, profile, options, types, mast
             />
           ) : (
             <div className="form-control mf-readonly" id={fieldDomId("employeeId")}>
-              <i className="fa fa-lock" /> {currentOfficer?.name ?? "—"}
+              <i className="fa fa-lock" /> {currentOfficer?.name ?? "-"}
             </div>
           )}
         </Cell>
@@ -212,7 +212,7 @@ export function Step1Basic({ form, update, errors, profile, options, types, mast
           label="Ward"
           required={address}
           error={errors.wardId ?? errors.wardName}
-          help={noWardsOnFile ? "No wards are on file for this district — type it. It can be imported later under Administration → Geography." : undefined}
+          help={noWardsOnFile ? "No wards are on file for this district - type it. It can be imported later under Administration → Geography." : undefined}
         >
           {!form.districtId ? (
             <div className="form-control mf-readonly mf-disabled" id={fieldDomId("wardId")}>Select a district first</div>

@@ -20,7 +20,7 @@ import {
 const SRC = path.resolve(__dirname, "../..");
 const read = (file: string) => readFileSync(path.join(SRC, file), "utf8");
 
-/** Shape of GET /customer-types — names are placeholders, not the configured types. */
+/** Shape of GET /customer-types - names are placeholders, not the configured types. */
 function apiTypes() {
   return [
     { id: 3, name: "Type C", isActive: true, sortOrder: 3 },

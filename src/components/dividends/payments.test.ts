@@ -58,8 +58,8 @@ describe("shareholder dividend allocation table", () => {
   it("formats dates as 14 Sep 2026", () => {
     expect(shortDate("2026-09-14")).toBe("14 Sep 2026");
     expect(shortDate("2026-08-01 10:53:18")).toBe("1 Aug 2026");
-    expect(shortDate(null)).toBe("—");
-    expect(shortDate("")).toBe("—");
+    expect(shortDate(null)).toBe("-");
+    expect(shortDate("")).toBe("-");
   });
 
   it("shows PAY DIVIDEND, a disabled PAID or no pay control by balance and permission, with HISTORY always", () => {

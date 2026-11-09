@@ -92,7 +92,7 @@ export default function LoanPortfolioPage() {
             <Stat tone="plain" label={`Total Outstanding (${s.active_customers} customers)`} value={money(s.outstanding_total)} />
             <Stat tone="danger" label={`Default Loans (${s.default_customers ?? 0} customers)`} value={`${s.default_count} / ${money(s.default_outstanding ?? 0)}`} />
             <Stat tone="danger" label="Outstanding Penalty" value={money(s.outstanding_penalty)} />
-            <Stat tone="plain" label={`Written Off — excluded from portfolio (${s.written_off_count} loans, principal ${money(s.written_off_principal)})`} value={money(s.written_off_outstanding)} />
+            <Stat tone="plain" label={`Written Off - excluded from portfolio (${s.written_off_count} loans, principal ${money(s.written_off_principal)})`} value={money(s.written_off_outstanding)} />
           </div>
         )}
       </Card>

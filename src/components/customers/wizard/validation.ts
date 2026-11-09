@@ -11,9 +11,9 @@ export type Errors = Record<string, string>;
 export const MESSAGES = {
   dobRequired: "Date of birth is required.",
   dobPast: "Date of birth must be in the past.",
-  customerType: "A customer type is required for this account type — it decides which loan products the customer may take.",
+  customerType: "A customer type is required for this account type - it decides which loan products the customer may take.",
   maritalStatus: "Marital status is required for this account type.",
-  identity: "An identity document is required — choose the ID type and enter the number shown on it.",
+  identity: "An identity document is required - choose the ID type and enter the number shown on it.",
   region: "Region is required.",
   district: "District must be selected.",
   employer: "An employer or place of employment is required for this account type.",
@@ -58,7 +58,7 @@ function checkPhone(errors: Errors, key: string, label: string, value: string) {
   }
 }
 
-/** Step 1 — Basic Information (form fields + profile rules). */
+/** Step 1 - Basic Information (form fields + profile rules). */
 export function validateStep1(form: WizardForm, profile: RequirementProfile, today: Date = new Date()): Errors {
   const errors: Errors = {};
 
@@ -201,7 +201,7 @@ export function validatePayment(form: WizardForm, profile: Pick<RequirementProfi
   return errors;
 }
 
-/** Step 2 — Customer Details (type questions + profile rules + guarantors + payment). */
+/** Step 2 - Customer Details (type questions + profile rules + guarantors + payment). */
 export function validateStep2(
   form: WizardForm,
   fields: FieldDef[],
@@ -250,7 +250,7 @@ export function validateStep2(
   return { ...errors, ...validatePayment(form, profile) };
 }
 
-/** Step 3 — the single KYC attachment. */
+/** Step 3 - the single KYC attachment. */
 export function validateStep3(file: File | Blob | null | undefined): Errors {
   return file ? {} : { file: MESSAGES.attachment };
 }

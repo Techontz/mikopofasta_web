@@ -52,7 +52,7 @@ export const OTHER_BLOCK: FieldDef[] = [
   { key: "monthly_income", label: "Monthly Income", type: "currency", required: false, storesIn: "monthlyIncome" },
 ];
 
-/** Payload columns collected on Step 1 or in the Account Number section — never rendered on Step 2. */
+/** Payload columns collected on Step 1 or in the Account Number section - never rendered on Step 2. */
 export const COLLECTED_ELSEWHERE = new Set([
   "dependentsCount",
   "alternativePhone",

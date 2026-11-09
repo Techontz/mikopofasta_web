@@ -82,7 +82,7 @@ export function LoanActions({ detail, onEdit }: { detail: LoanDetail; onEdit: ()
           {loan.status === "mandate_failed" && <div className="alert alert-danger">MANDATE FAILED: {mandate?.failure_reason}. Retry OTP or modify details.</div>}
           {mandate?.mandate_reference ? (
             <form className="row" onSubmit={(e) => { e.preventDefault(); verifyOtp.mutate({ otp }); }}>
-              <div className="col-12 mb-2">E-mandate <b>{mandate?.mandate_reference}</b> — {mandate?.bank_name} {mandate?.account_number}. OTP sent to the account holder.</div>
+              <div className="col-12 mb-2">E-mandate <b>{mandate?.mandate_reference}</b> - {mandate?.bank_name} {mandate?.account_number}. OTP sent to the account holder.</div>
               <Field label="OTP:" required className="col-md-4" error={verifyOtp.fieldError("otp")}>
                 <input className="form-control" inputMode="numeric" maxLength={6} value={otp} onChange={(e) => setOtp(e.target.value)} required />
               </Field>
@@ -141,7 +141,7 @@ export function LoanActions({ detail, onEdit }: { detail: LoanDetail; onEdit: ()
     case "awaiting_disbursement":
       body = (
         <>
-          <p>Batch <b>{loan.latest_disbursement?.batch_id}</b> ({loan.latest_disbursement?.channel.toUpperCase()}, {loan.latest_disbursement?.status}) — {money(loan.latest_disbursement?.amount)} from <b>{loan.latest_disbursement?.source_label}</b>.</p>
+          <p>Batch <b>{loan.latest_disbursement?.batch_id}</b> ({loan.latest_disbursement?.channel.toUpperCase()}, {loan.latest_disbursement?.status}) - {money(loan.latest_disbursement?.amount)} from <b>{loan.latest_disbursement?.source_label}</b>.</p>
           {can("loans.disburse") && loan.latest_disbursement?.channel === "vodacom" && loan.latest_disbursement.status === "prepared" && (
             <button type="button" className="btn btn-success" disabled={disburse.isPending} onClick={() => disburse.mutate({}, { onSuccess: portal })}>Disburse</button>
           )}
@@ -171,7 +171,7 @@ export function LoanActions({ detail, onEdit }: { detail: LoanDetail; onEdit: ()
           {can("loans.write_off") && loan.status !== "active" && detail.write_off_request?.status !== "pending" && <button type="button" className="btn btn-danger mr-1" disabled={writeOff.isPending} onClick={() => ask("Request write-off (another authorised user must approve it)", writeOff)}>Request Write-off</button>}
           {detail.write_off_request?.status === "pending" && (
             <div className="alert alert-warning mt-2 mb-2">
-              Write-off requested by {detail.write_off_request.requested_by ?? "—"} on {detail.write_off_request.requested_at}{detail.write_off_request.reason ? ` (${detail.write_off_request.reason})` : ""}: nothing is posted until another authorised user approves it.
+              Write-off requested by {detail.write_off_request.requested_by ?? "-"} on {detail.write_off_request.requested_at}{detail.write_off_request.reason ? ` (${detail.write_off_request.reason})` : ""}: nothing is posted until another authorised user approves it.
               {can("loans.write_off") && (
                 <div className="mt-1">
                   <ApprovalActions
@@ -184,7 +184,7 @@ export function LoanActions({ detail, onEdit }: { detail: LoanDetail; onEdit: ()
               )}
             </div>
           )}
-          {detail.write_off_request?.status === "rejected" && <div><small className="text-muted">Last write-off request rejected by {detail.write_off_request.rejected_by ?? "—"}: {detail.write_off_request.rejection_reason}</small></div>}
+          {detail.write_off_request?.status === "rejected" && <div><small className="text-muted">Last write-off request rejected by {detail.write_off_request.rejected_by ?? "-"}: {detail.write_off_request.rejection_reason}</small></div>}
           {can("loans.reverse_disbursement") && loan.status !== "default" && (
             <span className="d-inline-block" title={detail.can_reverse_disbursement ? "Request the reversal of this loan's disbursement" : detail.reverse_disbursement_blocked_reason ?? ""}>
               <button

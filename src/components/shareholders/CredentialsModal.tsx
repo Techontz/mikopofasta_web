@@ -31,7 +31,7 @@ export function CredentialsModal({ entries, onClose, title = "Shareholder accoun
   };
 
   return (
-    <Modal open={entries !== null} onClose={close} title={title} cancelLabel="I HAVE SAVED IT — CLOSE">
+    <Modal open={entries !== null} onClose={close} title={title} cancelLabel="I HAVE SAVED IT - CLOSE">
       <div className="alert alert-warning" role="alert" data-testid="credentials-warning">
         <i className="icon-exclamation" /> Copy these credentials now and hand them to the shareholder securely. The temporary password is
         <b> not stored and will not be shown again</b>. It must be changed at the first login.

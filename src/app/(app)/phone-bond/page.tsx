@@ -63,7 +63,7 @@ const TABS = [
 const EMPTY = { loan_id: "", imei: "", serial_number: "", brand: "", model: "", phone_number: "", linda_device_id: "" };
 
 /**
- * Phone Bond — Linda (enhancement §5): devices, lock / unlock (only shown as done once Linda confirms), history, reports.
+ * Phone Bond - Linda (enhancement §5): devices, lock / unlock (only shown as done once Linda confirms), history, reports.
  */
 export default function PhoneBondPage() {
   const { can } = useAuth();
@@ -120,7 +120,7 @@ export default function PhoneBondPage() {
   return (
     <>
       <PageHeader crumbs={["Loan", "Phone Bond"]} printDetails={<span>Period: <b>{periodLabel(filter)}</b></span>} />
-      <Card title="Phone Bond — Linda" actions={can("phone_bond.manage") && <button type="button" className="btn btn-sm btn-primary" onClick={() => setForm(EMPTY)}><i className="icon-plus" /> Register device</button>}>
+      <Card title="Phone Bond - Linda" actions={can("phone_bond.manage") && <button type="button" className="btn btn-sm btn-primary" onClick={() => setForm(EMPTY)}><i className="icon-plus" /> Register device</button>}>
         <PeriodFilter value={filter} onChange={setFilter} idPrefix="phone-bond" />
         <div className="row">
           {k && [
@@ -154,10 +154,10 @@ export default function PhoneBondPage() {
             { key: "customer", header: "Customer" },
             { key: "imei", header: "IMEI", render: (row) => <>{row.imei}<small className="d-block text-muted">{[row.brand, row.model].filter(Boolean).join(" ")}</small></> },
             { key: "branch", header: "Branch" },
-            { key: "loan_number", header: "Loan", render: (row) => (row.loan_id ? <Link href={`/loans/${row.loan_id}`}>{row.loan_number}</Link> : "—") },
+            { key: "loan_number", header: "Loan", render: (row) => (row.loan_id ? <Link href={`/loans/${row.loan_id}`}>{row.loan_number}</Link> : "-") },
             { key: "enrollment_status", header: "Enrollment", render: (row) => row.enrollment_status.toUpperCase() },
-            { key: "sim_protection", header: "SIM Protection", render: (row) => (row.sim_protection === null ? "—" : row.sim_protection ? "On" : "Off") },
-            { key: "last_seen_at", header: "Last Seen", render: (row) => row.last_seen_at ?? "—" },
+            { key: "sim_protection", header: "SIM Protection", render: (row) => (row.sim_protection === null ? "-" : row.sim_protection ? "On" : "Off") },
+            { key: "last_seen_at", header: "Last Seen", render: (row) => row.last_seen_at ?? "-" },
             { key: "lock_state", header: "Lock", render: (row) => <span className={`badge badge-${row.lock_state === "locked" ? "danger" : row.lock_state.endsWith("pending") ? "warning" : "success"}`}>{row.lock_state.replace("_", " ").toUpperCase()}</span> },
             { key: "status", header: "Status", render: (row) => row.status.toUpperCase() },
             {
@@ -179,7 +179,7 @@ export default function PhoneBondPage() {
         />
       </Card>
 
-      <Card title={`Lock / Unlock History — ${periodLabel(filter)}`}>
+      <Card title={`Lock / Unlock History - ${periodLabel(filter)}`}>
         <DataTable
           rows={report?.history}
           rowKey={(row) => row.id}

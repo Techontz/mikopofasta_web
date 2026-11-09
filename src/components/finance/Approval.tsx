@@ -104,7 +104,7 @@ export function ApprovalActions({ row, approvePath, rejectPath, description }: A
             className={`btn btn-sm text-nowrap ${blocked ? "btn-outline-secondary" : "btn-success"}`}
             disabled={blocked || busy}
             style={blocked ? { pointerEvents: "none" } : undefined}
-            onClick={async () => (await confirmAction("Approve this transaction?", `Approve and post ${money(row.amount)} — ${description}.`)) && approve.mutate({})}
+            onClick={async () => (await confirmAction("Approve this transaction?", `Approve and post ${money(row.amount)} - ${description}.`)) && approve.mutate({})}
           >
             <i className={blocked ? "icon-lock" : "icon-check"} /> Approve
           </button>
@@ -128,7 +128,7 @@ export function ApprovalActions({ row, approvePath, rejectPath, description }: A
       {rejectPath && (
         <Modal open={open} onClose={() => setOpen(false)} title="Reject Pending Transaction" submitLabel="Reject" submitting={reject.isPending} onSubmit={() => reject.mutate({ reason }, { onSuccess: () => setOpen(false) })}>
           <p className="mb-2">
-            Reject <b>{money(row.amount)}</b> — {description}? Nothing was posted; the request stays listed as REJECTED.
+            Reject <b>{money(row.amount)}</b> - {description}? Nothing was posted; the request stays listed as REJECTED.
           </p>
           <Field label="Reason:" required error={reject.fieldError("reason")}>
             <textarea className="form-control" rows={3} maxLength={255} minLength={3} value={reason} onChange={(event) => setReason(event.target.value)} required />

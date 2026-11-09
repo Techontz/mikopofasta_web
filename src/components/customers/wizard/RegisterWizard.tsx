@@ -84,7 +84,7 @@ export function RegisterWizard({ editing }: { editing?: Customer } = {}) {
   const options = useMemo<RegistrationOptions | undefined>(
     () =>
       editing && loadedOptions && !can("customers.manage")
-        ? { ...loadedOptions, lockedBranchId: editing.branchId, canAssignOfficer: false, officers: editing.employeeId ? [{ id: editing.employeeId, name: editing.employeeName ?? "—", branchId: editing.branchId }] : [] }
+        ? { ...loadedOptions, lockedBranchId: editing.branchId, canAssignOfficer: false, officers: editing.employeeId ? [{ id: editing.employeeId, name: editing.employeeName ?? "-", branchId: editing.branchId }] : [] }
         : loadedOptions,
     [editing, loadedOptions, can],
   );
@@ -450,7 +450,7 @@ export function RegisterWizard({ editing }: { editing?: Customer } = {}) {
 
           {savedCustomer && !faceDone && (
             <div className="alert alert-info mf-saved-banner">
-              Saved as {savedCustomer.customerNumber} — awaiting face verification.
+              Saved as {savedCustomer.customerNumber} - awaiting face verification.
             </div>
           )}
 

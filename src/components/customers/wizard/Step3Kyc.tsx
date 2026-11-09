@@ -22,7 +22,7 @@ export function kycFileProblem(file: File): string | null {
   return null;
 }
 
-/** Step 3 — KYC Attachments: exactly one file input. */
+/** Step 3 - KYC Attachments: exactly one file input. */
 export function Step3Kyc({ file, onChange, errors }: { file: File | null; onChange: (file: File | null) => void; errors: Errors }) {
   const input = useRef<HTMLInputElement>(null);
   const [problem, setProblem] = useState<string | null>(null);

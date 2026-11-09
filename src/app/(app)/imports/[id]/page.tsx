@@ -30,7 +30,7 @@ const FILTERS: { value: "all" | RowStatus; label: string }[] = [
 
 /**
  * Preview and approval of one old-system file: counts, the balances it brings in, every row with its status and exact
- * reasons, the exception file, and the workflow — Submit for Approval (uploader), Approve / Reject (another authorised
+ * reasons, the exception file, and the workflow - Submit for Approval (uploader), Approve / Reject (another authorised
  * user), map unmatched customers one by one or all at once (Map All), roll back an approved import.
  */
 export default function LegacyImportPage() {
@@ -63,7 +63,7 @@ export default function LegacyImportPage() {
       <Card
         title={
           <>
-            {detail.module_label} — {detail.branch} {detail.year ? `(${detail.year})` : ""} <Badge tone={IMPORT_STATUS[detail.status].tone}>{IMPORT_STATUS[detail.status].label}</Badge>
+            {detail.module_label} - {detail.branch} {detail.year ? `(${detail.year})` : ""} <Badge tone={IMPORT_STATUS[detail.status].tone}>{IMPORT_STATUS[detail.status].label}</Badge>
           </>
         }
         actions={
@@ -158,8 +158,8 @@ export default function LegacyImportPage() {
         <table className="table table-sm table-bordered mb-0">
           <tbody>
             <tr><th style={{ width: 200 }}>File</th><td>{detail.file_name}</td><th style={{ width: 200 }}>Module / Branch</th><td>{detail.module_label} / {detail.branch}</td></tr>
-            <tr><th>Uploaded by</th><td>{detail.uploaded_by} — {detail.uploaded_at}</td><th>Submitted by</th><td>{detail.submitted_by ? `${detail.submitted_by} — ${detail.submitted_at}` : "—"}</td></tr>
-            <tr><th>Approved by</th><td>{detail.approved_by ? `${detail.approved_by} — ${detail.approved_at}` : "—"}</td><th>Opening journal</th><td>{detail.journal_reference ?? (detail.module === "penalty" && detail.status === "approved" ? "None (penalties are cash basis)" : "—")}</td></tr>
+            <tr><th>Uploaded by</th><td>{detail.uploaded_by} - {detail.uploaded_at}</td><th>Submitted by</th><td>{detail.submitted_by ? `${detail.submitted_by} - ${detail.submitted_at}` : "-"}</td></tr>
+            <tr><th>Approved by</th><td>{detail.approved_by ? `${detail.approved_by} - ${detail.approved_at}` : "-"}</td><th>Opening journal</th><td>{detail.journal_reference ?? (detail.module === "penalty" && detail.status === "approved" ? "None (penalties are cash basis)" : "-")}</td></tr>
           </tbody>
         </table>
       </Card>
@@ -204,7 +204,7 @@ function columnsFor(detail: LegacyImportDetail, onMap: (row: LegacyImportRow) =>
           { key: "remain_amount", header: "Remain (opening)", render: (row) => <b>{money(row.remain_amount)}</b> },
           { key: "withdrawal_date", header: "Withdrawal" },
           { key: "loan_status", header: "Loan Status", render: (row) => row.loan_status ?? row.raw["Loan Status"] },
-          { key: "monthly", header: "Jan–Sep", sortable: false, render: (row) => <small>{MONTHS.map((month, index) => row.monthly[index + 1] ? `${month} ${money(row.monthly[index + 1])}` : null).filter(Boolean).join(", ") || "—"}</small> },
+          { key: "monthly", header: "Jan–Sep", sortable: false, render: (row) => <small>{MONTHS.map((month, index) => row.monthly[index + 1] ? `${month} ${money(row.monthly[index + 1])}` : null).filter(Boolean).join(", ") || "-"}</small> },
         ]
       : detail.module === "penalty"
         ? [
@@ -238,7 +238,7 @@ function columnsFor(detail: LegacyImportDetail, onMap: (row: LegacyImportRow) =>
             <br />
             <small className="text-muted">{row.customer.customer_number} · {row.match_method === "manual" ? `mapped by ${row.mapped_by}` : `by ${row.match_method?.replace("_", " + ")}`}</small>
           </>
-        ) : "—",
+        ) : "-",
     },
     ...figures,
     { key: "messages", header: "Reason", sortable: false, value: (row) => row.messages.join(" "), render: (row) => <small>{row.messages.map((message) => <div key={message}>{message}</div>)}</small> },
@@ -301,7 +301,7 @@ function MapRowModal({ importId, row, onClose }: { importId: number; row: Legacy
 type Choice = "create" | "skip" | "" | `${number}`;
 
 /**
- * Map All: every unmatched row with a choice — a new customer, one of the likely existing customers, or skip. Rows start
+ * Map All: every unmatched row with a choice - a new customer, one of the likely existing customers, or skip. Rows start
  * on the proposed choice (the customer when exactly one is likely, a new customer when none is); rows with several likely
  * customers must be chosen. One click then maps them all in one transaction.
  */

@@ -31,4 +31,4 @@ export const rejectPath = (row: Pick<ReversalRequestRow, "id">) => `reversal-req
 
 /** Line shown under a transaction whose reversal is waiting for a checker. */
 export const pendingNote = (row: ReversalRequestRow) =>
-  `Reversal requested by ${row.requested_by ?? "—"} on ${row.requested_at ?? "—"} (${row.reason}): nothing is posted until another Finance user, an Admin or the Super Admin approves it.`;
+  `Reversal requested by ${row.requested_by ?? "-"} on ${row.requested_at ?? "-"} (${row.reason}): nothing is posted until another Finance user, an Admin or the Super Admin approves it.`;

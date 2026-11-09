@@ -19,7 +19,7 @@ const GROUP_LABEL: Record<string, string> = { individual: "Individual", contextu
 const GROUP_TONE: Record<string, "primary" | "warning" | "default"> = { individual: "primary", contextual: "warning", supporting: "default" };
 
 function dateTime(value: string | null | undefined): string {
-  return value ? value.slice(0, 16).replace("T", " ") : "—";
+  return value ? value.slice(0, 16).replace("T", " ") : "-";
 }
 
 function Row({ label, children }: { label: ReactNode; children: ReactNode }) {
@@ -29,11 +29,11 @@ function Row({ label, children }: { label: ReactNode; children: ReactNode }) {
 /** An evidence figure, recursing into nested objects / lists (e.g. DPD buckets). */
 function EvidenceValue({ name, value }: { name: string; value: unknown }) {
   if (Array.isArray(value)) {
-    return value.length === 0 ? <>—</> : <>{value.map((item, index) => <div key={index}><EvidenceValue name={name} value={item} /></div>)}</>;
+    return value.length === 0 ? <>-</> : <>{value.map((item, index) => <div key={index}><EvidenceValue name={name} value={item} /></div>)}</>;
   }
   if (value !== null && typeof value === "object") {
     const entries = Object.entries(value as Record<string, unknown>);
-    return entries.length === 0 ? <>—</> : (
+    return entries.length === 0 ? <>-</> : (
       <>
         {entries.map(([key, item]) => (
           <div key={key}><small><b>{humanize(key)}:</b> <EvidenceValue name={key} value={item} /></small></div>
@@ -74,7 +74,7 @@ function FactorEvidence({ factor }: { factor: CreditFactor }) {
   );
 }
 
-/** §37B "Why this recommendation?" — every factor, each expandable to the evidence it was computed from. */
+/** §37B "Why this recommendation?" - every factor, each expandable to the evidence it was computed from. */
 function FactorsTable({ factors }: { factors: CreditFactor[] }) {
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const toggle = (key: string) => setOpen((current) => ({ ...current, [key]: !current[key] }));
@@ -161,7 +161,7 @@ export function CreditAssessmentCard({ loanId, assessment }: { loanId: number; a
     return (
       <>
         <Card title="Credit Assessment" actions={actions}>
-          <p className="mb-0">No credit assessment is available for this loan. Re-assess to record one — it is advisory only and changes nothing on the loan.</p>
+          <p className="mb-0">No credit assessment is available for this loan. Re-assess to record one - it is advisory only and changes nothing on the loan.</p>
         </Card>
         <HistoryModal loanId={loanId} open={history} onClose={() => setHistory(false)} />
       </>
@@ -184,9 +184,9 @@ export function CreditAssessmentCard({ loanId, assessment }: { loanId: number; a
 
   return (
     <>
-      <Card title={<>Credit Assessment {assessment.stored ? <Badge tone="success">STORED</Badge> : <Badge tone="warning">PREVIEW — NOT STORED</Badge>}</>} actions={actions}>
+      <Card title={<>Credit Assessment {assessment.stored ? <Badge tone="success">STORED</Badge> : <Badge tone="warning">PREVIEW - NOT STORED</Badge>}</>} actions={actions}>
         <div className="alert alert-info" role="note">
-          <i className="icon-info" /> <b>Advisory only — the Credit Officer decides.</b> This recommendation has changed no status, amount or approval.
+          <i className="icon-info" /> <b>Advisory only - the Credit Officer decides.</b> This recommendation has changed no status, amount or approval.
         </div>
 
         {/* §37A Summary */}
@@ -246,7 +246,7 @@ export function CreditAssessmentCard({ loanId, assessment }: { loanId: number; a
             <Card title="Repayment Capacity">
               <dl className="mf-dl mf-dl-2 mb-0">
                 <Row label="Monthly income">{capacity.income_known ? money(capacity.monthly_income) : "Not recorded"}</Row>
-                <Row label="Income source">{capacity.income_field ? humanize(capacity.income_field) : "—"}</Row>
+                <Row label="Income source">{capacity.income_field ? humanize(capacity.income_field) : "-"}</Row>
                 <Row label="Dependants">{capacity.dependents}</Row>
                 <Row label="Household cost">{money(capacity.household_cost)}</Row>
                 <Row label="Existing monthly obligations">{money(capacity.existing_monthly_obligation)}</Row>
@@ -272,8 +272,8 @@ export function CreditAssessmentCard({ loanId, assessment }: { loanId: number; a
                     return (
                       <tr key={key}>
                         <td>{factorLabel(key)}</td>
-                        <td className="text-right">{factor ? factor.contribution.toFixed(2) : "—"}</td>
-                        <td className="text-right">{factor ? factor.max_contribution.toFixed(2) : "—"}</td>
+                        <td className="text-right">{factor ? factor.contribution.toFixed(2) : "-"}</td>
+                        <td className="text-right">{factor ? factor.max_contribution.toFixed(2) : "-"}</td>
                       </tr>
                     );
                   })}
@@ -284,7 +284,7 @@ export function CreditAssessmentCard({ loanId, assessment }: { loanId: number; a
               </table>
               <p className="mb-0">
                 <Badge tone={context.within_cap ? "success" : "danger"}>{context.within_cap ? "WITHIN CAP" : "OVER CAP"}</Badge>{" "}
-                <small>Customer type, branch and officer performance together may move the score by at most {context.cap.toFixed(2)} points — group behaviour never replaces the customer&apos;s own history (§39 – §41).</small>
+                <small>Customer type, branch and officer performance together may move the score by at most {context.cap.toFixed(2)} points - group behaviour never replaces the customer&apos;s own history (§39 – §41).</small>
               </p>
             </Card>
           </div>
@@ -302,7 +302,7 @@ export function CreditAssessmentCard({ loanId, assessment }: { loanId: number; a
                   <tr><td>4. Rounded</td><td className="text-right">{money(steps.rounded)}</td></tr>
                   <tr>
                     <td>
-                      5. Product limit clamp{limits?.product && ` — ${limits.product} (${money(limits.product_min)} – ${money(limits.product_max)})`}
+                      5. Product limit clamp{limits?.product && ` - ${limits.product} (${money(limits.product_min)} – ${money(limits.product_max)})`}
                       {limits?.clamp_reason && <div><small className="text-danger">{limits.clamp_reason}</small></div>}
                     </td>
                     <td className="text-right">{limits?.clamped ? <Badge tone="warning">CLAMPED</Badge> : "No change"}</td>
@@ -318,14 +318,14 @@ export function CreditAssessmentCard({ loanId, assessment }: { loanId: number; a
           {excluded.length > 0 && (
             <Card title="Excluded Factors">
               <ul className="pl-3 mb-0">
-                {excluded.map((key) => <li key={key}><b>{humanize(key)}</b>{excludedReasons[key] ? ` — ${excludedReasons[key]}` : ""}</li>)}
+                {excluded.map((key) => <li key={key}><b>{humanize(key)}</b>{excludedReasons[key] ? ` - ${excludedReasons[key]}` : ""}</li>)}
               </ul>
               {limits?.role && <p className="mt-2 mb-0"><small className="text-muted">{limits.role}</small></p>}
             </Card>
           )}
 
           {(supporting.length > 0 || contributionTotal !== undefined) && (
-            <Card title={<>Customer Contribution <small className="text-muted">supporting evidence — does not raise the amount</small></>}>
+            <Card title={<>Customer Contribution <small className="text-muted">supporting evidence - does not raise the amount</small></>}>
               {contributionTotal !== undefined && <p className="mb-2">Total historical contribution to income: <b>TZS {money(contributionTotal)}</b></p>}
               {supporting.map((factor) => (
                 <div key={factor.key}>

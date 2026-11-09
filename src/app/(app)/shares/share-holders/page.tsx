@@ -49,7 +49,7 @@ export default function ShareHoldersSharesPage() {
             { key: "ownership_percent", header: "Ownership %", className: "text-right", render: (row) => percent(row.ownership_percent) },
             { key: "share_value", header: "Current Share Value", className: "text-right", render: (row) => money(row.share_value) },
             { key: "holding_value", header: "Holding Value", className: "text-right", render: (row) => money(row.holding_value) },
-            { key: "date_acquired", header: "Date Acquired", render: (row) => row.date_acquired ?? "—" },
+            { key: "date_acquired", header: "Date Acquired", render: (row) => row.date_acquired ?? "-" },
             { key: "status", header: "Status", render: (row) => <Badge tone={row.status === "active" ? "success" : "default"}>{row.status === "active" ? "ACTIVE" : "NO SHARES"}</Badge> },
             { key: "action", header: "Action", sortable: false, render: (row) => <Link href={`/shares/share-holders/${row.id}`} className="btn btn-sm btn-icon btn-info" title="Share profile"><i className="icon-eye" /></Link> },
           ]}

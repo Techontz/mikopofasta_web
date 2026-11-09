@@ -10,7 +10,7 @@ import { Loading } from "@/components/ui/Loading";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useApi } from "@/lib/hooks";
 
-/** Report → Portfolio & Risk → Age Analysis (Documents: 🎂 AGE ANALYSIS REPORT — 18–25, 26–35, 36–45, 46–60, 60+). */
+/** Report → Portfolio & Risk → Age Analysis (Documents: 🎂 AGE ANALYSIS REPORT - 18–25, 26–35, 36–45, 46–60, 60+). */
 export default function AgeAnalysisPage() {
   const [filters, setFilters] = useState<ReportFilters>({});
   const [filtering, setFiltering] = useState(false);

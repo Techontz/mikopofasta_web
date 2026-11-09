@@ -3,7 +3,7 @@
  * these helpers only show the user what a submission will do before it is sent.
  */
 
-/** "1,250" — share quantities are whole units. */
+/** "1,250" - share quantities are whole units. */
 export function sharesLabel(value: number | string | null | undefined): string {
   const shares = Number(value ?? 0);
   return Number.isFinite(shares) ? Math.trunc(shares).toLocaleString("en-US") : "0";

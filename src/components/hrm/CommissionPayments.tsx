@@ -70,7 +70,7 @@ const PAYING_ACCOUNTS = [
 /**
  * Commission payment flow of a closed month (spec §21 / §22 / §49). HR (payroll.approve) finalises the figures and requests
  * payment; Finance (payroll.pay) approves or rejects and pays on the chosen date from the chosen account. Negligence is recovered
- * from the payment (spec §23) — the column shows the expected deduction until the commission is paid. The API enforces rule 6:
+ * from the payment (spec §23) - the column shows the expected deduction until the commission is paid. The API enforces rule 6:
  * the HR requester and the employee receiving the commission cannot approve or pay it.
  */
 export function CommissionPayments({ period }: { period: string }) {
@@ -100,7 +100,7 @@ export function CommissionPayments({ period }: { period: string }) {
 
   return (
     <Card
-      title={`Commission Payments — ${money(data?.summary.total_net)} net (paid ${money(data?.summary.total_paid)})`}
+      title={`Commission Payments - ${money(data?.summary.total_net)} net (paid ${money(data?.summary.total_paid)})`}
       actions={
         <>
           {canPrepare && counts.finalize > 0 && (
@@ -141,9 +141,9 @@ export function CommissionPayments({ period }: { period: string }) {
         columns={[
           { key: "sn", header: "S/No.", render: (_, index) => `${index + 1}.`, sortable: false },
           { key: "employee", header: "Staff name", render: (row) => (<>{row.employee}{row.kind === "zone_manager" && <div className="small text-muted">Zone manager</div>}</>) },
-          { key: "branch", header: "Branch", render: (row) => row.branch ?? "—" },
-          { key: "commission_base", header: "Commission Base (Offset)", render: (row) => (row.commission_base === null ? "—" : `${money(row.commission_base)}${row.offset_amount ? ` (−${money(row.offset_amount)})` : ""}`) },
-          { key: "zone_allocation", header: "Zone Allocation", render: (row) => (row.zone_allocation === null ? "—" : money(row.zone_allocation)) },
+          { key: "branch", header: "Branch", render: (row) => row.branch ?? "-" },
+          { key: "commission_base", header: "Commission Base (Offset)", render: (row) => (row.commission_base === null ? "-" : `${money(row.commission_base)}${row.offset_amount ? ` (−${money(row.offset_amount)})` : ""}`) },
+          { key: "zone_allocation", header: "Zone Allocation", render: (row) => (row.zone_allocation === null ? "-" : money(row.zone_allocation)) },
           { key: "calculated_amount", header: "Commission", render: (row) => money(row.calculated_amount), value: (row) => row.calculated_amount },
           { key: "negligence_deduction", header: "Negligence", render: (row) => (<>{money(row.negligence_deduction)}{row.negligence_expected && row.negligence_deduction > 0 && <div className="small text-muted">expected</div>}</>), value: (row) => row.negligence_deduction },
           { key: "net_commission", header: "Net Commission", render: (row) => <b>{money(row.net_commission)}</b>, value: (row) => row.net_commission },
@@ -171,7 +171,7 @@ export function CommissionPayments({ period }: { period: string }) {
                   <button type="button" className="btn btn-sm btn-primary mr-1" disabled={busy} onClick={() => request.mutate({ ids: [row.id] })}>Request</button>
                 )}
                 {canDecide && row.status === "requested" && (row.can_approve ? (
-                  <button type="button" className="btn btn-sm btn-success mr-1" disabled={busy} onClick={async () => (await confirmAction("Approve this commission payment?", `${row.employee} — ${row.period_label}: net ${money(row.net_commission)}.`)) && approve.mutate({ ids: [row.id] })}>
+                  <button type="button" className="btn btn-sm btn-success mr-1" disabled={busy} onClick={async () => (await confirmAction("Approve this commission payment?", `${row.employee} - ${row.period_label}: net ${money(row.net_commission)}.`)) && approve.mutate({ ids: [row.id] })}>
                     <i className="icon-check" /> Approve
                   </button>
                 ) : row.approve_blocked_reason ? <BlockedApproveButton reason={row.approve_blocked_reason} /> : null)}

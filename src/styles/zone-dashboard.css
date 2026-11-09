@@ -1,5 +1,5 @@
 /*
- * Zone Manager dashboard (.zd-*): built on the Branch dashboard (.cd-*, .bd-*) — today's operations in one card, branch
+ * Zone Manager dashboard (.zd-*): built on the Branch dashboard (.cd-*, .bd-*) - today's operations in one card, branch
  * performance beside the approval queue, the TOTAL row on the brand red tint.
  */
 .zd-section { margin-bottom: var(--cd-gap); }

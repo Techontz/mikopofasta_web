@@ -56,7 +56,7 @@ type Tab = "delay" | "customers" | "patterns";
 const RATING_TONE: Record<string, BadgeTone> = { A: "success", B: "info", C: "warning", D: "danger" };
 const RATING_TEXT: Record<string, string> = { A: "Always on time", B: "Minor delays", C: "Risky", D: "Defaulter" };
 
-/** Report → Portfolio & Risk → Repayment Behaviour (Documents: ⏱️ REPAYMENT BEHAVIOR REPORT — DPD, average behaviour, rating, pattern). */
+/** Report → Portfolio & Risk → Repayment Behaviour (Documents: ⏱️ REPAYMENT BEHAVIOR REPORT - DPD, average behaviour, rating, pattern). */
 export default function BehaviourPage() {
   const [tab, setTab] = useState<Tab>("delay");
   const [filters, setFilters] = useState<ReportFilters>({});
@@ -119,7 +119,7 @@ export default function BehaviourPage() {
               { key: "paid_date", header: "Paid Date", render: (row) => row.paid_date ?? <Badge tone="danger">NOT PAID</Badge> },
               { key: "amount", header: "Instalment", render: (row) => money(row.amount) },
               { key: "delay_days", header: "Delay Days" },
-              { key: "bucket", header: "Bucket", value: (row) => row.bucket, render: (row) => `${row.bucket} — ${row.bucket_label}` },
+              { key: "bucket", header: "Bucket", value: (row) => row.bucket, render: (row) => `${row.bucket} - ${row.bucket_label}` },
             ]}
           />
         </Card>

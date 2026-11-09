@@ -128,7 +128,7 @@ export default function CrmCustomerPage() {
                 {item.follow_up_status && (
                   <small>
                     Follow-up: <Badge tone={FOLLOW_UP_TONE[item.follow_up_status]}>{item.follow_up_date}</Badge>
-                    {item.follow_up_notes && ` — ${item.follow_up_notes}`}
+                    {item.follow_up_notes && ` - ${item.follow_up_notes}`}
                   </small>
                 )}
               </li>

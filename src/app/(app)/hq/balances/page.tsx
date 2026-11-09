@@ -15,7 +15,7 @@ interface BalanceRow {
 }
 
 /**
- * Headquarters Account Balance — the same rows Finance gets behind the green card on the dashboard
+ * Headquarters Account Balance - the same rows Finance gets behind the green card on the dashboard
  * (HQ Account List), from the same API figures, so the page and the card can never disagree.
  */
 export default function HqBalancesPage() {

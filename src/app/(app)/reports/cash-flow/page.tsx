@@ -126,7 +126,7 @@ export default function MasterCashFlowPage() {
           </div>
           {data.suspense_held !== 0 && (
             <p className={styles.note}>
-              Cash held in accounts: {money(data.cash_held)} — of which {money(data.suspense_held)} is unallocated money in the Suspense account (not available cash).
+              Cash held in accounts: {money(data.cash_held)} - of which {money(data.suspense_held)} is unallocated money in the Suspense account (not available cash).
             </p>
           )}
 

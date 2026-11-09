@@ -4,7 +4,7 @@ export const BRAND_LOGO = "/assets/img/mkopa-credit-logo.png";
 export const BRAND_NAME = "M-Kopa Credit";
 
 /**
- * Brand palette — red, black and white — for dashboard charts, icon tiles and legends. The values are CSS variables
+ * Brand palette - red, black and white - for dashboard charts, icon tiles and legends. The values are CSS variables
  * (styles/credit-dashboard.css), so they follow the light and the dark theme.
  */
 export const BRAND = {

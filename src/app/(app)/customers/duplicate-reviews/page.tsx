@@ -161,7 +161,7 @@ export default function DuplicateReviewsPage() {
           <Loading inline />
         ) : (
           <>
-            <p><b>Applicant:</b> {detail.name} · {detail.phone} · NIDA {detail.nidaNumber ?? "—"} · {detail.branch}</p>
+            <p><b>Applicant:</b> {detail.name} · {detail.phone} · NIDA {detail.nidaNumber ?? "-"} · {detail.branch}</p>
             {detail.decisionReason && <p><b>Decision:</b> {detail.decisionReason} ({detail.decidedBy}, {formatDateTime(detail.decidedAt)})</p>}
             <div className="table-responsive">
               <table className="table table-sm mf-table">

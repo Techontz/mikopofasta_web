@@ -35,7 +35,7 @@ const DESCRIPTION = "HQ reserve → Investment RESERVE A/C";
  * branch RESERVE A/C is only a report of what the branch generated). Finance sends an amount of it to the Investment RESERVE
  * A/C shown on the Super Admin dashboard; it leaves the HQ reserve and is added to the Investment only when Super Admin,
  * Admin or a Shareholder (not the requester) approves. From there the owners send it on to the OPERATION PRINCIPAL
- * (/bank/reserve-to-principal) — reserve Finance has not sent yet can never be spent from that page.
+ * (/bank/reserve-to-principal) - reserve Finance has not sent yet can never be spent from that page.
  */
 export default function ReserveToInvestmentPage() {
   const { can } = useAuth();
@@ -82,8 +82,8 @@ export default function ReserveToInvestmentPage() {
             { key: "to", header: "To Account", value: () => "INVESTMENT RESERVE A/C", render: () => "INVESTMENT RESERVE A/C" },
             { key: "amount", header: "Amount", render: (row) => money(row.amount) },
             { key: "reference", header: "Reference", render: (row) => row.reference || "-" },
-            { key: "journal_reference", header: "Journal Ref", render: (row) => row.journal_reference ?? "—" },
-            { key: "employee", header: "Requested By", render: (row) => row.employee ?? "—" },
+            { key: "journal_reference", header: "Journal Ref", render: (row) => row.journal_reference ?? "-" },
+            { key: "employee", header: "Requested By", render: (row) => row.employee ?? "-" },
             { key: "transfer_date", header: "Date" },
             { key: "status", header: "Status", render: (row) => <ApprovalStatus row={row} /> },
             {

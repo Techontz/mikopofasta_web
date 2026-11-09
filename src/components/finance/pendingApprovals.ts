@@ -1,5 +1,5 @@
 /**
- * Pending Approvals (C6) — API shapes of GET approvals/pending and settings/approval-policies, and pure helpers.
+ * Pending Approvals (C6) - API shapes of GET approvals/pending and settings/approval-policies, and pure helpers.
  */
 
 /** One item waiting for a checker; `link` is the web page where it is approved. */
@@ -55,7 +55,7 @@ export function approvalState(row: Pick<PendingApprovalRow, "can_approve" | "app
   return { tone: "default", label: "VIEW ONLY", title: "You do not hold the approval permission for this step" };
 }
 
-/** Groups to display: those with pending items first (API order kept), then — when requested — the empty ones. */
+/** Groups to display: those with pending items first (API order kept), then - when requested - the empty ones. */
 export function visibleGroups(groups: PendingApprovalGroup[] | undefined, showEmpty: boolean): PendingApprovalGroup[] {
   const list = groups ?? [];
 

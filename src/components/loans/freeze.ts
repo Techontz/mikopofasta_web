@@ -95,7 +95,7 @@ export function formatFreezeUntil(value: string | null | undefined): string {
 
 /**
  * Seconds of freeze left, from server timestamps only (frozen_until − checked_at) minus the time elapsed on this
- * device since the response arrived — a wrong device clock never shows a customer as available.
+ * device since the response arrived - a wrong device clock never shows a customer as available.
  */
 export function remainingSeconds(freeze: Pick<CustomerFreeze, "frozen_until" | "checked_at">, elapsedMs = 0): number {
   if (!freeze.frozen_until) {

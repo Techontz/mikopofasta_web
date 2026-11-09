@@ -46,14 +46,14 @@ export function branchEligibilityBadge(branch: CommissionBranchStatus): Badgeabl
   return { tone: "danger", label: (branch.blocked_reason ?? "Blocked").toUpperCase() };
 }
 
-/** Status badges of the month: PERIOD NOT CLOSED, or CALCULATED / PREVIEW — NOT CALCULATED plus LOCKED. */
+/** Status badges of the month: PERIOD NOT CLOSED, or CALCULATED / PREVIEW - NOT CALCULATED plus LOCKED. */
 export function periodBadges(report: CommissionReportFlags): Badgeable[] {
   if (!report.period_closed) {
     return [{ tone: "danger", label: "PERIOD NOT CLOSED" }];
   }
   const declaredFirst = !report.calculated && report.allocation_status === "LOCKED_BY_DIVIDEND_DECLARATION";
   const badges: Badgeable[] = [
-    report.calculated ? { tone: "success", label: "CALCULATED" } : declaredFirst ? { tone: "danger", label: "NOT CALCULATED — DIVIDENDS DECLARED FIRST" } : { tone: "warning", label: "PREVIEW — NOT CALCULATED" },
+    report.calculated ? { tone: "success", label: "CALCULATED" } : declaredFirst ? { tone: "danger", label: "NOT CALCULATED - DIVIDENDS DECLARED FIRST" } : { tone: "warning", label: "PREVIEW - NOT CALCULATED" },
   ];
   if (report.allocation_status === "LOCKED_BY_DIVIDEND_DECLARATION") {
     badges.push({ tone: "info", label: "LOCKED BY DIVIDEND DECLARATION" });

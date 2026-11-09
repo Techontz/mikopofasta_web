@@ -121,7 +121,7 @@ export default function ShareHoldersPage() {
                 onSuccess: (result) => {
                   setForm(EMPTY_HOLDER);
                   setFormKey((key) => key + 1);
-                  showCredentials(result, name, `${result.message} — ${result.account?.message ?? ""}`);
+                  showCredentials(result, name, `${result.message} - ${result.account?.message ?? ""}`);
                 },
               });
             }}

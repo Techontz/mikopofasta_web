@@ -137,7 +137,7 @@ export function TellerCashCard() {
           rowKey={(row) => row.id}
           columns={[
             { key: "sn", header: "S/No.", render: (_, index) => `${index + 1}.`, sortable: false },
-            { key: "slip_number", header: "Slip / Receipt", render: (row) => <>{row.slip_number ?? "—"}{row.has_receipt && <a className="ml-1" href={backendUrl(`payments/reconciliation/${row.id}/receipt`)} target="_blank" rel="noopener noreferrer" title="View receipt"><i className="icon-paper-clip" /></a>}</> },
+            { key: "slip_number", header: "Slip / Receipt", render: (row) => <>{row.slip_number ?? "-"}{row.has_receipt && <a className="ml-1" href={backendUrl(`payments/reconciliation/${row.id}/receipt`)} target="_blank" rel="noopener noreferrer" title="View receipt"><i className="icon-paper-clip" /></a>}</> },
             { key: "bank_account", header: "Bank" },
             { key: "branch", header: "Branch Name" },
             { key: "amount", header: "Amount", render: (row) => money(row.amount) },
@@ -147,7 +147,7 @@ export function TellerCashCard() {
             {
               key: "statement_amount",
               header: "Bank Statement",
-              render: (row) => (row.statement_amount === null ? "—" : <span className={row.status === "mismatch" ? "text-danger" : ""}>{money(row.statement_amount)}{row.statement_reference ? ` (${row.statement_reference})` : ""}</span>),
+              render: (row) => (row.statement_amount === null ? "-" : <span className={row.status === "mismatch" ? "text-danger" : ""}>{money(row.statement_amount)}{row.statement_reference ? ` (${row.statement_reference})` : ""}</span>),
             },
             { key: "rejection_reason", header: "Comment" },
             {
@@ -195,7 +195,7 @@ export function TellerCashCard() {
               <input type="number" step="0.01" className="form-control" placeholder="Enter Amount" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required />
               <small className={Math.abs(Number(form.amount) - receiptsTotal(pending, form.payment_ids)) > 0.005 ? "text-danger" : "text-muted"}>
                 Selected receipts total: <b>TZS {money(receiptsTotal(pending, form.payment_ids))}</b>
-                {Math.abs(Number(form.amount) - receiptsTotal(pending, form.payment_ids)) > 0.005 ? " — the slip amount must equal this total" : ""}
+                {Math.abs(Number(form.amount) - receiptsTotal(pending, form.payment_ids)) > 0.005 ? " - the slip amount must equal this total" : ""}
               </small>
             </Field>
             <Field label="Deposit Date:" required className="col-md-6" error={action.fieldError("deposit_date")}>

@@ -188,7 +188,7 @@ export function Panel({ title, action, className, children }: { title: string; a
   );
 }
 
-/** "45 | TZS 72,000,000" — number of loans and what is still owed on them. */
+/** "45 | TZS 72,000,000" - number of loans and what is still owed on them. */
 function Pair({ count, amount }: { count: number; amount: number }) {
   return (
     <>
@@ -324,7 +324,7 @@ const APPROVAL_ICONS: Record<string, string> = {
   returned: "fa fa-exclamation-triangle",
 };
 
-/** The panel is a brief: only its first rows fit the card without a scroll — View All opens the full list. */
+/** The panel is a brief: only its first rows fit the card without a scroll - View All opens the full list. */
 const APPROVALS_SHOWN = 5;
 
 export function Approvals({ rows }: { rows: BranchDashboardData["approvals"] }) {

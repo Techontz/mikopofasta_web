@@ -60,8 +60,8 @@ export default function LoanDisbursedPage() {
             { key: "duration_label", header: "Restoration Type" },
             { key: "sessions", header: "Number of Repayment" },
             { key: "restoration", header: "Restoration", render: (row) => money(row.restoration) },
-            { key: "source", header: "Disbursement Source", value: (row) => (row.is_legacy_opening ? "Old system" : row.latest_disbursement?.source_label ?? ""), render: (row) => (row.is_legacy_opening ? <span className="badge badge-dark">OLD SYSTEM</span> : row.latest_disbursement?.source_label ?? "—") },
-            { key: "journal_reference", header: "Transaction Ref", value: (row) => row.latest_disbursement?.journal_reference ?? "", render: (row) => row.latest_disbursement?.journal_reference ?? "—" },
+            { key: "source", header: "Disbursement Source", value: (row) => (row.is_legacy_opening ? "Old system" : row.latest_disbursement?.source_label ?? ""), render: (row) => (row.is_legacy_opening ? <span className="badge badge-dark">OLD SYSTEM</span> : row.latest_disbursement?.source_label ?? "-") },
+            { key: "journal_reference", header: "Transaction Ref", value: (row) => row.latest_disbursement?.journal_reference ?? "", render: (row) => row.latest_disbursement?.journal_reference ?? "-" },
             { key: "withdrawn_at", header: "Date" },
             { key: "status_label", header: "Status", render: (row) => <span className={`badge badge-${row.status_badge}`}>{row.status_label}{row.days_past_due > 0 ? ` (${row.days_past_due} DPD)` : ""}</span> },
             {
@@ -80,7 +80,7 @@ export default function LoanDisbursedPage() {
         />
       </Card>
 
-      <Modal open={scheduleOf !== null} onClose={() => setScheduleOf(null)} title={`Repayment schedule — ${scheduleOf?.customer_name ?? ""}`} size="lg">
+      <Modal open={scheduleOf !== null} onClose={() => setScheduleOf(null)} title={`Repayment schedule - ${scheduleOf?.customer_name ?? ""}`} size="lg">
         <DataTable
           rows={detail?.loan.id === scheduleOf?.id ? detail?.schedules : undefined}
           loading={detail?.loan.id !== scheduleOf?.id}

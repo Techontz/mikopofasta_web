@@ -191,12 +191,12 @@ export default function TellerCustomerPage() {
                     <td>{money(data?.cashbook.deposit)}</td>
                     <td>{money(data?.cashbook.withdrawal)}</td>
                     <td><b>{money(data?.cashbook.closing)}</b></td>
-                    <td title="Teller cash receipts not yet confirmed by Finance — not included in Closing">{money(data?.cashbook.pending_cash)}</td>
+                    <td title="Teller cash receipts not yet confirmed by Finance - not included in Closing">{money(data?.cashbook.pending_cash)}</td>
                   </tr>
                 </tbody>
               </table>
             </div>
-            <small className="text-muted">PRINCIPAL A/C ledger movements today — the HQ lending cash moved by this branch&apos;s loans. Pending cash (teller receipts awaiting Finance confirmation) is not part of the closing balance.</small>
+            <small className="text-muted">PRINCIPAL A/C ledger movements today - the HQ lending cash moved by this branch&apos;s loans. Pending cash (teller receipts awaiting Finance confirmation) is not part of the closing balance.</small>
           </Card>
         </div>
       </div>
@@ -309,8 +309,8 @@ export default function TellerCustomerPage() {
             <div className="col-md-12 m-t-10">
               <small className="text-muted">
                 {data.accepts_recovery ? "Written-off loan: the money becomes a recovery (Principal → Penalty → Interest → Insurance) once Finance confirms it." : `Principal ${money(data.outstanding?.principal)} · Penalty ${money(data.outstanding?.penalty)} · Interest ${money(data.outstanding?.interest)}`}
-                {" — "}
-                {nonCash ? `${form.p_method}` : "CASH"}: held as PENDING VERIFICATION until it is banked on a deposit slip (Teller → Bank Deposit) and Finance verifies the slip — then the loan is reduced.
+                {" - "}
+                {nonCash ? `${form.p_method}` : "CASH"}: held as PENDING VERIFICATION until it is banked on a deposit slip (Teller → Bank Deposit) and Finance verifies the slip - then the loan is reduced.
               </small>
             </div>
           </div>

@@ -1,6 +1,6 @@
 /**
  * HRM → All Active Staff row actions (live admin/all_employee): View, Block/Un Block, Privilege, Delete, Reject,
- * Reset password — in the live order, filtered by the signed-in user's permissions.
+ * Reset password - in the live order, filtered by the signed-in user's permissions.
  */
 
 export type StaffRowActionKey = "view" | "block" | "unblock" | "privileges" | "delete" | "reject" | "reset-password";
@@ -109,7 +109,7 @@ export function privilegeRows(groups: PrivilegeGroup[]): PrivilegeRow[] {
   return groups.flatMap((group) => group.items.map((item) => ({ ...item, group: group.key, groupLabel: group.label })));
 }
 
-/** Items the employee holds at least partly — the "Privileges For (name)" table. */
+/** Items the employee holds at least partly - the "Privileges For (name)" table. */
 export function assignedPrivilegeRows(groups: PrivilegeGroup[], permissions: string[]): PrivilegeRow[] {
   return privilegeRows(groups).filter((item) => privilegeItemStatus(item, permissions).status !== "none");
 }

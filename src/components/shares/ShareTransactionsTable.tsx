@@ -51,19 +51,19 @@ export function ShareTransactionsTable({ rows, loading, compact = false, pageSiz
         ...(compact
           ? []
           : [
-              { key: "total_amount", header: "Amount", className: "text-right", render: (row: ShareTransaction) => (row.total_amount === null ? "—" : money(row.total_amount)) },
+              { key: "total_amount", header: "Amount", className: "text-right", render: (row: ShareTransaction) => (row.total_amount === null ? "-" : money(row.total_amount)) },
               {
                 key: "payment_treatment",
                 header: "Accounting",
                 render: (row: ShareTransaction) => (
                   <small>
-                    {row.payment_treatment_label ?? "—"}
+                    {row.payment_treatment_label ?? "-"}
                     {row.receiving_account && <><br />{row.receiving_account}</>}
                   </small>
                 ),
               },
-              { key: "journal_reference", header: "Journal Ref", render: (row: ShareTransaction) => row.journal_reference ?? "—" },
-              { key: "performed_by", header: "By", render: (row: ShareTransaction) => row.performed_by ?? "—" },
+              { key: "journal_reference", header: "Journal Ref", render: (row: ShareTransaction) => row.journal_reference ?? "-" },
+              { key: "performed_by", header: "By", render: (row: ShareTransaction) => row.performed_by ?? "-" },
             ]),
         {
           key: "status",

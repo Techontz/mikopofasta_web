@@ -109,7 +109,7 @@ export function LoanSecurities({ detail, editable }: { detail: LoanDetail; edita
             },
           ]}
         />
-        <p className="mb-0"><b>General collateral Attachment: </b>{detail.collateral_attachment ? <a href={detail.collateral_attachment} target="_blank" rel="noreferrer">View attachment</a> : "—"}</p>
+        <p className="mb-0"><b>General collateral Attachment: </b>{detail.collateral_attachment ? <a href={detail.collateral_attachment} target="_blank" rel="noreferrer">View attachment</a> : "-"}</p>
       </Card>
 
       {guarantorMode && (

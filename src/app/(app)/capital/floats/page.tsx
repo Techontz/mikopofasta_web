@@ -35,7 +35,7 @@ const EMPTY = { amount: "", from_account: "", bank_account_id: "" };
 const sourceKey = (source: FloatSource) => `${source.value}:${source.bank_account_id ?? ""}`;
 
 /**
- * Transfer Float Form — company money → the HQ PRINCIPAL A/C. The money is taken from the account chosen here (Company A/C,
+ * Transfer Float Form - company money → the HQ PRINCIPAL A/C. The money is taken from the account chosen here (Company A/C,
  * a bank account or the Investment RESERVE A/C); assets are never a source and a branch is never a destination: HQ/Finance
  * funds and disburses loans. Rule 6: the float is requested as PENDING and posted when another authorised user approves it.
  */
@@ -74,7 +74,7 @@ export default function CompanyFloatPage() {
               >
                 <option value="">---Select Account---</option>
                 {sources.map((source) => (
-                  <option key={sourceKey(source)} value={sourceKey(source)}>{source.label} — {money(source.balance)}</option>
+                  <option key={sourceKey(source)} value={sourceKey(source)}>{source.label} - {money(source.balance)}</option>
                 ))}
               </select>
               {selected && <small className="text-muted">AVAILABLE: {money(selected.balance)}</small>}

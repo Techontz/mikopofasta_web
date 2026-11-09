@@ -2,8 +2,8 @@
  * Payload of the Credit Assessment Engine (api: App\Services\Credit\CreditAssessment, spec §36 – §44, §63).
  *
  * Two shapes reach the web:
- *  - a PREVIEW (`stored: false`) — CreditAssessment::for(), every panel at the top level, no `id` / `assessed_by`;
- *  - a STORED snapshot (`stored: true`) — CreditAssessment::present(), which flattens loan_assessments.analysis back to
+ *  - a PREVIEW (`stored: false`) - CreditAssessment::for(), every panel at the top level, no `id` / `assessed_by`;
+ *  - a STORED snapshot (`stored: true`) - CreditAssessment::present(), which flattens loan_assessments.analysis back to
  *    the top level. A snapshot's analysis panels can be missing (an older row), so every panel is optional here.
  */
 
@@ -115,7 +115,7 @@ export interface CreditSummary {
 }
 
 export interface CreditAssessment {
-  /** loan_assessments.id — stored snapshots only */
+  /** loan_assessments.id - stored snapshots only */
   id?: number;
   stored: boolean;
   loan_id: number;

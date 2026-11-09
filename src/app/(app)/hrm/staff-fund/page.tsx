@@ -16,7 +16,7 @@ import { useAction, useApi } from "@/lib/hooks";
 
 /**
  * Spec §25: users without payroll.pay / reports.financial (HR) receive only `contributions`, `total_benefit_record` and
- * `members` — the Fund Account cash, statement and movements are Finance's and are hidden for them.
+ * `members` - the Fund Account cash, statement and movements are Finance's and are hidden for them.
  */
 interface FundReport {
   balance?: number;

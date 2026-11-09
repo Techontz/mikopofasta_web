@@ -46,11 +46,11 @@ export default function ShareProfilePage() {
                 <table className="table table-sm mb-0">
                   <tbody>
                     <tr><th>Name</th><td>{holder.name}</td></tr>
-                    <tr><th>Phone</th><td>{holder.mobile ?? "—"}</td></tr>
-                    <tr><th>Email</th><td>{holder.email ?? "—"}</td></tr>
-                    <tr><th>Gender</th><td>{holder.gender ?? "—"}</td></tr>
-                    <tr><th>Date of Birth</th><td>{holder.date_of_birth ?? "—"}</td></tr>
-                    <tr><th>Date Acquired</th><td>{data.holding.date_acquired ?? "—"}</td></tr>
+                    <tr><th>Phone</th><td>{holder.mobile ?? "-"}</td></tr>
+                    <tr><th>Email</th><td>{holder.email ?? "-"}</td></tr>
+                    <tr><th>Gender</th><td>{holder.gender ?? "-"}</td></tr>
+                    <tr><th>Date of Birth</th><td>{holder.date_of_birth ?? "-"}</td></tr>
+                    <tr><th>Date Acquired</th><td>{data.holding.date_acquired ?? "-"}</td></tr>
                   </tbody>
                 </table>
               </Card>
@@ -98,7 +98,7 @@ export default function ShareProfilePage() {
           </Card>
 
           {data.can_view_contributions && data.contributions && (
-            <Card title={`Capital Contribution History — total ${money(data.total_contributed)}`}>
+            <Card title={`Capital Contribution History - total ${money(data.total_contributed)}`}>
               {data.contribution_breakdown && (
                 <SummaryTiles
                   items={[
@@ -128,11 +128,11 @@ export default function ShareProfilePage() {
                       </>
                     ),
                   },
-                  { key: "receiving_account_label", header: "Receiving Account", render: (row) => row.receiving_account_label ?? "—" },
-                  { key: "receipt_number", header: "Receipt No", render: (row) => row.receipt_number || "—" },
-                  { key: "journal_reference", header: "Journal Ref", render: (row) => row.journal_reference ?? "—" },
+                  { key: "receiving_account_label", header: "Receiving Account", render: (row) => row.receiving_account_label ?? "-" },
+                  { key: "receipt_number", header: "Receipt No", render: (row) => row.receipt_number || "-" },
+                  { key: "journal_reference", header: "Journal Ref", render: (row) => row.journal_reference ?? "-" },
                   { key: "share_transaction_reference", header: "Share Transaction", render: (row) => row.share_transaction_reference ?? "Not linked" },
-                  { key: "recorded_by", header: "Recorded By", render: (row) => row.recorded_by ?? "—" },
+                  { key: "recorded_by", header: "Recorded By", render: (row) => row.recorded_by ?? "-" },
                 ]}
               />
               <small className="text-muted">Contributions are financial records. Ownership comes from the shares above.</small>

@@ -237,7 +237,7 @@ export interface LoanDetail {
   customer_freeze: CustomerFreeze;
   /** normal eligibility rules of the loan's customer (LoanWorkflow::borrowingStatus()['eligible']) */
   customer_eligible: boolean;
-  /** CreditAssessment::forDisplay() — latest stored snapshot or an unstored preview; null when neither applies (§37) */
+  /** CreditAssessment::forDisplay() - latest stored snapshot or an unstored preview; null when neither applies (§37) */
   credit_assessment?: CreditAssessment | null;
 }
 

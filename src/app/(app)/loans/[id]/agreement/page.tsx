@@ -45,7 +45,7 @@ export default function LoanAgreementPage() {
           <>
             <div className={`alert ${data.agreement.uploaded_file ? "alert-success" : "alert-warning"} mf-no-print`}>
               {data.agreement.uploaded_file
-                ? <>Signed agreement uploaded {data.agreement.uploaded_at} by {data.agreement.uploaded_by ?? "—"}.</>
+                ? <>Signed agreement uploaded {data.agreement.uploaded_at} by {data.agreement.uploaded_by ?? "-"}.</>
                 : <>Print this agreement, let the customer fill the blank lines and sign it with the guarantors, then upload the signed PDF. The credit officer cannot approve the loan until it is uploaded.</>}
             </div>
             <LoanAgreementDocument data={data} />

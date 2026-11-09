@@ -55,7 +55,7 @@ export default function CustomerUpdatesPage() {
               render: (row) => (
                 <ul className="list-unstyled mb-0">
                   {row.changes.map((change) => (
-                    <li key={change.field}><b>{change.field}:</b> <span className="text-muted">{change.old || "—"}</span> → <span>{change.new || "—"}</span></li>
+                    <li key={change.field}><b>{change.field}:</b> <span className="text-muted">{change.old || "-"}</span> → <span>{change.new || "-"}</span></li>
                   ))}
                 </ul>
               ),

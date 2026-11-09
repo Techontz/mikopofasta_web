@@ -7,7 +7,7 @@ import { BRAND_LOGO, BRAND_NAME } from "@/lib/brand";
  * Breadcrumb row under the top bar (home icon / crumb / crumb), with optional right-side content.
  *
  * In print / PDF (enhancement §10.9) the breadcrumb is replaced by the report header: company logo, report name (the last
- * crumb), when it was generated, then `printDetails` — the period, filters and key figures the page passes.
+ * crumb), when it was generated, then `printDetails` - the period, filters and key figures the page passes.
  */
 export function PageHeader({ crumbs, right, printDetails }: { crumbs: string[]; right?: ReactNode; printDetails?: ReactNode }) {
   return (

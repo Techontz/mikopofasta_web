@@ -55,7 +55,7 @@ const STATUSES = [
 
 const STATUS_TONES: Record<string, BadgeTone> = { pending: "warning", approved: "info", recovering: "primary", recovered: "success", rejected: "danger" };
 
-const RULE = "Recovered from commission only — never from salary; recovered money returns to the Principal account.";
+const RULE = "Recovered from commission only - never from salary; recovered money returns to the Principal account.";
 
 const EMPTY = { blanch_id: "", empl_id: "", amount: "", reason: "" };
 
@@ -109,7 +109,7 @@ export default function NegligenceDeductionsPage() {
           columns={[
             { key: "sn", header: "S/No.", render: (_, index) => `${index + 1}.`, sortable: false },
             { key: "employee", header: "Staff name" },
-            { key: "branch", header: "Branch", render: (row) => row.branch ?? "—" },
+            { key: "branch", header: "Branch", render: (row) => row.branch ?? "-" },
             { key: "amount", header: "Amount", render: (row) => money(row.amount), value: (row) => row.amount },
             {
               key: "recovered_amount",
@@ -132,8 +132,8 @@ export default function NegligenceDeductionsPage() {
               ),
             },
             { key: "reason", header: "Reason", render: (row) => <span style={{ whiteSpace: "normal" }}>{row.reason}</span> },
-            { key: "created_by", header: "Created By", render: (row) => <>{row.created_by ?? "—"}<div className="small text-muted">{row.created_at}</div></> },
-            { key: "approved_by", header: "Approved By", render: (row) => (row.approved_by ? <>{row.approved_by}<div className="small text-muted">{row.approved_at}</div></> : "—") },
+            { key: "created_by", header: "Created By", render: (row) => <>{row.created_by ?? "-"}<div className="small text-muted">{row.created_at}</div></> },
+            { key: "approved_by", header: "Approved By", render: (row) => (row.approved_by ? <>{row.approved_by}<div className="small text-muted">{row.approved_at}</div></> : "-") },
             ...(canDecide
               ? [{
                   key: "action",
@@ -173,7 +173,7 @@ export default function NegligenceDeductionsPage() {
         <small className="text-muted">Sent to Finance for approval. {RULE}</small>
       </Modal>
 
-      <Modal open={history !== null} onClose={() => setHistory(null)} title={`Recoveries — ${history?.employee ?? ""}`} size="lg">
+      <Modal open={history !== null} onClose={() => setHistory(null)} title={`Recoveries - ${history?.employee ?? ""}`} size="lg">
         <DataTable
           rows={history?.recoveries}
           rowKey={(row) => `${row.period}-${row.salary_payment_id ?? ""}`}

@@ -20,7 +20,7 @@ interface SelectBoxProps {
   value?: string | number | null;
   onChange: (value: string | null) => void;
   options?: (Option | OptionGroup)[];
-  /** API path returning { data: Option[] } — used for dependent / remote dropdowns. */
+  /** API path returning { data: Option[] } - used for dependent / remote dropdowns. */
   optionsUrl?: string;
   query?: Query;
   placeholder?: string;

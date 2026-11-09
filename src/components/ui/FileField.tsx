@@ -51,7 +51,7 @@ export function FileField({ file, onChange, accept, extensions, maxMb, placehold
         </div>
         <input ref={input} id={inputId} type="file" accept={accept} className="d-none" onChange={(event) => { pick(event.target.files?.[0]); event.target.value = ""; }} />
       </div>
-      <div className="mf-file-hint">{extensions.join(", ").toUpperCase()} — max {maxMb} MB</div>
+      <div className="mf-file-hint">{extensions.join(", ").toUpperCase()} - max {maxMb} MB</div>
       {(localError || error) && <div className="field-error">{localError ?? error}</div>}
     </>
   );

@@ -98,7 +98,7 @@ interface Step2Props {
   masterData: MasterData | undefined;
 }
 
-/** Step 2 — Customer Details: the type's card, the Account Number section and, when required, guarantors. */
+/** Step 2 - Customer Details: the type's card, the Account Number section and, when required, guarantors. */
 export function Step2Details({ form, update, errors, profile, type, fields, masterData }: Step2Props) {
   const providers = masterData?.["mobile-money-providers"] ?? [];
   const banks = masterData?.["banks"] ?? [];

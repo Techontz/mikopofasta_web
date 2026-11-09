@@ -21,7 +21,7 @@ const MODULES: { value: "" | LegacyModule; label: string }[] = [
 ];
 
 /**
- * Legacy Imports: every old-system file uploaded (Loan File, Penalty List, Active Salary Advance), with its audit record —
+ * Legacy Imports: every old-system file uploaded (Loan File, Penalty List, Active Salary Advance), with its audit record -
  * who uploaded, submitted, approved, rejected or rolled it back and when, and its counts and totals.
  */
 export default function LegacyImportsPage() {
@@ -54,7 +54,7 @@ export default function LegacyImportsPage() {
         ) : (
           <>
             <p className="text-muted small">
-              Opening balances from the old system: the Loan File becomes outstanding principal, the Penalty List outstanding penalty and the Active Salary Advance list outstanding salary advance — three separate debts. Files are uploaded from the Export File / Import File buttons of each module and go live only when another authorised user approves them.
+              Opening balances from the old system: the Loan File becomes outstanding principal, the Penalty List outstanding penalty and the Active Salary Advance list outstanding salary advance - three separate debts. Files are uploaded from the Export File / Import File buttons of each module and go live only when another authorised user approves them.
             </p>
             <DataTable
               rows={imports}
@@ -80,7 +80,7 @@ export default function LegacyImportsPage() {
                   render: (row) =>
                     row.approved_by ? <>{row.approved_by}<br /><small className="text-muted">{row.approved_at}</small></>
                     : row.rejected_by ? <>{row.rejected_by}<br /><small className="text-muted">{row.rejection_reason}</small></>
-                    : "—",
+                    : "-",
                 },
               ]}
             />

@@ -37,7 +37,7 @@ interface HistoricalPaymentsReport {
 
 /**
  * Report → File → Historical Payments: the month-by-month amounts behind the historical rows of the File report
- * (e.g. the Kakonko 2022 report), one line per customer row and month. Figures as printed — not repayments.
+ * (e.g. the Kakonko 2022 report), one line per customer row and month. Figures as printed - not repayments.
  */
 export default function FileHistoricalPaymentsPage() {
   return (
@@ -58,7 +58,7 @@ function HistoricalPayments() {
       <PageHeader crumbs={["Report", "File", "Historical Payments"]} />
 
       <div className="alert alert-info">
-        Amounts paid per month as printed on imported historical File reports. They are records carried over from the old system — not receipts, repayments or
+        Amounts paid per month as printed on imported historical File reports. They are records carried over from the old system - not receipts, repayments or
         cash in this system.
       </div>
 

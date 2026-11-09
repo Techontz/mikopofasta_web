@@ -48,7 +48,7 @@ interface FileReport {
 /**
  * Report → File (live admin/collection_data): loans with collections in a year, one column per collection month.
  * Rows of imported historical File reports (e.g. Kakonko 2022) are listed with their printed S/No. and a source badge;
- * they are records only — no loan, cash or ledger entry stands behind them.
+ * they are records only - no loan, cash or ledger entry stands behind them.
  */
 export default function FileReportPage() {
   const [filters, setFilters] = useState<ReportFilters>({});
@@ -94,7 +94,7 @@ export default function FileReportPage() {
       {historical.map((source) => (
         <div key={source.id} className="alert alert-info">
           <strong>Historical records:</strong> {source.records} rows from {source.title} ({source.source_document}), branch {source.branch}. Imported from the
-          old system as records only — they are not loans, repayments or cash in this system and do not change any balance.{" "}
+          old system as records only - they are not loans, repayments or cash in this system and do not change any balance.{" "}
           <Link href={`/reports/file/historical-payments?year=${source.year}`}>Monthly payment history</Link>
           {source.notes && <div className="small mt-1">{source.notes}</div>}
         </div>

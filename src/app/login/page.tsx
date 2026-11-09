@@ -55,7 +55,7 @@ export default async function LoginPage() {
           <img src="/assets/img/login-panel.png" alt="Empowering Communities Through Finance" className={styles.panel} />
           <div className={styles.stats}>
             <div className={styles.stat}>
-              <div className={styles.statValue}>{stats ? stats.active_loans.toLocaleString("en-US") : "—"}</div>
+              <div className={styles.statValue}>{stats ? stats.active_loans.toLocaleString("en-US") : "-"}</div>
               <div className={styles.statLabel}>ACTIVE LOANS</div>
             </div>
             <div className={`${styles.stat} ${styles.statMiddle}`}>
@@ -66,13 +66,13 @@ export default async function LoginPage() {
                     <span className={styles.statPercent}>%</span>
                   </>
                 ) : (
-                  "—"
+                  "-"
                 )}
               </div>
               <div className={styles.statLabel}>ON-TIME REPAYMENT</div>
             </div>
             <div className={styles.stat}>
-              <div className={`${styles.statValue} ${styles.statRed}`}>{stats ? stats.branches.toLocaleString("en-US") : "—"}</div>
+              <div className={`${styles.statValue} ${styles.statRed}`}>{stats ? stats.branches.toLocaleString("en-US") : "-"}</div>
               <div className={styles.statLabel}>BRANCHES</div>
             </div>
           </div>

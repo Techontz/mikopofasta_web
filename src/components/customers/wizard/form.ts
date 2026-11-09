@@ -142,7 +142,7 @@ export function emptyGuarantor(): GuarantorRow {
   return { name: "", phone: "", nidaNumber: "", relationship: "spouse", address: "", occupation: "" };
 }
 
-/** Whole years since the date of birth, or null. Display only — never submitted. */
+/** Whole years since the date of birth, or null. Display only - never submitted. */
 export function ageFrom(dob: string, today: Date = new Date()): number | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dob);
   if (!match) {

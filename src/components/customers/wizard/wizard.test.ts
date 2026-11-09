@@ -157,7 +157,7 @@ describe("Step 1 validation messages", () => {
       gender: "Gender is required.",
       dob: MESSAGES.dobRequired,
       phone: "Phone Number is required.",
-      idTypeId: "An identity document is required — choose the ID type and enter the number shown on it.",
+      idTypeId: "An identity document is required - choose the ID type and enter the number shown on it.",
       regionId: "Region is required.",
       districtId: "District must be selected.",
     });
@@ -173,7 +173,7 @@ describe("Step 1 validation messages", () => {
     const strict = profile({ requiresMaritalStatus: true, requiresCustomerCategory: true, minNextOfKin: 1 });
     const errors = validateStep1(validStep1(), strict, today);
     expect(errors.maritalStatusId).toBe("Marital status is required for this account type.");
-    expect(errors.customerCategoryId).toBe("A customer type is required for this account type — it decides which loan products the customer may take.");
+    expect(errors.customerCategoryId).toBe("A customer type is required for this account type - it decides which loan products the customer may take.");
     expect(errors.nextOfKin).toBe("At least 1 next of kin is required for this account type.");
     expect(nextOfKinMinimum(2)).toBe("At least 2 next of kin are required for this account type.");
     expect(guarantorMinimum(1)).toBe("At least 1 guarantor is required for this account type.");

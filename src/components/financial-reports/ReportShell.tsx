@@ -23,7 +23,7 @@ export interface ReportFilter {
   to: string;
 }
 
-/** Validated categorical slots (blue, orange, aqua) — fixed order. */
+/** Validated categorical slots (blue, orange, aqua) - fixed order. */
 export const SERIES = ["#2a78d6", "#eb6834", "#1baf7a"] as const;
 
 export function monthStartIso(): string {

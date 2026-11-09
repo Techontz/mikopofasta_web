@@ -76,8 +76,8 @@ export default function ReserveToPrincipalPage() {
             { key: "to", header: "To Account", value: () => "OPERATION PRINCIPAL", render: () => "OPERATION PRINCIPAL" },
             { key: "amount", header: "Amount", render: (row) => money(row.amount) },
             { key: "reference", header: "Reference", render: (row) => row.reference || "-" },
-            { key: "journal_reference", header: "Journal Ref", render: (row) => row.journal_reference ?? "—" },
-            { key: "employee", header: "Requested By", render: (row) => row.employee ?? "—" },
+            { key: "journal_reference", header: "Journal Ref", render: (row) => row.journal_reference ?? "-" },
+            { key: "employee", header: "Requested By", render: (row) => row.employee ?? "-" },
             { key: "transfer_date", header: "Date" },
             { key: "status", header: "Status", render: (row) => <ApprovalStatus row={row} /> },
             {
@@ -111,7 +111,7 @@ export default function ReserveToPrincipalPage() {
           </Field>
           <div className="col-12">
             <small className="text-muted">
-              Investment RESERVE A/C available: {money(data?.investment_reserve_balance)} — only reserve Finance has already sent to the Investment can be moved on. Only Super Admin, Admin or a Shareholder can approve it (never the person who requested it). On approval the amount leaves the Investment RESERVE A/C and is added to the OPERATION PRINCIPAL.
+              Investment RESERVE A/C available: {money(data?.investment_reserve_balance)} - only reserve Finance has already sent to the Investment can be moved on. Only Super Admin, Admin or a Shareholder can approve it (never the person who requested it). On approval the amount leaves the Investment RESERVE A/C and is added to the OPERATION PRINCIPAL.
             </small>
           </div>
         </div>

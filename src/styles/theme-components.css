@@ -37,7 +37,7 @@
 :root[data-theme="dark"] .form-check-label, :root[data-theme="dark"] .fancy-checkbox span { color: var(--mf-text); }
 :root[data-theme="dark"] input[type="checkbox"], :root[data-theme="dark"] input[type="radio"] { accent-color: var(--mf-blue); }
 /* Native date/time pickers: force the calendar/clock glyph to near-white (brightness(0) first, so it no longer depends on whether
-   color-scheme already lightened it — inverting an already light glyph made it dark and invisible). */
+   color-scheme already lightened it - inverting an already light glyph made it dark and invisible). */
 :root[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator,
 :root[data-theme="dark"] input[type="month"]::-webkit-calendar-picker-indicator,
 :root[data-theme="dark"] input[type="week"]::-webkit-calendar-picker-indicator,

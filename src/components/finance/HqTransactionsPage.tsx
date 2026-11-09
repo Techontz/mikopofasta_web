@@ -28,7 +28,7 @@ const EMPTY: TransactionForm = { from_account: "", to_account: "", amount: "", c
 
 /**
  * An HQ Account List row Finance can send from. `pairs_with` is the shareholders' account of the same name, which
- * choosing this row fills the To box with — Finance can still pick another one, unless the row is `locked` (RESERVE and
+ * choosing this row fills the To box with - Finance can still pick another one, unless the row is `locked` (RESERVE and
  * DIVIDEND may go to their pair and nowhere else), when the To box is fixed to it.
  */
 interface SourceOption {

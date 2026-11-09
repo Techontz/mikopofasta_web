@@ -112,7 +112,7 @@ export default function MandatesPage() {
         </div>
       </Card>
 
-      <Card title={`Paid — ${periodLabel(filter)}`}>
+      <Card title={`Paid - ${periodLabel(filter)}`}>
         <DataTable
           rows={data?.paid_rows}
           rowKey={(row) => row.id}
@@ -162,7 +162,7 @@ export default function MandatesPage() {
             { key: "bank_name", header: "Bank" },
             { key: "mandate_reference", header: "Mandate Reference" },
             { key: "status", header: "Status", render: (row) => row.status.toUpperCase() },
-            { key: "cancellation_status", header: "Cancellation", render: (row) => (row.cancellation_status ? `${row.cancellation_status.toUpperCase()}${row.cancellation_reference ? ` · ${row.cancellation_reference}` : ""}` : "—") },
+            { key: "cancellation_status", header: "Cancellation", render: (row) => (row.cancellation_status ? `${row.cancellation_status.toUpperCase()}${row.cancellation_reference ? ` · ${row.cancellation_reference}` : ""}` : "-") },
             {
               key: "action",
               header: "Action",

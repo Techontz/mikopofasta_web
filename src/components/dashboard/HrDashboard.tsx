@@ -194,21 +194,21 @@ function Body({ data }: { data: HrDashboardData }) {
           viewAll="/hrm/staff-loans"
           headings={["Staff Name", "Request Type", "Amount (TZS)", "Date", "Status"]}
           rows={data.pending}
-          cells={(row) => [row.staff ?? "—", row.type_label, row.amount > 0 ? money(row.amount) : "—", row.date]}
+          cells={(row) => [row.staff ?? "-", row.type_label, row.amount > 0 ? money(row.amount) : "-", row.date]}
         />
         <RequestTable
           title="Pending Allowances"
           viewAll="/hrm/allowances"
           headings={["Staff Name", "Reason", "Amount (TZS)", "Status"]}
           rows={allowances}
-          cells={(row) => [row.staff ?? "—", row.detail ?? "—", money(row.amount)]}
+          cells={(row) => [row.staff ?? "-", row.detail ?? "-", money(row.amount)]}
         />
         <RequestTable
           title="Pending Benefits Claims"
           viewAll="/hrm/staff-fund"
           headings={["Staff Name", "Reason", "Amount (TZS)", "Status"]}
           rows={claims}
-          cells={(row) => [row.staff ?? "—", row.detail ?? "—", money(row.amount)]}
+          cells={(row) => [row.staff ?? "-", row.detail ?? "-", money(row.amount)]}
         />
       </div>
 
@@ -229,7 +229,7 @@ function StatCard({ icon, tone, title, value, change, note, href }: { icon: stri
         ) : (
           <div className="hd-stat-note">
             {change === null || change === undefined ? (
-              <span className="hd-change">—</span>
+              <span className="hd-change">-</span>
             ) : (
               <span className={`hd-change ${change >= 0 ? "up" : "down"}`}>
                 <i className={`fa fa-arrow-${change >= 0 ? "up" : "down"}`} /> {Math.abs(change).toFixed(1)}%

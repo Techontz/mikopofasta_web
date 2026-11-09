@@ -1,12 +1,12 @@
 import type { BadgeTone } from "@/components/ui/Badge";
 import { money } from "@/lib/format";
 
-/** Risk bands of config/credit.php — used when a stored snapshot carries no `risk_band_label`. */
+/** Risk bands of config/credit.php - used when a stored snapshot carries no `risk_band_label`. */
 const BAND_LABELS: Record<string, string> = { low: "Low risk", moderate: "Moderate risk", elevated: "Elevated risk", high: "High risk" };
 const BAND_TONES: Record<string, BadgeTone> = { low: "success", moderate: "info", elevated: "warning", high: "danger" };
 
 export function riskBandLabel(key: string | null | undefined, label?: string | null): string {
-  return label || (key ? BAND_LABELS[key] ?? humanize(key) : "—");
+  return label || (key ? BAND_LABELS[key] ?? humanize(key) : "-");
 }
 
 export function riskBandTone(key: string | null | undefined): BadgeTone {
@@ -26,7 +26,7 @@ export function humanize(key: string): string {
 /** A 0 – 1 share as "42.5%". */
 export function ratio(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(Number(value))) {
-    return "—";
+    return "-";
   }
   return `${Math.round(Number(value) * 1000) / 10}%`;
 }
@@ -41,11 +41,11 @@ export function isMoneyKey(key: string): boolean {
 
 /**
  * One evidence figure as the officer reads it: money-looking keys as "1,858,000", other numbers with at most 4
- * decimals, booleans as Yes / No, empty as "—". Nested arrays / objects are handled by the caller.
+ * decimals, booleans as Yes / No, empty as "-". Nested arrays / objects are handled by the caller.
  */
 export function evidenceValue(key: string, value: unknown): string {
   if (value === null || value === undefined || value === "") {
-    return "—";
+    return "-";
   }
   if (typeof value === "boolean") {
     return value ? "Yes" : "No";

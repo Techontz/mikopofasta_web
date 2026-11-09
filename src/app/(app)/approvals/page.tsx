@@ -14,7 +14,7 @@ import { money } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 
 /**
- * Pending Approvals (C6): every item waiting for a checker across the maker/checker workflows the user may see — grouped by
+ * Pending Approvals (C6): every item waiting for a checker across the maker/checker workflows the user may see - grouped by
  * workflow with counts. Approve or reject on the module page (Open); the initiator sees why another user must approve.
  */
 export default function PendingApprovalsPage() {
@@ -65,9 +65,9 @@ export default function PendingApprovalsPage() {
                   columns={[
                     { key: "requested_at", header: "Requested" },
                     { key: "description", header: "Transaction" },
-                    { key: "branch", header: "Branch", render: (row) => row.branch ?? "—" },
+                    { key: "branch", header: "Branch", render: (row) => row.branch ?? "-" },
                     { key: "amount", header: "Amount", render: (row) => money(row.amount), value: (row) => row.amount },
-                    { key: "requested_by", header: "Requested By", render: (row) => row.requested_by ?? "—" },
+                    { key: "requested_by", header: "Requested By", render: (row) => row.requested_by ?? "-" },
                     { key: "status", header: "Status", render: (row) => row.status.replace(/_/g, " ").toUpperCase() },
                     {
                       key: "approval",

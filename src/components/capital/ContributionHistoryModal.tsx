@@ -17,7 +17,7 @@ export function ContributionHistoryModal({ shareHolderId, onClose }: { shareHold
   const loaded = data?.share_holder.id === shareHolderId ? data : undefined;
 
   return (
-    <Modal open={shareHolderId !== null} onClose={onClose} title={`Contribution History${loaded ? ` — ${loaded.share_holder.name}` : ""}`} size="xl">
+    <Modal open={shareHolderId !== null} onClose={onClose} title={`Contribution History${loaded ? ` - ${loaded.share_holder.name}` : ""}`} size="xl">
       {loaded && (
         <p className="mb-2">
           Total Contributed Capital <b>{money(loaded.total_contributed)}</b> of all shareholders&apos; <b>{money(loaded.company_total_contributed)}</b> (Cash <b>{money(loaded.cash_contributed)}</b> · Bank <b>{money(loaded.bank_contributed)}</b> · Asset <b>{money(loaded.asset_contributed)}</b>) · Share register: <b>{loaded.shares.toLocaleString("en-US")}</b> shares, ownership <b>{ownershipLabel(loaded.ownership_percent)}</b>
@@ -46,11 +46,11 @@ export function ContributionHistoryModal({ shareHolderId, onClose }: { shareHold
               </>
             ),
           },
-          { key: "receiving_account_label", header: "Receiving Account", render: (row) => row.receiving_account_label ?? "—" },
+          { key: "receiving_account_label", header: "Receiving Account", render: (row) => row.receiving_account_label ?? "-" },
           { key: "receipt_number", header: "Receipt No", render: (row) => row.receipt_number || "-" },
           { key: "cheque_number", header: "Cheque No", render: (row) => row.cheque_number || "-" },
-          { key: "recorded_by", header: "Recorded By", render: (row) => row.recorded_by ?? "—" },
-          { key: "journal_reference", header: "Journal Ref", render: (row) => row.journal_reference ?? "—" },
+          { key: "recorded_by", header: "Recorded By", render: (row) => row.recorded_by ?? "-" },
+          { key: "journal_reference", header: "Journal Ref", render: (row) => row.journal_reference ?? "-" },
           {
             key: "receipt",
             header: "Receipt",

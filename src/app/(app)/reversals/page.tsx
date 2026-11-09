@@ -66,7 +66,7 @@ export default function ReversalRequestsPage() {
               </Step>
               <Step n={2} title="Approve here">
                 Another Finance user, an Admin or the Super Admin clicks <b>Approve</b> below (or Reject). The requester cannot approve their own request
-                {mayApprove ? "" : " — you can request, but not approve"}.
+                {mayApprove ? "" : " - you can request, but not approve"}.
               </Step>
               <Step n={3} title="Posted">
                 On approval the original journal is mirrored exactly, the row moves to <b>Approved (posted)</b> with its reversal reference, and the
@@ -92,7 +92,7 @@ export default function ReversalRequestsPage() {
                   : "No reversal requests"
               }
               columns={[
-                { key: "requested_at", header: "Requested", render: (row) => <>{row.requested_at}<div className="text-muted small">by {row.requested_by ?? "—"}</div></> },
+                { key: "requested_at", header: "Requested", render: (row) => <>{row.requested_at}<div className="text-muted small">by {row.requested_by ?? "-"}</div></> },
                 { key: "type_label", header: "Type" },
                 {
                   key: "description",

@@ -120,7 +120,7 @@ export interface DividendDeclaration {
   reinvestment_reference?: string | null;
 }
 
-/** GET capital/dividends/requests — a requested declaration (pending → approved / rejected by another user, rule 6). */
+/** GET capital/dividends/requests - a requested declaration (pending → approved / rejected by another user, rule 6). */
 export interface DividendDeclarationRequest {
   id: number;
   period: string;
@@ -194,7 +194,7 @@ export interface DividendPayment {
   reverse_blocked_reason?: string | null;
 }
 
-/** GET capital/dividends/{declaration}/pay-all/preview — computed by the server from the posted payments. */
+/** GET capital/dividends/{declaration}/pay-all/preview - computed by the server from the posted payments. */
 export interface PayAllPreview {
   declaration_id: number;
   period: string;

@@ -39,7 +39,7 @@ function daysAgo(days: number): string {
 
 function show(value: unknown): string {
   if (value === null || value === undefined || value === "") {
-    return "—";
+    return "-";
   }
   return typeof value === "object" ? JSON.stringify(value) : String(value);
 }
@@ -125,7 +125,7 @@ export default function AuditTrailPage() {
         {viewing && (
           <>
             <p className="mb-2">
-              <b>Done By:</b> {viewing.employee} &nbsp; <b>Date:</b> {viewing.created_at} &nbsp; <b>IP:</b> {viewing.ip_address ?? "—"}
+              <b>Done By:</b> {viewing.employee} &nbsp; <b>Date:</b> {viewing.created_at} &nbsp; <b>IP:</b> {viewing.ip_address ?? "-"}
             </p>
             <div className="table-responsive">
               <table className="table table-hover table-custom mf-table">

@@ -8,7 +8,7 @@ import type { BadgeTone } from "@/components/ui/Badge";
 
 import type { AllocationStatus, DividendAllocation, DividendPayment, DividendPreview, PayAllPreview, PreviewRow, ProfitSource } from "./types";
 
-/** "TZS 1,500,000" — cents are shown only when present ("TZS 7,000,000.01"). */
+/** "TZS 1,500,000" - cents are shown only when present ("TZS 7,000,000.01"). */
 export function tzs(value: number | string | null | undefined): string {
   const amount = Number(value ?? 0);
   if (!Number.isFinite(amount)) {
@@ -136,11 +136,11 @@ export function paymentBadge(status: DividendPayment["status"] | string): { labe
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-/** "2026-09-14" or "2026-09-14 10:53:18" → "14 Sep 2026"; "—" when empty. */
+/** "2026-09-14" or "2026-09-14 10:53:18" → "14 Sep 2026"; "-" when empty. */
 export function shortDate(value: string | null | undefined): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value ?? ""));
   if (!match || !MONTHS[Number(match[2]) - 1]) {
-    return "—";
+    return "-";
   }
   return `${Number(match[3])} ${MONTHS[Number(match[2]) - 1]} ${match[1]}`;
 }
@@ -150,7 +150,7 @@ export function allocationBalance(entitlement: number, paid: number): number {
   return Math.max(0, toCents(entitlement) - toCents(paid)) / 100;
 }
 
-/** UNPAID (nothing paid) / PARTIALLY PAID / PAID (paid ≥ entitlement) — the server derives the same from posted payments. */
+/** UNPAID (nothing paid) / PARTIALLY PAID / PAID (paid ≥ entitlement) - the server derives the same from posted payments. */
 export function allocationStatus(entitlement: number, paid: number): AllocationStatus {
   const paidCents = toCents(paid);
   if (paidCents <= 0) {
@@ -294,7 +294,7 @@ export function profitChain(preview: Pick<DividendPreview, "period_closed" | "di
 
   return [
     { label: "Net distributable profit", value: tzs(preview.distributable_profit) },
-    { label: preview.commission_calculated ? "Commission (10%)" : "Commission — not calculated (calculate it before declaring)", value: tzs(preview.commission_amount ?? 0), tone: "out" },
+    { label: preview.commission_calculated ? "Commission (10%)" : "Commission - not calculated (calculate it before declaring)", value: tzs(preview.commission_amount ?? 0), tone: "out" },
     { label: "Remaining profit", value: tzs(preview.base_amount ?? 0) },
     { label: `Principal reinvestment (${preview.reinvest_percent}%)`, value: tzs(preview.reinvestment_amount) },
     { label: `Shareholder dividend (${preview.dividend_percent}%)`, value: tzs(preview.dividend_pool), tone: "in" },

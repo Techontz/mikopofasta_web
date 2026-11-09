@@ -12,8 +12,8 @@ import { money } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 
 /**
- * All Shareholders (read-only): every shareholder's public holding — number, name, shares, ownership % (share register)
- * and approved capital — with totals and the share distribution chart. No contact, identity or transaction data.
+ * All Shareholders (read-only): every shareholder's public holding - number, name, shares, ownership % (share register)
+ * and approved capital - with totals and the share distribution chart. No contact, identity or transaction data.
  */
 export default function ShareholderDirectoryPage() {
   const { can } = useAuth();

@@ -270,7 +270,7 @@ function DeclarationRequestsCard({ canView }: { canView: boolean }) {
           columns={[
             { key: "period", header: "Period", render: (row) => <b>{row.period_label}</b> },
             { key: "profit_amount", header: "Profit", className: "text-right", render: (row) => tzs(row.profit_amount) },
-            { key: "commission_amount", header: "Commission", className: "text-right", render: (row) => (row.commission_amount === null ? "—" : tzs(row.commission_amount)) },
+            { key: "commission_amount", header: "Commission", className: "text-right", render: (row) => (row.commission_amount === null ? "-" : tzs(row.commission_amount)) },
             { key: "dividend_amount", header: "Dividend Pool", className: "text-right", render: (row) => `${tzs(row.dividend_amount)} (${percent(row.dividend_percent)})` },
             { key: "reinvest_amount", header: "Reinvestment", className: "text-right", render: (row) => `${tzs(row.reinvest_amount)} (${percent(row.reinvest_percent)})` },
             { key: "requested_at", header: "Requested", render: (row) => <span className="text-nowrap">{shortDate(row.requested_at)}</span> },
@@ -333,7 +333,7 @@ function AllocationsCard({ declarationId, declaration, declarations, totals, can
   return (
     <div id="dividend-allocations">
       <Card
-        title={`Shareholder Dividend Allocation — ${label}`}
+        title={`Shareholder Dividend Allocation - ${label}`}
         actions={
           <div className={dividendStyles.selector}>
             <label htmlFor="dividend-declaration" className="mb-0 small text-muted">Declaration:</label>
@@ -370,7 +370,7 @@ function AllocationsCard({ declarationId, declaration, declarations, totals, can
             footer={
               data && data.length > 0 && (
                 <tr>
-                  <th colSpan={2}>TOTAL — {label}</th>
+                  <th colSpan={2}>TOTAL - {label}</th>
                   <th className={dividendStyles.money}>{sharesLabel(data.reduce((total, row) => total + (row.shares_held ?? 0), 0))}</th>
                   <th className={dividendStyles.money}>{percent(Math.round(data.reduce((total, row) => total + row.ownership_percent, 0) * 100) / 100)}</th>
                   <th className={dividendStyles.money}>{tzs(sum((row) => row.contribution_total))}</th>
@@ -393,7 +393,7 @@ function AllocationsCard({ declarationId, declaration, declarations, totals, can
 }
 
 /**
- * Capital → Dividends. Documents: ACCOUNT OVERVIEW "Dividend Account" — Profit → Dividend, split into Principal
+ * Capital → Dividends. Documents: ACCOUNT OVERVIEW "Dividend Account" - Profit → Dividend, split into Principal
  * Reinvestment and the Shareholder Dividend Pool by Dividend Settings (default 70 / 30); the pool is split by
  * share-register ownership; entitlements are paid by Cash or Bank in full or in parts. All figures come from the API.
  */
@@ -435,14 +435,14 @@ export default function DividendsPage() {
     <>
       <PageHeader crumbs={["Capital", "Dividends"]} />
 
-      <Card title={`Dividends — ${data?.period_label ?? periodLabel(period)}`}>
+      <Card title={`Dividends - ${data?.period_label ?? periodLabel(period)}`}>
         {declarationId !== null && (
           <div className={`${dividendStyles.outstanding} ${tile.settled ? dividendStyles.settled : ""}`} role="status" aria-label="Selected declaration outstanding">
             <div>
               <span>
                 {tile.label} · {shown?.period_label ?? selectedTotals.data?.period_label ?? ""}
               </span>
-              <strong>{selectedTotals.error ? "—" : tile.value}</strong>
+              <strong>{selectedTotals.error ? "-" : tile.value}</strong>
               <small>{tile.caption}</small>
             </div>
             {selectedTotals.data && (
@@ -557,7 +557,7 @@ export default function DividendsPage() {
                 key: "commission_amount",
                 header: "Commission",
                 className: "text-right",
-                render: (row) => (row.commission_amount === null || row.commission_amount === undefined ? "—" : tzs(row.commission_amount)),
+                render: (row) => (row.commission_amount === null || row.commission_amount === undefined ? "-" : tzs(row.commission_amount)),
               },
               {
                 key: "dividend_percent",

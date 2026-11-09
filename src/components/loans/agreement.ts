@@ -1,4 +1,4 @@
-/** GET /loans/{id}/agreement — the agreement generated after branch manager approval (LoanAgreement service). */
+/** GET /loans/{id}/agreement - the agreement generated after branch manager approval (LoanAgreement service). */
 export interface LoanAgreementData {
   company: { name: string; registration_number: string | null; address: string | null; phone: string | null; email: string | null; logo_url: string | null };
   branch: { name: string | null; phone: string | null };
@@ -71,7 +71,7 @@ export interface LoanAgreementData {
   next_of_kin: { full_name: string; phone: string | null; relationship: string | null; address: string | null }[];
 }
 
-/** "Kila mwezi" — repayment frequency as printed on the agreement. */
+/** "Kila mwezi" - repayment frequency as printed on the agreement. */
 export const FREQUENCY_LABEL: Record<LoanAgreementData["loan"]["frequency"], string> = {
   daily: "Kila siku",
   weekly: "Kila wiki",

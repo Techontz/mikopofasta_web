@@ -28,7 +28,7 @@ interface Props {
 /**
  * Written-off loan (C3 Option B): written off / recovered / remaining per component (Principal → Penalty → Interest → Insurance),
  * the ambiguous flag, branch money still waiting for Finance, Record Recovery (loans.recover) and the recoveries with REVERSE
- * (loans.reverse_repayment, newest first — eligibility from the API). A Finance user's recovery posts at once; anyone else's entry
+ * (loans.reverse_repayment, newest first - eligibility from the API). A Finance user's recovery posts at once; anyone else's entry
  * waits for Finance. The loan stays written off and its write-off is never changed.
  */
 export function LoanRecoveryCard({ loanId, loanStatus, position, recoveries = [] }: Props) {
@@ -98,7 +98,7 @@ export function LoanRecoveryCard({ loanId, loanStatus, position, recoveries = []
               render: (row) => (
                 <>
                   {struck(row, money(row.amount))}
-                  {row.reversed && <div><Badge tone="danger">REVERSED</Badge> <small>{row.reversed_at} · {row.reversed_by ?? "—"} · {row.reversal_reason}</small></div>}
+                  {row.reversed && <div><Badge tone="danger">REVERSED</Badge> <small>{row.reversed_at} · {row.reversed_by ?? "-"} · {row.reversal_reason}</small></div>}
                 </>
               ),
             },
@@ -111,9 +111,9 @@ export function LoanRecoveryCard({ loanId, loanStatus, position, recoveries = []
                 : <small>{money(row.principal)} / {money(row.penalty)} / {money(row.interest)} ({money(row.reserve)}) / {money(row.insurance)}</small>,
             },
             { key: "method", header: "Method" },
-            { key: "reference", header: "Reference", render: (row) => row.receipt_number ?? row.reference ?? "—" },
-            { key: "employee", header: "Recorded by", render: (row) => row.employee ?? "—" },
-            { key: "journal_reference", header: "Journal", render: (row) => row.journal_reference ?? "—" },
+            { key: "reference", header: "Reference", render: (row) => row.receipt_number ?? row.reference ?? "-" },
+            { key: "employee", header: "Recorded by", render: (row) => row.employee ?? "-" },
+            { key: "journal_reference", header: "Journal", render: (row) => row.journal_reference ?? "-" },
             ...(can("loans.reverse_repayment")
               ? [{
                   key: "action",

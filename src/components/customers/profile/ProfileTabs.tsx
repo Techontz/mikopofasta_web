@@ -207,7 +207,7 @@ export function TimelineTab({ customerId }: { customerId: number }) {
       {data.map((event, index) => (
         <li key={`${event.type}-${event.at}-${index}`}>
           <b>{event.title}</b>
-          {event.description && <span> — {event.description}</span>}
+          {event.description && <span> - {event.description}</span>}
           <small className="d-block">{[formatDateTime(event.at), event.byName].filter(Boolean).join(" · ")}</small>
         </li>
       ))}

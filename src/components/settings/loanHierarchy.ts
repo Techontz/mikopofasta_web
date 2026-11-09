@@ -33,7 +33,7 @@ export const LOAN_CATEGORY_COLUMNS = [
 /** Label of the single Customer Type select of the loan category form. */
 export const CUSTOMER_TYPE_SELECT_LABEL = "Customer Type";
 
-/** GET /customer-types: the active customer types (customer_categories) — options of the form select and the list filter. */
+/** GET /customer-types: the active customer types (customer_categories) - options of the form select and the list filter. */
 export const CUSTOMER_TYPE_OPTIONS_ENDPOINT = CUSTOMER_TYPES_ENDPOINT;
 
 /** Request key of the loan category's customer type (settings/loan-categories store / update). */

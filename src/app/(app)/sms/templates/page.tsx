@@ -147,7 +147,7 @@ export default function SmsTemplatesPage() {
         />
       </Card>
 
-      <Modal open={editing !== null} onClose={() => setEditing(null)} title={editing ? `Edit — ${editing.name}` : ""} submitLabel="Update" submitting={update.isPending} onSubmit={save} size="lg">
+      <Modal open={editing !== null} onClose={() => setEditing(null)} title={editing ? `Edit - ${editing.name}` : ""} submitLabel="Update" submitting={update.isPending} onSubmit={save} size="lg">
         {editing && (
           <div className="row">
             {editing.type === "announcement" && (
@@ -166,7 +166,7 @@ export default function SmsTemplatesPage() {
             {editing.type === "automatic" && (
               <div className="col-md-12">
                 <label className="fancy-checkbox mb-0">
-                  <input type="checkbox" checked={editForm.is_active} onChange={(e) => setEditForm({ ...editForm, is_active: e.target.checked })} /> <span>ON — send this SMS automatically</span>
+                  <input type="checkbox" checked={editForm.is_active} onChange={(e) => setEditForm({ ...editForm, is_active: e.target.checked })} /> <span>ON - send this SMS automatically</span>
                 </label>
               </div>
             )}

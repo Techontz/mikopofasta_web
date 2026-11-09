@@ -148,7 +148,7 @@ function Body({ data }: { data: FinanceDashboardData }) {
 }
 
 /**
- * A summary card: figures only (enhancement §11.1 — not clickable) and no icon (§11.5); colours, labels and sizes are kept.
+ * A summary card: figures only (enhancement §11.1 - not clickable) and no icon (§11.5); colours, labels and sizes are kept.
  * `icon` and `tone` stay in the call sites as the cards' identity.
  */
 function StatCard({ title, value, change, compare }: { icon: string; tone: string; title: string; value: number; change: number | null; compare: string }) {
@@ -335,7 +335,7 @@ function IncomeExpenses({ data }: { data: FinanceDashboardData["income_expenses"
 }
 
 function CashFlow({ data }: { data: FinanceDashboardData["cash_flow"] }) {
-  // Waterfall: each bar spans [from, to] — Cash In rises from the opening balance, Cash Out falls back to the closing one.
+  // Waterfall: each bar spans [from, to] - Cash In rises from the opening balance, Cash Out falls back to the closing one.
   const top = data.opening + data.cash_in;
   const bars = [
     { name: "Opening Balance", span: [0, data.opening], fill: C.grey, label: data.opening },
@@ -367,7 +367,7 @@ const APPROVAL_ICONS: Record<string, string> = {
   "expenses.request": "fa fa-file-o",
 };
 
-/** The panel is a brief: only its first rows fit the card without a scroll — View All opens the full list. */
+/** The panel is a brief: only its first rows fit the card without a scroll - View All opens the full list. */
 const APPROVALS_SHOWN = 5;
 
 function Approvals({ rows }: { rows: FinanceDashboardData["approvals"] }) {

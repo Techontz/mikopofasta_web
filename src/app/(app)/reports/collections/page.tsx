@@ -48,7 +48,7 @@ const columns = (heading: string): Column<CollectionRow>[] => [
 
 const totals = (row: CollectionRow) => [money(row.expected), money(row.due_paid), money(row.collected), money(row.principal), money(row.penalty), money(row.interest), money(row.variance), `${row.collection_rate}%`];
 
-/** Report → Portfolio & Risk → Repayment (Documents: 📅 Repayment Report — Expected vs Actual, daily/weekly/monthly, e-mandate success rate). */
+/** Report → Portfolio & Risk → Repayment (Documents: 📅 Repayment Report - Expected vs Actual, daily/weekly/monthly, e-mandate success rate). */
 export default function CollectionsPage() {
   const [filters, setFilters] = useState<ReportFilters>({ period: "daily" });
   const [filtering, setFiltering] = useState(false);

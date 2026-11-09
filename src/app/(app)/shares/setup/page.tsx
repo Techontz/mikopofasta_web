@@ -58,7 +58,7 @@ export default function ShareSetupPage() {
   const shareValue = initialShareValue(basis, total);
   const status = allocationStatus(lines, total);
   const setLine = (index: number, patch: Partial<AllocationForm>) => setLines(lines.map((line, i) => (i === index ? { ...line, ...patch } : line)));
-  const holderName = (id: string) => holders.find((option) => option.value === id)?.label.split(" — ")[0] ?? "";
+  const holderName = (id: string) => holders.find((option) => option.value === id)?.label.split(" - ")[0] ?? "";
 
   const submit = () => {
     save.mutate(
@@ -128,7 +128,7 @@ export default function ShareSetupPage() {
           >
             <p className="text-muted">
               Choose a registered shareholder for every line, or register a new one here (same record as{" "}
-              <Link href="/capital/share-holders">Capital → Shareholders</Link>). Choose for every line how the shares were paid for — money already recorded as a
+              <Link href="/capital/share-holders">Capital → Shareholders</Link>). Choose for every line how the shares were paid for - money already recorded as a
               capital contribution is linked and never posted twice.
             </p>
             {save.fieldError("allocations") && <div className="alert alert-danger">{save.fieldError("allocations")}</div>}
@@ -204,7 +204,7 @@ export default function ShareSetupPage() {
             })}
             <p className={status.complete ? "text-success" : "text-warning"}>
               Allocated {sharesLabel(status.allocated)} of {sharesLabel(total > 0 ? total : 0)} shares
-              {!status.complete && total > 0 && ` — ${sharesLabel(Math.abs(status.remaining))} ${status.remaining > 0 ? "still to allocate" : "too many"}`}
+              {!status.complete && total > 0 && ` - ${sharesLabel(Math.abs(status.remaining))} ${status.remaining > 0 ? "still to allocate" : "too many"}`}
             </p>
             <div className="text-center m-t-20">
               <button type="submit" className="btn btn-primary" disabled={save.isPending || !status.complete}>

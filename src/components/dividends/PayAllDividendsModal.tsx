@@ -85,7 +85,7 @@ export function PayAllDividendsModal({ declarationId, periodLabel, onClose }: { 
       open
       onClose={onClose}
       size="lg"
-      title={`Pay All Outstanding — ${totals?.period_label ?? periodLabel}`}
+      title={`Pay All Outstanding - ${totals?.period_label ?? periodLabel}`}
       submitLabel="Continue"
       cancelLabel="Cancel"
       onSubmit={() => {

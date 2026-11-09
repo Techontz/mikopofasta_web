@@ -36,7 +36,7 @@ const DIRECTION_LABELS: Record<string, string> = { company_to_bank: "Company Cas
 
 /**
  * Bank → Company Cash ↔ Bank Transfer: internal company fund movements between the COMPANY ACCOUNT (company cash) and a
- * company bank account. Each is a ledger transfer (Dr receiving account / Cr sending account) — totals never change.
+ * company bank account. Each is a ledger transfer (Dr receiving account / Cr sending account) - totals never change.
  * Rule 6: a transfer is requested as PENDING and posted when another authorised user approves it.
  */
 export default function CompanyTransfersPage() {
@@ -78,8 +78,8 @@ export default function CompanyTransfersPage() {
             { key: "to", header: "To Account", value: (row) => (row.type === "company_to_bank" ? row.bank_account ?? "" : "COMPANY ACCOUNT"), render: (row) => (row.type === "company_to_bank" ? `BANK - ${row.bank_account ?? ""}` : "COMPANY ACCOUNT") },
             { key: "amount", header: "Amount", render: (row) => money(row.amount) },
             { key: "reference", header: "Reference", render: (row) => row.reference || "-" },
-            { key: "journal_reference", header: "Journal Ref", render: (row) => row.journal_reference ?? "—" },
-            { key: "employee", header: "Recorded By", render: (row) => row.employee ?? "—" },
+            { key: "journal_reference", header: "Journal Ref", render: (row) => row.journal_reference ?? "-" },
+            { key: "employee", header: "Recorded By", render: (row) => row.employee ?? "-" },
             { key: "created_at", header: "Date / Time" },
             { key: "status", header: "Status", render: (row) => <ApprovalStatus row={row} /> },
             {

@@ -25,7 +25,7 @@ const EMPTY: CapitalForm = { amount: "", payment_method: "", bank_account_id: ""
 
 /**
  * Add Capital: amount, payment method (company bank account for BANK), transaction reference and an optional receipt,
- * then a confirm step. The contribution is recorded PENDING — nothing is posted until the finance team approves it.
+ * then a confirm step. The contribution is recorded PENDING - nothing is posted until the finance team approves it.
  */
 export default function AddCapitalPage() {
   const router = useRouter();

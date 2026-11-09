@@ -72,7 +72,7 @@ export function StaffBenefitClaims({ members }: { members: Option[] }) {
   }
 
   const act = async (claim: Claim, action: "review" | "approve" | "pay") => {
-    const text = `${claim.employee} — ${money(claim.amount)}${action === "pay" ? " from the STAFF FUND A/C" : ""}.`;
+    const text = `${claim.employee} - ${money(claim.amount)}${action === "pay" ? " from the STAFF FUND A/C" : ""}.`;
     if (await confirmAction(`${action === "review" ? "Take into Finance review" : action === "approve" ? "Approve" : "Pay"} this benefit claim?`, text)) {
       decide.mutate({ id: claim.id, action });
     }
@@ -87,8 +87,8 @@ export function StaffBenefitClaims({ members }: { members: Option[] }) {
         columns={[
           { key: "sn", header: "S/No.", render: (_, index) => `${index + 1}.`, sortable: false },
           { key: "employee", header: "Staff name" },
-          { key: "branch", header: "Branch", render: (row) => row.branch ?? "—" },
-          { key: "entitlement", header: "Benefit Record", render: (row) => (row.entitlement === null ? "—" : money(row.entitlement)) },
+          { key: "branch", header: "Branch", render: (row) => row.branch ?? "-" },
+          { key: "entitlement", header: "Benefit Record", render: (row) => (row.entitlement === null ? "-" : money(row.entitlement)) },
           { key: "amount", header: "Claim", render: (row) => money(row.amount), value: (row) => row.amount },
           { key: "reason", header: "Reason" },
           {

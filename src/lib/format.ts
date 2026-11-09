@@ -1,4 +1,4 @@
-/** "1,858,000" — the live system's amount format. */
+/** "1,858,000" - the live system's amount format. */
 export function money(value: number | string | null | undefined): string {
   const amount = Number(value ?? 0);
   return Number.isFinite(amount) ? Math.round(amount).toLocaleString("en-US") : "0";

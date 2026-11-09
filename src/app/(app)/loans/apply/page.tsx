@@ -128,7 +128,7 @@ export default function LoanApplicationPage() {
               <div className="row">
                 <div className="col-md-3"><b>KYC:</b> {!eligibility.rules.kyc_complete ? <span className="badge badge-danger">NOT VERIFIED</span> : eligibility.rules.registration_approved ? <span className="badge badge-success">APPROVED</span> : eligibility.rules.approval_status === "rejected" ? <span className="badge badge-danger">RETURNED</span> : <span className="badge badge-warning">AWAITING APPROVAL</span>}</div>
                 <div className="col-md-3"><b>Customer Type:</b> {options?.customer_type?.name ?? <span className="badge badge-warning">NOT ASSIGNED</span>}</div>
-                <div className="col-md-3"><b>Risk level:</b> {eligibility.rules.risk_level ?? "—"}</div>
+                <div className="col-md-3"><b>Risk level:</b> {eligibility.rules.risk_level ?? "-"}</div>
                 <div className="col-md-3"><b>Loan categories:</b> {options?.data.length ?? 0}</div>
               </div>
               {eligibility.debt && eligibility.debt.total > 0 && (
@@ -165,7 +165,7 @@ export default function LoanApplicationPage() {
 
       {loanId && detail && (
         <>
-          <Card title={`Loan ${detail.loan.loan_number} — ${detail.customer.full_name}`} actions={<button type="button" className="btn btn-sm btn-success" onClick={() => router.push(`/loans/${loanId}`)}>Finish</button>}>
+          <Card title={`Loan ${detail.loan.loan_number} - ${detail.customer.full_name}`} actions={<button type="button" className="btn btn-sm btn-success" onClick={() => router.push(`/loans/${loanId}`)}>Finish</button>}>
             <p className="mb-0">Loan application registered with status <span className="badge badge-warning">{detail.loan.status_label}</span>. Add collateral (and any further guarantors), then click Finish.</p>
           </Card>
           <LoanSecurities detail={detail} editable />

@@ -2,7 +2,7 @@
  * Shareholder Portal shell: which shell a signed-in account gets, where it must be redirected, and the portal menu.
  *
  * - A shareholder portal login (`account_type: "shareholder"`) always gets the Shareholder shell and only /shareholder pages
- *   (staff routes redirect to the portal — the API refuses them anyway).
+ *   (staff routes redirect to the portal - the API refuses them anyway).
  * - An account that must change its temporary password is sent to the Security page first.
  * - A staff member linked to a shareholder keeps the staff shell and reaches the portal from the user menu.
  * Every portal entry carries the shareholder.* permission of the API endpoints it uses.

@@ -119,8 +119,8 @@ export default function BranchPettyCashPage() {
               { key: "branch", header: "Branch" },
               { key: "amount", header: "Amount", render: (row) => money(row.amount) },
               { key: "reference", header: "Reference", render: (row) => row.reference || "-" },
-              { key: "journal_reference", header: "Journal Ref", render: (row) => row.journal_reference ?? "—" },
-              { key: "employee", header: "Requested By", render: (row) => row.employee ?? "—" },
+              { key: "journal_reference", header: "Journal Ref", render: (row) => row.journal_reference ?? "-" },
+              { key: "employee", header: "Requested By", render: (row) => row.employee ?? "-" },
               { key: "transfer_date", header: "Date" },
               { key: "status", header: "Status", render: (row) => <ApprovalStatus row={row} /> },
               {
@@ -152,7 +152,7 @@ export default function BranchPettyCashPage() {
               { key: "sn", header: "S/no.", render: (_, index) => `${index + 1}.`, sortable: false },
               { key: "name", header: "Branch" },
               { key: "petty_cash", header: "Petty Cash Held", render: (branch) => <b>{money(branch.petty_cash)}</b> },
-              { key: "last_sent", header: "Last Sent", value: (branch) => lastSent(branch.id) ?? "", render: (branch) => lastSent(branch.id) ?? "—" },
+              { key: "last_sent", header: "Last Sent", value: (branch) => lastSent(branch.id) ?? "", render: (branch) => lastSent(branch.id) ?? "-" },
               {
                 key: "action",
                 header: "Action",
@@ -161,7 +161,7 @@ export default function BranchPettyCashPage() {
                   maySend ? (
                     <button type="button" className="btn btn-sm btn-info" onClick={() => open(String(branch.id))}><i className="icon-paper-plane" /> Send</button>
                   ) : (
-                    "—"
+                    "-"
                   ),
               },
             ]}
@@ -184,7 +184,7 @@ export default function BranchPettyCashPage() {
             <select className="form-control" value={form.branch_id} onChange={(e) => setForm({ ...form, branch_id: e.target.value })} required>
               <option value="">---Select Branch---</option>
               {branches.map((branch) => (
-                <option key={branch.id} value={branch.id}>{branch.name} — holds {money(branch.petty_cash)}</option>
+                <option key={branch.id} value={branch.id}>{branch.name} - holds {money(branch.petty_cash)}</option>
               ))}
             </select>
           </Field>

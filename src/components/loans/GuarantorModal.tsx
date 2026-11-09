@@ -23,7 +23,7 @@ export interface GuarantorDisplay {
 interface GuarantorModalProps {
   mode: "import" | "add";
   onClose: () => void;
-  /** API path returning `{ data: OptionGroup[] }` — saved guarantors ("g:<id>") and branch customers ("c:<id>"). */
+  /** API path returning `{ data: OptionGroup[] }` - saved guarantors ("g:<id>") and branch customers ("c:<id>"). */
   candidatesUrl: string;
   /** Option values already picked (not yet saved), hidden from Import. */
   exclude?: string[];
@@ -78,7 +78,7 @@ export function GuarantorModal({ mode, onClose, candidatesUrl, exclude = [], sub
     const label = options.find((option) => option.value === picked)?.label ?? "";
     const [fullName = "", phone = ""] = label.split(" / ");
     const entry: GuarantorEntry = kind === "c" ? { customer_id: id, relationship } : { guarantor_id: id };
-    onSubmit(entry, { full_name: fullName, phone, relationship: kind === "c" ? relationship : "—" }, picked);
+    onSubmit(entry, { full_name: fullName, phone, relationship: kind === "c" ? relationship : "-" }, picked);
   };
 
   const importError = fieldError("guarantor_id") ?? fieldError("customer_id");

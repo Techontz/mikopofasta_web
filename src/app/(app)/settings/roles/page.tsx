@@ -98,7 +98,7 @@ function AssignRoleCard({ roles }: { roles: Role[] }) {
   );
 }
 
-/** Documents: ACCOUNT OVERVIEW "ROLE CONTROL" — editable permission sets per role with data scope. */
+/** Documents: ACCOUNT OVERVIEW "ROLE CONTROL" - editable permission sets per role with data scope. */
 export default function RolesPage() {
   const { can, user } = useAuth();
   // Roles & Permissions is for the Super Admin only (enhancement §12.3); the API refuses everyone else as well.
