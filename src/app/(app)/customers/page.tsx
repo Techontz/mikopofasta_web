@@ -171,7 +171,7 @@ export default function AllCustomersPage() {
                     <td><CustomerStatusBadges customer={customer} /></td>
                     <td className="text-nowrap">
                       <Link href={`/customers/${customer.id}`} className="btn btn-sm btn-icon btn-primary mr-1" title="View" aria-label={`View ${customer.fullName}`}><i className="icon-eye" /></Link>
-                      {can("customers.manage") && !customer.deletedAt && (
+                      {can("customers.delete") && !customer.deletedAt && (
                         <button type="button" className="btn btn-sm btn-icon btn-danger" title="Delete" aria-label={`Delete ${customer.fullName}`} onClick={async () => (await confirmAction()) && remove.mutate({ id: customer.id })}>
                           <i className="icon-trash" />
                         </button>
