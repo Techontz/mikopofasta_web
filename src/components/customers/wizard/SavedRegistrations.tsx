@@ -23,7 +23,7 @@ function when(value: string | null): string {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-/** "Saved registrations (N)" — server drafts, collapsed by default. */
+/** "Saved registrations (N)" - server drafts, collapsed by default. */
 export function SavedRegistrations({ drafts, currentEmployeeId, busyId, onResume, onDiscard, onNotNow }: Props) {
   const [expanded, setExpanded] = useState(false);
 
@@ -33,7 +33,7 @@ export function SavedRegistrations({ drafts, currentEmployeeId, busyId, onResume
         <button type="button" className="mf-drafts-toggle" aria-expanded={expanded} onClick={() => setExpanded((open) => !open)}>
           <i className={expanded ? "fa fa-chevron-down" : "fa fa-chevron-right"} />
           <b>Saved registrations ({drafts.length})</b>
-          <span className="mf-drafts-note">{expanded ? "Unfinished and waiting. These are held on the server, so they can be resumed from any device." : "Hidden — select to show them again."}</span>
+          <span className="mf-drafts-note">{expanded ? "Unfinished and waiting. These are held on the server, so they can be resumed from any device." : "Hidden - select to show them again."}</span>
         </button>
         <button type="button" className="btn btn-sm btn-link" onClick={onNotNow}>
           Not now

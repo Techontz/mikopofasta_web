@@ -47,7 +47,7 @@ interface PenaltyReport {
 
 /**
  * Report → Penalty (the old system's "PENARTY REPORT"): every penalty charged, newest first. Rows of imported
- * historical Penalty reports are listed with their printed S/No. and a source badge; they are records only — no
+ * historical Penalty reports are listed with their printed S/No. and a source badge; they are records only - no
  * penalty, payment, cash or ledger entry stands behind them, and nothing on them is owed to or by this system.
  * A negative Penalty Amount is a waiver or correction the old system printed as a negative figure, kept as printed.
  */
@@ -64,7 +64,7 @@ export default function PenaltyReportPage() {
       header: "Customer Name",
       render: (row) => (
         <>
-          {row.customer_id ? <Link href={`/customers/${row.customer_id}`}>{row.customer ?? "—"}</Link> : (row.customer ?? <span className="text-muted">(no name on the printout)</span>)}
+          {row.customer_id ? <Link href={`/customers/${row.customer_id}`}>{row.customer ?? "-"}</Link> : (row.customer ?? <span className="text-muted">(no name on the printout)</span>)}
           {row.historical && <div><span className="badge badge-default" title={row.source ?? undefined}>Historical</span></div>}
         </>
       ),
@@ -95,13 +95,13 @@ export default function PenaltyReportPage() {
         <div className="alert alert-info">
           <strong>Historical records:</strong> {historical.reduce((sum, source) => sum + source.records, 0)} rows from{" "}
           {historical.length} Penalty {historical.length === 1 ? "report" : "reports"} printed by the old system
-          ({historical.map((source) => source.branch).join(", ")}). Imported as records only — they are not penalties,
+          ({historical.map((source) => source.branch).join(", ")}). Imported as records only - they are not penalties,
           payments or cash in this system and do not change any balance. A negative Penalty Amount is a waiver or
           correction as the old system printed it.
           <div className="small mt-1">
             {historical.map((source) => (
               <div key={source.id}>
-                {source.title} ({source.source_document}) — {source.records} rows, printed total {money(source.printed_total)}
+                {source.title} ({source.source_document}) - {source.records} rows, printed total {money(source.printed_total)}
                 {source.printed_on && ` on ${source.printed_on}`}
               </div>
             ))}

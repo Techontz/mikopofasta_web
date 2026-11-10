@@ -66,7 +66,7 @@ export default function ShareholderReserveApprovalsPage() {
                   <td>{movement(row)}</td>
                   <td className="text-right">{money(row.amount)}</td>
                   <td>{row.reference || "-"}</td>
-                  <td>{row.employee ?? "—"}</td>
+                  <td>{row.employee ?? "-"}</td>
                   <td><ApprovalStatus row={row} /></td>
                   <td>
                     <ApprovalActions

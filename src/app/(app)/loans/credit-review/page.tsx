@@ -13,7 +13,7 @@ import { money } from "@/lib/format";
 import { useAction, useApi } from "@/lib/hooks";
 
 /**
- * Credit officer review (handwritten note: 4 buttons — Verification, Approve, Reject (sababu), Modify → back to loan officer).
+ * Credit officer review (handwritten note: 4 buttons - Verification, Approve, Reject (sababu), Modify → back to loan officer).
  * Approval is only possible after the Vodacom name/number verification matched and the customer's signed loan agreement
  * is uploaded; the reference number is generated on approval.
  */

@@ -79,7 +79,7 @@ export default function ReconciliationPage() {
             { key: "branch", header: "Branch Name" },
             { key: "teller", header: "Teller" },
             { key: "bank_account", header: "Bank" },
-            { key: "slip_number", header: "Slip Number", render: (row) => row.slip_number ?? "—" },
+            { key: "slip_number", header: "Slip Number", render: (row) => row.slip_number ?? "-" },
             { key: "deposit_date", header: "Date" },
             { key: "amount", header: "Slip Amount", render: (row) => money(row.amount) },
             { key: "expected_amount", header: "Teller Cash", render: (row) => money(row.expected_amount) },
@@ -132,7 +132,7 @@ export default function ReconciliationPage() {
       <Modal
         open={verifying !== null}
         onClose={() => setVerifying(null)}
-        title={verifying && `Verify slip ${verifying.slip_number ?? `#${verifying.id}`} — ${money(verifying.amount)}`}
+        title={verifying && `Verify slip ${verifying.slip_number ?? `#${verifying.id}`} - ${money(verifying.amount)}`}
         submitLabel="Verify"
         submitting={verify.isPending}
         onSubmit={() => verifying && verify.mutate({ id: verifying.id, ...form }, { onSuccess: () => setVerifying(null) })}

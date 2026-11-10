@@ -186,19 +186,6 @@ export function LoanCategoryFields({ form, setForm, fieldError, creating = false
       <Field label="Take Home Percent (%)" className="col-lg-4 col-6" error={fieldError("take_home_percent")}>
         <input className="form-control" placeholder="Take Home Percent (%)" value={form.take_home_percent} onChange={set("take_home_percent")} required />
       </Field>
-      <Field label="Loan Method" required className="col-lg-4 col-6" error={fieldError("loan_method") ?? fieldError("requires_mandate")}>
-        <select
-          className="form-control"
-          value={form.loan_method}
-          onChange={(event) => setForm({ ...form, loan_method: event.target.value, requires_mandate: event.target.value === "e_mandate" ? "YES" : "NO" })}
-          required
-        >
-          {(creating || form.loan_method === "") && <option value="">Select</option>}
-          <option value="normal">Normal</option>
-          <option value="e_mandate">E-Mandate (bank deduction)</option>
-          <option value="phone_bond">Phone Bond (Linda device)</option>
-        </select>
-      </Field>
     </div>
   );
 }

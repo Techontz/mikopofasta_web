@@ -25,7 +25,7 @@ const STATUSES = [
 
 /**
  * Payments → Branch Receipts (C6): mobile money / bank receipts entered by a branch or teller wait here as PENDING APPROVAL with
- * nothing posted. Finance approves (received into suspense and allocated to the loan — a repayment, or a recovery for a
+ * nothing posted. Finance approves (received into suspense and allocated to the loan - a repayment, or a recovery for a
  * written-off loan) or rejects; the teller who recorded a receipt cannot approve it.
  */
 export default function BranchReceiptsPage() {

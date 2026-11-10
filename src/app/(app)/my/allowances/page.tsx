@@ -8,7 +8,7 @@ import { money } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 
 /**
- * Spec §24 allowances (reason, amount, payroll period, status — "Approved / Awaiting Payroll"), other salary deductions and
+ * Spec §24 allowances (reason, amount, payroll period, status - "Approved / Awaiting Payroll"), other salary deductions and
  * §23 Finance-approved negligence / loss deductions recovered from commission.
  */
 export default function MyAllowancesPage() {

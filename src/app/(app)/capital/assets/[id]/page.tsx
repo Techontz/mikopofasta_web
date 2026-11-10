@@ -60,7 +60,7 @@ export default function AssetDetailPage() {
           <div className="row clearfix">
             <div className="col-lg-8">
               <Card
-                title={<>{asset.asset_code} — {asset.name} <Badge tone={statusTone(asset.status)}>{asset.status_label.toUpperCase()}</Badge></>}
+                title={<>{asset.asset_code} - {asset.name} <Badge tone={statusTone(asset.status)}>{asset.status_label.toUpperCase()}</Badge></>}
                 actions={
                   canManage && !isTerminal(asset.status) && !isAwaitingApproval(asset.status) && (
                     <div className="text-nowrap">
@@ -75,7 +75,7 @@ export default function AssetDetailPage() {
               >
                 {isAwaitingApproval(asset.status) && (
                   <div className="alert alert-warning">
-                    <b>Pending approval</b> — recorded by {asset.requested_by ?? "—"}. Nothing is posted and the asset is not counted until another authorised user
+                    <b>Pending approval</b> - recorded by {asset.requested_by ?? "-"}. Nothing is posted and the asset is not counted until another authorised user
                     approves it (Dr {asset.ledger_account_label} / Cr CAPITAL ACCOUNT, dated the approval date).
                     <div className="mt-2">
                       <ApprovalActions
@@ -88,7 +88,7 @@ export default function AssetDetailPage() {
                   </div>
                 )}
                 {asset.status === "rejected" && (
-                  <div className="alert alert-danger">Contribution rejected by {asset.rejected_by ?? "—"}{asset.rejection_reason ? `: ${asset.rejection_reason}` : ""}. Nothing was posted.</div>
+                  <div className="alert alert-danger">Contribution rejected by {asset.rejected_by ?? "-"}{asset.rejection_reason ? `: ${asset.rejection_reason}` : ""}. Nothing was posted.</div>
                 )}
                 <div className="table-responsive">
                   <table className="table table-sm mb-0">
@@ -97,15 +97,15 @@ export default function AssetDetailPage() {
                       <tr><th>Description</th><td colSpan={3}>{asset.description}</td></tr>
                       <tr><th>Quantity × Unit Value</th><td>{asset.quantity.toLocaleString("en-US")} × {money(asset.unit_value)}</td><th>Contribution Value</th><td><b>{money(asset.contribution_value)}</b></td></tr>
                       <tr><th>Current Value</th><td><b>{money(asset.current_value)}</b></td><th>Contribution Date</th><td>{asset.contributed_on}</td></tr>
-                      <tr><th>Branch</th><td>{asset.branch}</td><th>Location</th><td>{asset.location ?? "—"}</td></tr>
-                      <tr><th>Condition</th><td>{asset.condition_label ?? "—"}</td><th>Recorded By</th><td>{asset.recorded_by ?? "—"} <small className="text-muted">{asset.created_at}</small></td></tr>
+                      <tr><th>Branch</th><td>{asset.branch}</td><th>Location</th><td>{asset.location ?? "-"}</td></tr>
+                      <tr><th>Condition</th><td>{asset.condition_label ?? "-"}</td><th>Recorded By</th><td>{asset.recorded_by ?? "-"} <small className="text-muted">{asset.created_at}</small></td></tr>
                       {specificationRows.map((row, index) => index % 2 === 0 && (
                         <tr key={row.label}>
                           <th>{row.label}</th><td>{row.value}</td>
                           {specificationRows[index + 1] ? <><th>{specificationRows[index + 1].label}</th><td>{specificationRows[index + 1].value}</td></> : <td colSpan={2} />}
                         </tr>
                       ))}
-                      <tr><th>Notes</th><td colSpan={3}>{asset.notes ?? "—"}</td></tr>
+                      <tr><th>Notes</th><td colSpan={3}>{asset.notes ?? "-"}</td></tr>
                     </tbody>
                   </table>
                 </div>
@@ -117,8 +117,8 @@ export default function AssetDetailPage() {
                       <tbody>
                         <tr><th>Method</th><td>{asset.valuation.method_label}</td></tr>
                         <tr><th>Valuation Date</th><td>{asset.valuation.date}</td></tr>
-                        <tr><th>Valued By / Reference</th><td>{asset.valuation.valued_by ?? "—"} / {asset.valuation.reference ?? "—"}</td></tr>
-                        <tr><th>Notes</th><td>{asset.valuation.notes ?? "—"}</td></tr>
+                        <tr><th>Valued By / Reference</th><td>{asset.valuation.valued_by ?? "-"} / {asset.valuation.reference ?? "-"}</td></tr>
+                        <tr><th>Notes</th><td>{asset.valuation.notes ?? "-"}</td></tr>
                         <tr><th>Contributed Capital</th><td><b>{money(asset.valuation.contribution_value)}</b></td></tr>
                       </tbody>
                     </table>
@@ -129,7 +129,7 @@ export default function AssetDetailPage() {
                     <table className="table table-sm mb-0">
                       <tbody>
                         <tr><th>Posting</th><td>Dr {asset.ledger_account_label} / Cr CAPITAL ACCOUNT</td></tr>
-                        <tr><th>Journal Ref</th><td>{asset.journal_reference ? <Link href="/accounting/journal">{asset.journal_reference}</Link> : "—"}</td></tr>
+                        <tr><th>Journal Ref</th><td>{asset.journal_reference ? <Link href="/accounting/journal">{asset.journal_reference}</Link> : "-"}</td></tr>
                         <tr><th>Shares Issued Against</th><td>{asset.share_transaction_reference ?? "Not linked (Shares → Issue Shares → linked contribution)"}</td></tr>
                         {asset.contribution_reversed && <tr><th>Reversed</th><td><Badge tone="danger">REVERSED</Badge> {asset.reversal_reason}</td></tr>}
                       </tbody>

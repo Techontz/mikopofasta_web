@@ -23,7 +23,7 @@ interface ModalProps {
 export function NewMessageModal({ open, onClose, contacts, onCreated }: ModalProps) {
   const [form, setForm] = useState({ employee_id: "", body: "" });
   const send = useAction<typeof form, Created>("post", "messages/conversations");
-  const options = (contacts?.data ?? []).map((contact) => ({ value: contact.value, label: contact.is_head ? `${contact.label} — HEAD` : contact.label }));
+  const options = (contacts?.data ?? []).map((contact) => ({ value: contact.value, label: contact.is_head ? `${contact.label} - HEAD` : contact.label }));
 
   return (
     <Modal

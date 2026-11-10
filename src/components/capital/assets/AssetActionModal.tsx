@@ -45,10 +45,10 @@ export function AssetHistoryTable({ events, loading }: { events: AssetDetail["ev
       columns={[
         { key: "occurred_at", header: "Date / Time" },
         { key: "event", header: "Event", render: (row) => eventLabel(row.event), value: (row) => eventLabel(row.event) },
-        { key: "change", header: "Change", sortable: false, render: (row) => eventChange(row) || "—" },
-        { key: "amount", header: "Value Before → After", sortable: false, render: (row) => (row.amount_before === null && row.amount_after === null ? "—" : `${row.amount_before === null ? "—" : money(row.amount_before)} → ${row.amount_after === null ? "—" : money(row.amount_after)}`) },
-        { key: "reason", header: "Reason", render: (row) => row.reason ?? "—" },
-        { key: "employee", header: "By", render: (row) => row.employee ?? "—" },
+        { key: "change", header: "Change", sortable: false, render: (row) => eventChange(row) || "-" },
+        { key: "amount", header: "Value Before → After", sortable: false, render: (row) => (row.amount_before === null && row.amount_after === null ? "-" : `${row.amount_before === null ? "-" : money(row.amount_before)} → ${row.amount_after === null ? "-" : money(row.amount_after)}`) },
+        { key: "reason", header: "Reason", render: (row) => row.reason ?? "-" },
+        { key: "employee", header: "By", render: (row) => row.employee ?? "-" },
       ]}
     />
   );
@@ -123,7 +123,7 @@ function AssetActionBody({ asset, action, config, onClose }: { asset: AssetRow; 
 
   if (action === "qr") {
     return (
-      <Modal open onClose={onClose} title={`${TITLES.qr} — ${asset.asset_code}`}>
+      <Modal open onClose={onClose} title={`${TITLES.qr} - ${asset.asset_code}`}>
         <div className="text-center">
           {/* eslint-disable-next-line @next/next/no-img-element -- authorised API image stream */}
           <img src={backendUrl(asset.qr_endpoint)} alt={`QR code ${asset.asset_code}`} width={220} height={220} className="mb-2" />
@@ -138,7 +138,7 @@ function AssetActionBody({ asset, action, config, onClose }: { asset: AssetRow; 
 
   if (action === "history") {
     return (
-      <Modal open onClose={onClose} title={`${TITLES.history} — ${asset.asset_code}`} size="xl">
+      <Modal open onClose={onClose} title={`${TITLES.history} - ${asset.asset_code}`} size="xl">
         {header}
         <AssetHistoryTable events={detail?.events} loading={isLoading} />
       </Modal>
@@ -146,7 +146,7 @@ function AssetActionBody({ asset, action, config, onClose }: { asset: AssetRow; 
   }
 
   return (
-    <Modal open onClose={onClose} title={`${TITLES[action]} — ${asset.asset_code}`} size={action === "edit" ? "lg" : undefined} submitLabel={action === "reverse" ? "Reverse" : "Save"} submitting={mutation.isPending} onSubmit={submit}>
+    <Modal open onClose={onClose} title={`${TITLES[action]} - ${asset.asset_code}`} size={action === "edit" ? "lg" : undefined} submitLabel={action === "reverse" ? "Reverse" : "Save"} submitting={mutation.isPending} onSubmit={submit}>
       {header}
       <div className="row">
         {action === "transfer" && (

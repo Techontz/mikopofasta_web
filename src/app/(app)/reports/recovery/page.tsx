@@ -46,7 +46,7 @@ interface Recovery {
   rows: RecoveryTransaction[];
 }
 
-/** Report → Portfolio & Risk → Recovery (Documents: 💰 Recovery Report — amount recovered from defaults, efficiency per branch). */
+/** Report → Portfolio & Risk → Recovery (Documents: 💰 Recovery Report - amount recovered from defaults, efficiency per branch). */
 export default function RecoveryPage() {
   const [filters, setFilters] = useState<ReportFilters>({});
   const [filtering, setFiltering] = useState(false);

@@ -1,5 +1,5 @@
 /**
- * Asset capital contributions & Asset Registry — API shapes and pure helpers. The asset form renders from the API's
+ * Asset capital contributions & Asset Registry - API shapes and pure helpers. The asset form renders from the API's
  * config (api/config/assets.php via GET capital/assets/config), so no field list is duplicated here.
  */
 
@@ -194,7 +194,7 @@ export function toCents(value: string): bigint | null {
   return BigInt(whole) * BigInt(100) + BigInt((fraction + "00").slice(0, 2));
 }
 
-/** quantity × unit value in exact decimal ("2500000.00"); null when either input is invalid. Display only — the API recomputes. */
+/** quantity × unit value in exact decimal ("2500000.00"); null when either input is invalid. Display only - the API recomputes. */
 export function computeTotal(quantity: string, unitValue: string): string | null {
   const cents = toCents(unitValue);
   if (!/^\d+$/.test(quantity.trim()) || cents === null) {
@@ -296,20 +296,20 @@ export function identifierSummary(identifiers: Record<string, string> | null | u
 export function registryRow(asset: AssetRow) {
   return {
     id: asset.id,
-    code: asset.asset_code ?? "—",
+    code: asset.asset_code ?? "-",
     name: asset.name,
     type: asset.asset_type_label,
     description: truncate(asset.description),
-    contributor: asset.share_holder ?? "—",
+    contributor: asset.share_holder ?? "-",
     contributionValue: asset.contribution_value,
     currentValue: asset.current_value,
     valueChanged: asset.current_value !== asset.contribution_value,
-    branch: asset.branch ?? "—",
-    location: asset.location ?? "—",
-    condition: asset.condition_label ?? "—",
+    branch: asset.branch ?? "-",
+    location: asset.location ?? "-",
+    condition: asset.condition_label ?? "-",
     status: asset.status_label,
     statusTone: statusTone(asset.status),
-    contributedOn: asset.contributed_on ?? "—",
+    contributedOn: asset.contributed_on ?? "-",
     identifiers: identifierSummary(asset.identifiers),
     search: [asset.asset_code, asset.name, asset.description, asset.share_holder, asset.branch, asset.location, ...Object.values(asset.identifiers ?? {})].filter(Boolean).join(" "),
   };
@@ -358,15 +358,15 @@ export function eventChange(event: AssetEventRow): string {
   const next = event.new_value ?? {};
   switch (event.event) {
     case "transferred":
-      return `${previous.branch ?? "—"} → ${next.branch ?? "—"}`;
+      return `${previous.branch ?? "-"} → ${next.branch ?? "-"}`;
     case "allocated_to_branch":
-      return `${next.branch ?? "—"}${next.location ? ` (${next.location})` : ""}`;
+      return `${next.branch ?? "-"}${next.location ? ` (${next.location})` : ""}`;
     case "maintenance":
     case "disposed":
     case "written_off":
     case "status_changed":
     case "contribution_reversed":
-      return `${String(previous.status ?? "—").replace(/_/g, " ")} → ${String(next.status ?? "—").replace(/_/g, " ")}`;
+      return `${String(previous.status ?? "-").replace(/_/g, " ")} → ${String(next.status ?? "-").replace(/_/g, " ")}`;
     case "updated":
       return Object.keys(next).join(", ");
     case "document_uploaded":

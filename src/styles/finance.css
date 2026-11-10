@@ -1,5 +1,5 @@
 /*
- * Finance / Head Office shell — the live MikopoFasta Finance interface (red top bar menu, AdminLTE dashboard, Bootstrap 4 list
+ * Finance / Head Office shell - the live MikopoFasta Finance interface (red top bar menu, AdminLTE dashboard, Bootstrap 4 list
  * pages) recreated with design tokens. Everything is scoped to [data-shell="finance"], set on <body> and on the shell wrapper
  * only when the signed-in role is `finance`, so every other role keeps the sidebar layout untouched.
  * Measurements: live_finance/FINANCE_UI_SPEC_V2.md.

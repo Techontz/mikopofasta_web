@@ -26,13 +26,13 @@ export function DisbursementChainCard({ chain, ledger }: { chain: DisbursementCh
   const { disbursement, journal_entry: entry } = chain;
   const steps: { label: string; value: React.ReactNode }[] = [
     { label: "Customer", value: <>{chain.customer.name}{chain.customer.code ? ` (${chain.customer.code})` : ""}</> },
-    { label: "Loan", value: <>{chain.loan.loan_number} · Ref {chain.loan.reference_number ?? "—"} · Approved {money(chain.loan.amount_approved)}</> },
-    { label: "Approval", value: <>Manager: {chain.manager_approval ? `${chain.manager_approval.by}, ${chain.manager_approval.at}` : "—"} · Credit: {chain.credit_approval ? `${chain.credit_approval.by}, ${chain.credit_approval.at}` : "—"}</> },
+    { label: "Loan", value: <>{chain.loan.loan_number} · Ref {chain.loan.reference_number ?? "-"} · Approved {money(chain.loan.amount_approved)}</> },
+    { label: "Approval", value: <>Manager: {chain.manager_approval ? `${chain.manager_approval.by}, ${chain.manager_approval.at}` : "-"} · Credit: {chain.credit_approval ? `${chain.credit_approval.by}, ${chain.credit_approval.at}` : "-"}</> },
     { label: "Disbursement", value: <>Batch {disbursement.batch_id} · {disbursement.channel.toUpperCase()} · <span className={`badge badge-${disbursement.status === "success" ? "success" : disbursement.status === "failed" || disbursement.status === "cancelled" ? "danger" : "info"}`}>{disbursement.status.toUpperCase()}</span> · Sent {money(disbursement.amount)}{disbursement.provider_reference ? ` · Provider ref ${disbursement.provider_reference}` : ""}</> },
     { label: "Source account", value: <b>{disbursement.source_label}</b> },
     { label: "Destination", value: <>{disbursement.destination} (customer loan account)</> },
     { label: "Journal entry", value: entry ? <><b>{entry.reference}</b> · {entry.description}</> : "Not posted (no successful disbursement)" },
-    { label: "Date / time", value: disbursement.completed_at ?? entry?.created_at ?? "—" },
+    { label: "Date / time", value: disbursement.completed_at ?? entry?.created_at ?? "-" },
   ];
 
   return (

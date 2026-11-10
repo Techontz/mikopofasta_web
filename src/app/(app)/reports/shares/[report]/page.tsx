@@ -156,13 +156,13 @@ export default function ShareReportPage() {
             columns={[
               { key: "valuation_date", header: "Valuation Date" },
               { key: "reference", header: "Reference" },
-              { key: "previous_value", header: "Previous Value", className: "text-right", render: (row) => (row.previous_value === null ? "—" : money(row.previous_value)) },
+              { key: "previous_value", header: "Previous Value", className: "text-right", render: (row) => (row.previous_value === null ? "-" : money(row.previous_value)) },
               { key: "new_value", header: "New Value", className: "text-right", render: (row) => money(row.new_value) },
               { key: "total_shares", header: "Total Shares", className: "text-right", render: (row) => sharesLabel(row.total_shares) },
-              { key: "previous_total_valuation", header: "Previous Valuation", className: "text-right", render: (row) => (row.previous_total_valuation === null ? "—" : money(row.previous_total_valuation)) },
+              { key: "previous_total_valuation", header: "Previous Valuation", className: "text-right", render: (row) => (row.previous_total_valuation === null ? "-" : money(row.previous_total_valuation)) },
               { key: "new_total_valuation", header: "New Valuation", className: "text-right", render: (row) => money(row.new_total_valuation) },
               { key: "reason", header: "Reason" },
-              { key: "performed_by", header: "Performed By", render: (row) => row.performed_by ?? "—" },
+              { key: "performed_by", header: "Performed By", render: (row) => row.performed_by ?? "-" },
               { key: "status", header: "Status", render: (row) => row.status.toUpperCase() },
             ]}
           />

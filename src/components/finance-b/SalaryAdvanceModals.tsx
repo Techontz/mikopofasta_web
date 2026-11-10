@@ -30,7 +30,7 @@ export function feeStatusBadge(status: SalaryAdvanceFeeStatus | undefined): { la
   }
 }
 
-/** Fee amount, its collection status and — when it can still be collected — the COLLECT FEE action. */
+/** Fee amount, its collection status and - when it can still be collected - the COLLECT FEE action. */
 export function FeeCell({ advance, canCollect, onCollect }: { advance: SalaryAdvance; canCollect: boolean; onCollect: (advance: SalaryAdvance) => void }) {
   const badge = feeStatusBadge(advance.fee_status);
 
@@ -71,7 +71,7 @@ export function CollectFeeModal({ advance, onClose }: { advance: SalaryAdvance |
       submitLabel="Collect Fee"
       submitting={collect.isPending}
       onSubmit={async () => {
-        if (advance && (await confirmAction("Record fee collection?", `Collected ${money(advance.fee)} — posts Dr LOAN FEE A/C / Cr FEE INCOME.`))) {
+        if (advance && (await confirmAction("Record fee collection?", `Collected ${money(advance.fee)} - posts Dr LOAN FEE A/C / Cr FEE INCOME.`))) {
           collect.mutate({ id: advance.id, method, reference }, { onSuccess: close });
         }
       }}
@@ -125,7 +125,7 @@ export function DepositHistoryModal({ advance, onClose }: { advance: SalaryAdvan
                   {payment.created_at}
                   {payment.reversed && (
                     <div style={{ whiteSpace: "normal" }}>
-                      <Badge tone="danger">REVERSED</Badge> <small>{payment.reversed_at} · {payment.reversed_by ?? "—"} · {payment.reversal_reason}</small>
+                      <Badge tone="danger">REVERSED</Badge> <small>{payment.reversed_at} · {payment.reversed_by ?? "-"} · {payment.reversal_reason}</small>
                     </div>
                   )}
                   {payment.reversal_pending && (

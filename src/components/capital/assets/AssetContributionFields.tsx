@@ -142,7 +142,7 @@ export function AssetContributionFields({ config, form, onChange, fieldError }: 
       </div>
       <p className="mb-0">
         <small className="text-muted">
-          Posting: Dr {layout.account ?? "fixed-asset account for the type"} / Cr CAPITAL ACCOUNT — no cash or bank movement. The contribution value is fixed at contribution; ownership still comes only from shares (Shares → Issue Shares can link this contribution).
+          Posting: Dr {layout.account ?? "fixed-asset account for the type"} / Cr CAPITAL ACCOUNT - no cash or bank movement. The contribution value is fixed at contribution; ownership still comes only from shares (Shares → Issue Shares can link this contribution).
         </small>
       </p>
     </fieldset>

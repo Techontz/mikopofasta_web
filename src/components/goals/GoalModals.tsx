@@ -164,7 +164,7 @@ export function GoalDetailModal({ goalId, onClose }: { goalId: number | null; on
       ) : (
         <>
           <div className="row mb-3">
-            <div className="col-md-4"><b>Goal For:</b> {goal.scope_label} — {goal.assignee}</div>
+            <div className="col-md-4"><b>Goal For:</b> {goal.scope_label} - {goal.assignee}</div>
             <div className="col-md-4"><b>Measure:</b> {goal.metric_label}</div>
             <div className="col-md-4"><b>Period:</b> {goal.start_date} to {goal.end_date}</div>
             <div className="col-md-4"><b>Target:</b> {fmt(goal.target)}</div>

@@ -1,5 +1,5 @@
 /**
- * Which camera the face scanner uses. "user" is the front (selfie) camera, "environment" the back camera — an officer
+ * Which camera the face scanner uses. "user" is the front (selfie) camera, "environment" the back camera - an officer
  * holding a phone or tablet can point the back camera at the customer. Both cameras see the customer's face the same
  * way, so the pose checks (turn left / right, looked from the customer's side) do not depend on the choice; only the
  * preview is mirrored for the front camera, like a mirror.
@@ -22,8 +22,8 @@ export function cameraConstraints(facing: CameraFacing): MediaStreamConstraints 
 }
 
 /**
- * The camera actually opened: what the browser reports for the track, or — when it reports nothing (most desktop
- * webcams) — what was asked for.
+ * The camera actually opened: what the browser reports for the track, or - when it reports nothing (most desktop
+ * webcams) - what was asked for.
  */
 export function openedFacing(requested: CameraFacing, reported: string | undefined): CameraFacing {
   return reported === "user" || reported === "environment" ? reported : requested;

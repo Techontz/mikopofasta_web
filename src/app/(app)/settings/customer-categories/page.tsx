@@ -197,12 +197,12 @@ function SchemaEditor({ rows, onChange, errorFor }: { rows: TypeForm["dynamicFor
               </td>
               <td style={{ minWidth: 120 }}>
                 <select className="form-control form-control-sm" value={row.dependsOn ?? ""} onChange={(e) => update(index, { dependsOn: e.target.value || null })}>
-                  <option value="">—</option>
+                  <option value="">-</option>
                   {rows.slice(0, index).map((previous) => <option key={previous.key} value={previous.key}>{previous.key}</option>)}
                 </select>
                 {errorFor(`dynamicFormSchema.${index}.dependsOn`) && <div className="field-error">{errorFor(`dynamicFormSchema.${index}.dependsOn`)}</div>}
               </td>
-              <td style={{ minWidth: 120 }}><input className="form-control form-control-sm" value={row.storesIn ?? ""} placeholder="—" onChange={(e) => update(index, { storesIn: e.target.value || null })} /></td>
+              <td style={{ minWidth: 120 }}><input className="form-control form-control-sm" value={row.storesIn ?? ""} placeholder="-" onChange={(e) => update(index, { storesIn: e.target.value || null })} /></td>
               <td className="text-nowrap">
                 <button type="button" className="btn btn-sm btn-outline-secondary mr-1" title="Move up" disabled={index === 0} onClick={() => move(index, -1)}><i className="fa fa-arrow-up" /></button>
                 <button type="button" className="btn btn-sm btn-outline-secondary mr-1" title="Move down" disabled={index === rows.length - 1} onClick={() => move(index, 1)}><i className="fa fa-arrow-down" /></button>
@@ -245,7 +245,7 @@ function TypeEditor({ type, onDone }: { type: CustomerType | null; onDone: () =>
         </Field>
         <Field label="Risk tier:" className="col-md-3" error={save.fieldError("riskTier")}>
           <select className="form-control" value={form.riskTier} onChange={(e) => set({ riskTier: e.target.value })}>
-            <option value="">—</option>
+            <option value="">-</option>
             <option value="low">LOW</option>
             <option value="medium">MEDIUM</option>
             <option value="high">HIGH</option>
@@ -304,7 +304,7 @@ function TypeViewer({ type, onClose }: { type: CustomerType; onClose: () => void
   const flags = FLAGS.filter((flag) => type[flag.key]).map((flag) => flag.label);
 
   return (
-    <Modal open onClose={onClose} title={`${(type.formTitle ?? type.name).toUpperCase()} — Step 2 questions`} size="xl">
+    <Modal open onClose={onClose} title={`${(type.formTitle ?? type.name).toUpperCase()} - Step 2 questions`} size="xl">
       <p className="mb-2">
         <strong>{type.name}</strong> <small className="text-muted">{type.code}</small> · Sector: {type.sector} · Risk tier: {type.riskTier ?? "-"}
         {flags.length > 0 && <> · {flags.join(", ")}</>}

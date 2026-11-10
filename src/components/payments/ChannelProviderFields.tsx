@@ -22,7 +22,7 @@ interface Props {
 }
 
 /**
- * Channel (BANK or MNO) and its provider, from the company's own short list (Settings → Payment Channels). Names only — not the
+ * Channel (BANK or MNO) and its provider, from the company's own short list (Settings → Payment Channels). Names only - not the
  * company's fund bank accounts, and not the Master Data bank list used for customers.
  */
 export function ChannelProviderFields({ channel, provider, onChange, fieldError, className = "col-md-4" }: Props) {
@@ -52,7 +52,7 @@ export function ProviderSelect({ channel, value, onChange, error, className = "c
   return (
     <Field label={list.label} required className={className} error={error}>
       <SelectBox placeholder={isLoading ? "Loading…" : list.placeholder} options={options ?? []} value={value} onChange={(selected) => onChange(selected ?? "")} />
-      {!isLoading && options?.length === 0 && <small className="text-muted">None registered yet — add them in Settings → Payment Channels.</small>}
+      {!isLoading && options?.length === 0 && <small className="text-muted">None registered yet - add them in Settings → Payment Channels.</small>}
     </Field>
   );
 }

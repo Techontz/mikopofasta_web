@@ -20,7 +20,7 @@ function Shell({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarPath, setSidebarPath] = useState(pathname);
   const shareholder = shellFor(user) === "shareholder";
-  /** Every staff page uses the brand theme — red, black and white — in the frame and inside the pages. */
+  /** Every staff page uses the brand theme - red, black and white - in the frame and inside the pages. */
   const brand = !shareholder;
   const redirect = redirectFor(user, pathname);
 

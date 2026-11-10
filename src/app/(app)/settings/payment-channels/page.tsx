@@ -27,7 +27,7 @@ interface ProviderForm {
 const EMPTY: ProviderForm = { channel: "BANK", name: "", is_active: true };
 
 /**
- * Settings → Payment Channels: the few banks and mobile networks the company receives customer payments through. Names only —
+ * Settings → Payment Channels: the few banks and mobile networks the company receives customer payments through. Names only -
  * not the company's fund bank accounts (Bank → Register Account) and not the Master Data bank list used for customers.
  */
 export default function PaymentChannelsPage() {
@@ -58,7 +58,7 @@ export default function PaymentChannelsPage() {
             </Field>
           </div>
           <small className="text-muted d-block">
-            Only the banks and networks the company receives customer payments through. These are names for recording payments — not the company&apos;s own bank accounts.
+            Only the banks and networks the company receives customer payments through. These are names for recording payments - not the company&apos;s own bank accounts.
           </small>
           <div className="text-center m-t-20">
             <button type="submit" className="btn btn-primary" disabled={create.isPending}><i className="icon-plus" /> Save</button>

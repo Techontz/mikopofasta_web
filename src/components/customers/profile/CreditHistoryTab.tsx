@@ -405,7 +405,7 @@ export function CreditHistoryTab({ customerId }: { customerId: number }) {
       <div className="mf-section-title">Arrears History</div>
       <DataTable columns={arrearsColumns} rows={arrears} rowKey={(row) => row.id} emptyMessage="No instalment has gone past its due date unpaid." />
 
-      <div className="mf-section-title">Default History — Times Defaulted: {data.defaults.times_defaulted}</div>
+      <div className="mf-section-title">Default History - Times Defaulted: {data.defaults.times_defaulted}</div>
       <DataTable columns={defaultColumns} rows={defaults} rowKey={(row) => row.loan_id} searchable={defaults.length > 10} emptyMessage="No defaults." />
 
       <div className="mf-section-title">Penalty History</div>
@@ -418,7 +418,7 @@ export function CreditHistoryTab({ customerId }: { customerId: number }) {
       </dl>
       <DataTable columns={penaltyColumns} rows={penalties} rowKey={(row) => row.id} emptyMessage="No penalties." />
 
-      <div className="mf-section-title">Profit / Interest History — Total Profit Generated: {money(data.profit.total)}</div>
+      <div className="mf-section-title">Profit / Interest History - Total Profit Generated: {money(data.profit.total)}</div>
       <DataTable
         columns={profitColumns}
         rows={profit}

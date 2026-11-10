@@ -8,7 +8,7 @@ import { money, percent } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 
 /**
- * Spec §26 / §27 Staff Fund: the employee's own contributions (the share withheld from basic salary — the only contribution),
+ * Spec §26 / §27 Staff Fund: the employee's own contributions (the share withheld from basic salary - the only contribution),
  * benefit record and benefit claim history. The Fund Account balance is Finance's and is never shown here.
  */
 export default function MyStaffFundPage() {

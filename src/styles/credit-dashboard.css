@@ -1,8 +1,8 @@
 /*
- * The brand theme — red, black and white — of every staff page (body.theme-brand, set by the app layout for every staff
+ * The brand theme - red, black and white - of every staff page (body.theme-brand, set by the app layout for every staff
  * login) and the Credit Department dashboard (.cd-*). Surfaces, text and borders use the theme tokens so both work in the light and the dark theme.
  */
-/* Brand palette — red, black and white — used by every dashboard chart, icon and badge (lib/brand.ts). In the dark theme
+/* Brand palette - red, black and white - used by every dashboard chart, icon and badge (lib/brand.ts). In the dark theme
    "black" is the light ink so series stay readable on dark surfaces. */
 :root, :root[data-theme="light"] {
     --brand-red: #e1061a; --brand-red-dark: #8f0410; --brand-red-light: #f2727c; --brand-red-soft: rgba(225, 6, 26, .1);

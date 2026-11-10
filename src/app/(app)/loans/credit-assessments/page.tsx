@@ -45,7 +45,7 @@ export default function CreditAssessmentQueuePage() {
     <>
       <PageHeader crumbs={["Loan", "Credit Assessment"]} />
       <Card title="Loan Requests Awaiting Analysis">
-        <p className="mb-2"><small className="text-muted">Recommendations are advisory only — the Credit Officer decides.</small></p>
+        <p className="mb-2"><small className="text-muted">Recommendations are advisory only - the Credit Officer decides.</small></p>
         <DataTable
           rows={data?.data}
           loading={isLoading || authLoading}
@@ -56,12 +56,12 @@ export default function CreditAssessmentQueuePage() {
           columns={[
             { key: "sn", header: "S/No.", render: (_, index) => `${offset + index + 1}.`, sortable: false },
             { key: "loan_number", header: "Loan AC/No", render: (row) => <Link href={`/loans/${row.loan_id}`}>{row.loan_number}</Link> },
-            { key: "customer", header: "Customer", render: (row) => row.customer ?? "—" },
-            { key: "customer_type", header: "Customer Type", render: (row) => row.customer_type ?? "—" },
-            { key: "branch", header: "Branch", render: (row) => row.branch ?? "—" },
+            { key: "customer", header: "Customer", render: (row) => row.customer ?? "-" },
+            { key: "customer_type", header: "Customer Type", render: (row) => row.customer_type ?? "-" },
+            { key: "branch", header: "Branch", render: (row) => row.branch ?? "-" },
             { key: "applied_at", header: "Applied", render: (row) => date(row.applied_at) },
             { key: "requested_amount", header: "Requested", className: "text-right", render: (row) => money(row.requested_amount) },
-            { key: "recommended", header: "Recommended", className: "text-right", value: (row) => row.assessment?.recommended_amount ?? null, render: (row) => (row.assessment ? money(row.assessment.recommended_amount) : "—") },
+            { key: "recommended", header: "Recommended", className: "text-right", value: (row) => row.assessment?.recommended_amount ?? null, render: (row) => (row.assessment ? money(row.assessment.recommended_amount) : "-") },
             {
               key: "score",
               header: "Score / Band",

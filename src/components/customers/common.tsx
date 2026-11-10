@@ -103,13 +103,13 @@ export function Pager({ meta, onPage, perPage, onPerPage }: { meta: PageMeta | u
   );
 }
 
-/** Definition list row that hides nothing: empty values read "—". */
+/** Definition list row that hides nothing: empty values read "-". */
 export function Detail({ label, children }: { label: string; children: ReactNode }) {
   const empty = children === null || children === undefined || children === "";
   return (
     <div>
       <dt>{label}</dt>
-      <dd>{empty ? "—" : children}</dd>
+      <dd>{empty ? "-" : children}</dd>
     </div>
   );
 }

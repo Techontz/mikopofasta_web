@@ -67,7 +67,7 @@ export interface LockedAssignment {
 }
 
 /**
- * Register Employee / Basic Information fields (live), plus role, zone and — on registration — login and salary structure.
+ * Register Employee / Basic Information fields (live), plus role, zone and - on registration - login and salary structure.
  * `locked`: the employee is editing themselves, so role, branch, zone and position are read-only (the API refuses the change;
  * an Admin or Super Admin moves them).
  */

@@ -103,14 +103,14 @@ export default function ShareValuationsPage() {
           columns={[
             { key: "valuation_date", header: "Valuation Date" },
             { key: "reference", header: "Reference" },
-            { key: "previous_value", header: "Previous Value", className: "text-right", render: (row) => (row.previous_value === null ? "—" : money(row.previous_value)) },
+            { key: "previous_value", header: "Previous Value", className: "text-right", render: (row) => (row.previous_value === null ? "-" : money(row.previous_value)) },
             { key: "new_value", header: "New Value", className: "text-right", render: (row) => money(row.new_value) },
-            { key: "change_percent", header: "Change", className: "text-right", render: (row) => (row.change_percent === null ? "—" : `${row.change_percent > 0 ? "+" : ""}${percent(row.change_percent)}`) },
+            { key: "change_percent", header: "Change", className: "text-right", render: (row) => (row.change_percent === null ? "-" : `${row.change_percent > 0 ? "+" : ""}${percent(row.change_percent)}`) },
             { key: "total_shares", header: "Total Shares", className: "text-right", render: (row) => sharesLabel(row.total_shares) },
-            { key: "previous_total_valuation", header: "Previous Total Valuation", className: "text-right", render: (row) => (row.previous_total_valuation === null ? "—" : money(row.previous_total_valuation)) },
+            { key: "previous_total_valuation", header: "Previous Total Valuation", className: "text-right", render: (row) => (row.previous_total_valuation === null ? "-" : money(row.previous_total_valuation)) },
             { key: "new_total_valuation", header: "New Total Valuation", className: "text-right", render: (row) => money(row.new_total_valuation) },
             { key: "reason", header: "Reason" },
-            { key: "performed_by", header: "Performed By", render: (row) => row.performed_by ?? "—" },
+            { key: "performed_by", header: "Performed By", render: (row) => row.performed_by ?? "-" },
             {
               key: "status",
               header: "Status",

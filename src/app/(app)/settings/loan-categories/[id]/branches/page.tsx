@@ -15,7 +15,7 @@ interface Branch {
   name: string;
 }
 
-/** Live admin/loan_category_blanch/:id — assign the product to branches. */
+/** Live admin/loan_category_blanch/:id - assign the product to branches. */
 export default function LoanCategoryBranchesPage() {
   const { id } = useParams<{ id: string }>();
   const { data: category } = useApi<LoanCategory>(`settings/loan-categories/${id}`);

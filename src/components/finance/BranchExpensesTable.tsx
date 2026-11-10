@@ -56,7 +56,7 @@ export function BranchExpensesTable({ rows, loading }: { rows: ExpenseRequest[] 
             className: "text-nowrap",
             render: (row) =>
               row.status === "accepted" ? (
-                <ReverseButton row={row} path={`expenses/requests/${row.id}/reverse`} description={`${row.expense ?? "expense"} — ${row.branch ?? ""} (back to INTEREST A/C)`} />
+                <ReverseButton row={row} path={`expenses/requests/${row.id}/reverse`} description={`${row.expense ?? "expense"} - ${row.branch ?? ""} (back to INTEREST A/C)`} />
               ) : (
                 row.status === "pending" &&
                 (row.can_approve ? (

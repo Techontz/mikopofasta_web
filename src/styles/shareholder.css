@@ -1,5 +1,5 @@
 /*
- * Shareholder Portal shell — reuses the Head Office top bar (finance.css .fin-*) on the portal accent colour and adds the
+ * Shareholder Portal shell - reuses the Head Office top bar (finance.css .fin-*) on the portal accent colour and adds the
  * portal tiles. Scoped to [data-shell="shareholder"] (set on <body> and the wrapper only for shareholder accounts);
  * colours come from design tokens so dark (default) and light themes both work.
  */

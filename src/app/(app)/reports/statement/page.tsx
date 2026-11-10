@@ -110,7 +110,7 @@ function StatementReport() {
                     <>
                       <tr>
                         <td><b>Loan ID:</b> {data.loan.loan_number}</td>
-                        <td><b>Reference No:</b> {data.loan.reference_number ?? "—"}</td>
+                        <td><b>Reference No:</b> {data.loan.reference_number ?? "-"}</td>
                         <td><b>Loan Amount:</b> {money(data.loan.amount)}</td>
                         <td><b>Principal + Interest:</b> {money(data.loan.total_payable)}</td>
                       </tr>

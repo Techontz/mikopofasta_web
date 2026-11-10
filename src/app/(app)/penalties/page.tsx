@@ -80,7 +80,7 @@ export default function PenaltyListPage() {
       <Modal
         open={paying !== null}
         onClose={() => setPaying(null)}
-        title={paying && `${paying.customer} — ${money(paying.remaining)}`}
+        title={paying && `${paying.customer} - ${money(paying.remaining)}`}
         submitLabel="Pay"
         submitting={pay.isPending}
         onSubmit={() => paying && pay.mutate({ id: paying.id, penart_paid: amount }, { onSuccess: () => setPaying(null) })}

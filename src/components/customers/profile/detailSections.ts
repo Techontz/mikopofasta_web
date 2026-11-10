@@ -1,5 +1,5 @@
 /**
- * Details tab: groups the customer's stored values into titled cards. Pure — the component only resolves select
+ * Details tab: groups the customer's stored values into titled cards. Pure - the component only resolves select
  * labels (master data / parented lookups) and renders.
  *
  * Step 2 answers follow the customer type's configuration through `composeStep2Fields` (read-only): a field
@@ -314,7 +314,7 @@ export function imageQualityMeters(scan: FaceScanResource): QualityMeter[] {
   ];
 }
 
-/** Checklist rows; a check the scan did not store is `null` (shown as "—"). */
+/** Checklist rows; a check the scan did not store is `null` (shown as "-"). */
 export function faceChecklist(scan: FaceScanResource): Array<{ key: string; label: string; passed: boolean | null }> {
   return FACE_CHECKLIST.map((item) => {
     const value = (scan.checks as Record<string, boolean | undefined>)?.[item.key];
@@ -345,7 +345,7 @@ export function scoreTone(score: number | null): "success" | "warning" | "danger
   return score >= 70 ? "success" : score >= 40 ? "warning" : "danger";
 }
 
-/** Audit record of one scan, exactly as stored — for the Download Audit button. */
+/** Audit record of one scan, exactly as stored - for the Download Audit button. */
 export function faceAuditRecord(customer: Pick<Customer, "id" | "customerNumber" | "fullName">, scan: FaceScanResource, generatedAt: string) {
   return {
     generatedAt,

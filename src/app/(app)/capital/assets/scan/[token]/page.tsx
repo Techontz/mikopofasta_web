@@ -41,9 +41,9 @@ export default function AssetScanPage() {
                   <tr><th>Contributor</th><td>{asset.share_holder}</td></tr>
                   <tr><th>Current Value</th><td>{money(asset.current_value)}</td></tr>
                   <tr><th>Branch</th><td>{asset.branch}</td></tr>
-                  <tr><th>Location</th><td>{asset.location ?? "—"}</td></tr>
+                  <tr><th>Location</th><td>{asset.location ?? "-"}</td></tr>
                   <tr><th>Contribution Date</th><td>{asset.contributed_on}</td></tr>
-                  <tr><th>Identifiers</th><td>{identifierSummary(asset.identifiers) || "—"}</td></tr>
+                  <tr><th>Identifiers</th><td>{identifierSummary(asset.identifiers) || "-"}</td></tr>
                 </tbody>
               </table>
               <Link href={`/capital/assets/${asset.id}`} className="btn btn-primary btn-block">Open Asset</Link>

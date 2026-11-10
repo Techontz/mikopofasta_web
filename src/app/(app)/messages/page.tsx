@@ -158,7 +158,7 @@ export default function MessagesPage() {
                     <button type="submit" className="btn btn-primary" disabled={send.isPending || !draft.trim()}><i className="icon-paper-plane" /> Send</button>
                   </form>
                 ) : (
-                  <p className="text-muted text-center mt-2 mb-0">Announcement channel — only heads can post.</p>
+                  <p className="text-muted text-center mt-2 mb-0">Announcement channel - only heads can post.</p>
                 )}
               </>
             )}

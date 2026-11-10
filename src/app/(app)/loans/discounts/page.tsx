@@ -99,10 +99,10 @@ export default function LoanDiscountsPage() {
             { key: "original_debt", header: "Original Debt", render: (row) => money(row.original_debt) },
             { key: "actual_payment", header: "Customer Pays", render: (row) => money(row.actual_payment) },
             { key: "requested_amount", header: "Requested Discount", render: (row) => money(row.requested_amount) },
-            { key: "approved_amount", header: "Approved", render: (row) => (row.approved_amount === null ? "—" : money(row.approved_amount)) },
+            { key: "approved_amount", header: "Approved", render: (row) => (row.approved_amount === null ? "-" : money(row.approved_amount)) },
             { key: "reason", header: "Reason" },
             { key: "requested_by", header: "Requested By", render: (row) => <>{row.requested_by}<small className="d-block">{row.requested_at}</small></> },
-            { key: "decided_by", header: "Decided By", render: (row) => row.decided_by ? <>{row.decided_by}<small className="d-block">{row.decided_at}</small>{row.decision_note && <small className="d-block">{row.decision_note}</small>}</> : "—" },
+            { key: "decided_by", header: "Decided By", render: (row) => row.decided_by ? <>{row.decided_by}<small className="d-block">{row.decided_at}</small>{row.decision_note && <small className="d-block">{row.decision_note}</small>}</> : "-" },
             { key: "status", header: "Status", render: (row) => <span className={`badge badge-${row.status === "approved" ? "success" : row.status === "rejected" ? "danger" : "warning"}`}>{row.status.toUpperCase()}</span> },
             {
               key: "action",

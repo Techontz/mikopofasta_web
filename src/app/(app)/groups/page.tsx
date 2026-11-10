@@ -59,7 +59,7 @@ export default function GroupsPage() {
                     <button type="button" className="btn btn-sm btn-icon btn-primary mr-1" onClick={() => { setEditing(row); setName(row.name); }}><i className="icon-pencil" /></button>
                   )}
                   <Link href={`/groups/${row.id}`} className="btn btn-sm btn-icon btn-info mr-1"><i className="icon-eye" /></Link>
-                  {can("groups.manage") && (
+                  {can("groups.delete") && (
                     <button type="button" className="btn btn-sm btn-icon btn-danger" onClick={async () => (await confirmAction()) && remove.mutate({ id: row.id })}><i className="icon-trash" /></button>
                   )}
                 </>

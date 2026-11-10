@@ -41,7 +41,7 @@ describe("customer type options come from the API", () => {
     expect(selectableCustomerTypes(rows).map((type) => type.name)).toEqual(FIVE.slice(0, 3));
   });
 
-  it("reflects whatever the API returns — there is no built-in list", () => {
+  it("reflects whatever the API returns - there is no built-in list", () => {
     const rows = [
       { id: 7, name: "Zeta", isActive: true, sortOrder: 2 },
       { id: 3, name: "Alpha", isActive: true, sortOrder: 2 },

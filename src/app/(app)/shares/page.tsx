@@ -18,7 +18,7 @@ import { money, percent } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 
 /**
- * Shares → Overview: total issued and available shares, current share value, company share valuation (shares × value —
+ * Shares → Overview: total issued and available shares, current share value, company share valuation (shares × value -
  * not cash), shareholders, recent movements and value changes, and the ownership distribution from the share register.
  */
 export default function SharesOverviewPage() {
@@ -114,7 +114,7 @@ export default function SharesOverviewPage() {
                   emptyMessage="No valuations yet"
                   columns={[
                     { key: "valuation_date", header: "Date" },
-                    { key: "previous_value", header: "Previous", className: "text-right", render: (row) => (row.previous_value === null ? "—" : money(row.previous_value)) },
+                    { key: "previous_value", header: "Previous", className: "text-right", render: (row) => (row.previous_value === null ? "-" : money(row.previous_value)) },
                     { key: "new_value", header: "New Value", className: "text-right", render: (row) => money(row.new_value) },
                     { key: "status", header: "Status", render: (row) => (row.status === "effective" ? row.kind === "initial" ? "Initial" : "Effective" : "Reversed") },
                   ]}

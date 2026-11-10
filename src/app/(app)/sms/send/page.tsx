@@ -126,7 +126,7 @@ function SendSms() {
           balance && (
             <div className="bh_chart d-inline-block">
               <small>SMS BALANCE</small>
-              <h6 className="mb-0 mt-1" title={balance.error ?? undefined}><i className="icon-envelope" /> {balance.balance !== null ? balance.balance.toLocaleString() : "—"}</h6>
+              <h6 className="mb-0 mt-1" title={balance.error ?? undefined}><i className="icon-envelope" /> {balance.balance !== null ? balance.balance.toLocaleString() : "-"}</h6>
             </div>
           )
         }
@@ -174,7 +174,7 @@ function SendSms() {
           {form.audience === "numbers" && (
             <div className="row">
               <Field label="Phone numbers:" required className="col-md-12" error={send.fieldError("numbers")}>
-                <textarea className="form-control" rows={3} placeholder="0712345678, 0754000111 — separate with commas, spaces or new lines" value={form.numbers} onChange={(e) => update({ numbers: e.target.value })} />
+                <textarea className="form-control" rows={3} placeholder="0712345678, 0754000111 - separate with commas, spaces or new lines" value={form.numbers} onChange={(e) => update({ numbers: e.target.value })} />
               </Field>
             </div>
           )}
@@ -183,7 +183,7 @@ function SendSms() {
             <Field label="Load a draft:" className="col-md-6">
               <SelectBox
                 inputId="sms-draft"
-                placeholder={options?.drafts.length ? "Select a saved draft" : "No drafts yet — create them under Templates"}
+                placeholder={options?.drafts.length ? "Select a saved draft" : "No drafts yet - create them under Templates"}
                 options={(options?.drafts ?? []).map((draft) => ({ value: String(draft.id), label: draft.name }))}
                 value={null}
                 onChange={(value) => { const draft = options?.drafts.find((item) => String(item.id) === value); if (draft) { update({ message: draft.body }); } }}

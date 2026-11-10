@@ -295,7 +295,7 @@ const APPROVAL_ICONS: Record<string, string> = {
   returned: "fa fa-exclamation-triangle",
 };
 
-/** The panel is a brief: only its first rows fit the card without a scroll — View All opens the full list. */
+/** The panel is a brief: only its first rows fit the card without a scroll - View All opens the full list. */
 const APPROVALS_SHOWN = 5;
 
 function Approvals({ rows }: { rows: CreditDashboardData["approvals"] }) {

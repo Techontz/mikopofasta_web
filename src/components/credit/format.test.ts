@@ -24,13 +24,13 @@ describe("credit evidence formatting", () => {
     expect(evidenceValue("offset_amount", 1858000)).toBe("1,858,000");
     expect(evidenceValue("completion_rate", 0.83333)).toBe("0.8333");
     expect(evidenceValue("income_known", false)).toBe("No");
-    expect(evidenceValue("income_field", null)).toBe("—");
+    expect(evidenceValue("income_field", null)).toBe("-");
   });
 
   it("labels", () => {
     expect(humanize("income_field")).toBe("Income field");
     expect(ratio(0.425)).toBe("42.5%");
-    expect(ratio(null)).toBe("—");
+    expect(ratio(null)).toBe("-");
     expect(riskBandLabel("moderate")).toBe("Moderate risk");
     expect(riskBandLabel("low", "Custom")).toBe("Custom");
   });

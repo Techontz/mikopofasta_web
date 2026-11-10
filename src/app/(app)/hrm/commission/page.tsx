@@ -44,7 +44,7 @@ interface BranchCommission {
   staff_pool_amount?: number;
   zone_manager_shares?: { employee_id: number; employee: string | null; amount: number }[];
   unallocated_amount?: number;
-  /** C4: not allocated, stays in the Profit Account — the 5 % without an eligible zone manager, or the whole pool without eligible staff. */
+  /** C4: not allocated, stays in the Profit Account - the 5 % without an eligible zone manager, or the whole pool without eligible staff. */
   returned_to_profit_amount?: number;
   returned_no_zone_manager_amount?: number;
   returned_no_staff_amount?: number;
@@ -152,7 +152,7 @@ export default function CommissionPage() {
             <Stat label="Returned to profit (no zone manager / no staff)" value={`${money(report.total_returned_to_profit ?? 0)} (${money(report.total_returned_no_zone_manager ?? 0)} / ${money(report.total_returned_no_staff ?? 0)})`} />
           </div>
 
-          <Card title={`Commission per Branch — Total pools ${money(report.summary.total_pools)}`}>
+          <Card title={`Commission per Branch - Total pools ${money(report.summary.total_pools)}`}>
             <DataTable
               rows={report.branches}
               loading={isLoading}
@@ -166,8 +166,8 @@ export default function CommissionPage() {
                 { key: "hq_hold_amount", header: "HQ 2% Hold", render: (row) => money(row.hq_hold_amount) },
                 { key: "distributable_profit", header: "Profit used", render: (row) => money(row.distributable_profit) },
                 { key: "pool_amount", header: "Commission Pool (10%)", render: (row) => money(row.pool_amount) },
-                { key: "zone_manager_amount", header: "Zone Manager Carve-out", render: (row) => (row.zone_manager_amount === null || row.zone_manager_amount === undefined ? "—" : money(row.zone_manager_amount)) },
-                { key: "staff_pool_amount", header: "Staff Share", render: (row) => ((row.returned_to_profit_amount ?? 0) > 0 && row.staff.length === 0 ? "—" : money(row.staff_pool_amount ?? row.pool_amount)) },
+                { key: "zone_manager_amount", header: "Zone Manager Carve-out", render: (row) => (row.zone_manager_amount === null || row.zone_manager_amount === undefined ? "-" : money(row.zone_manager_amount)) },
+                { key: "staff_pool_amount", header: "Staff Share", render: (row) => ((row.returned_to_profit_amount ?? 0) > 0 && row.staff.length === 0 ? "-" : money(row.staff_pool_amount ?? row.pool_amount)) },
                 {
                   key: "returned_to_profit_amount",
                   header: "Returned to Profit",
@@ -178,10 +178,10 @@ export default function CommissionPage() {
                         <div className="text-muted small">{(row.returned_no_staff_amount ?? 0) > 0 ? "No eligible staff (whole pool)" : (row.returned_no_zone_manager_amount ?? 0) > 0 ? "No zone manager (5%)" : ""}</div>
                       </>
                     ) : (
-                      "—"
+                      "-"
                     ),
                 },
-                { key: "journal_reference", header: "Allocation Journal", render: (row) => row.journal_reference ?? "—" },
+                { key: "journal_reference", header: "Allocation Journal", render: (row) => row.journal_reference ?? "-" },
                 { key: "eligible", header: "Eligibility", render: (row) => { const badge = branchEligibilityBadge(row); return <Badge tone={badge.tone}>{badge.label}</Badge>; } },
                 { key: "action", header: "Action", sortable: false, render: (row) => <button type="button" className="btn btn-sm btn-icon btn-primary" title="Distribution per staff" onClick={() => setViewing(row)}><i className="icon-eye" /></button> },
               ]}
@@ -207,7 +207,7 @@ export default function CommissionPage() {
         </>
       )}
 
-      <Modal open={viewing !== null} onClose={() => setViewing(null)} title={`${viewing?.branch ?? ""} — Pool ${money(viewing?.pool_amount)}${viewing?.zone_manager_amount ? ` · Zone manager ${money(viewing.zone_manager_amount)} · Staff ${money(viewing.staff_pool_amount)}` : ""}`} size="lg">
+      <Modal open={viewing !== null} onClose={() => setViewing(null)} title={`${viewing?.branch ?? ""} - Pool ${money(viewing?.pool_amount)}${viewing?.zone_manager_amount ? ` · Zone manager ${money(viewing.zone_manager_amount)} · Staff ${money(viewing.staff_pool_amount)}` : ""}`} size="lg">
         <DataTable
           rows={viewing?.staff}
           rowKey={(row) => row.employee_id}

@@ -204,13 +204,13 @@ function RecentUpdates({ rows }: { rows: CrmDashboardData["recent_updates"] }) {
           {rows.map((row, index) => (
             <tr key={`${row.request_id}-${row.field}`}>
               <td>{index + 1}</td>
-              <td>{row.customer_code ?? "—"}</td>
+              <td>{row.customer_code ?? "-"}</td>
               <td><Link href={`/customers/${row.customer_id}`}>{row.name}</Link></td>
               <td>{row.field}</td>
-              <td className="crm-value">{row.old || "—"}</td>
-              <td className="crm-value">{row.new || "—"}</td>
-              <td>{row.updated_on ?? "—"}</td>
-              <td>{row.by ?? "—"}</td>
+              <td className="crm-value">{row.old || "-"}</td>
+              <td className="crm-value">{row.new || "-"}</td>
+              <td>{row.updated_on ?? "-"}</td>
+              <td>{row.by ?? "-"}</td>
             </tr>
           ))}
         </tbody>

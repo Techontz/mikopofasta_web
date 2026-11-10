@@ -129,12 +129,14 @@ function GeneralDashboard() {
       <Card actions={data.branch_accounts && <button type="button" className="btn btn-info btn-sm" onClick={() => setBranchesOpen(true)}><i className="icon-list" />Branch</button>}>
         <div className="row clearfix">
           <div className="col-md-3">
-            {/* Summary card: figures only (enhancement §11.1). */}
-            <div className="body dashboard-stat bg-success text-light">
-              <h4><i className="icon-wallet" /> {money(data.cards.account_balance)}</h4>
-              <span>{data.cards.account_balance_title}</span>
-              <small className="d-block">{data.cards.account_balance_label}</small>
-            </div>
+            {/* Opens the account list behind this figure, for those allowed to see it. */}
+            <a href="#" onClick={(e) => { e.preventDefault(); if (data.account_balances) { setAccountsOpen(true); } }}>
+              <div className="body dashboard-stat bg-success text-light">
+                <h4><i className="icon-wallet" /> {money(data.cards.account_balance)}</h4>
+                <span>{data.cards.account_balance_title}</span>
+                <small className="d-block">{data.cards.account_balance_label}</small>
+              </div>
+            </a>
           </div>
           <div className="col-md-3">
             <div className="body dashboard-stat bg-warning text-light">
@@ -160,7 +162,7 @@ function GeneralDashboard() {
           <p className="mb-0 mt-3">
             <b>Operating Income: {money(data.operating_income.total)}</b>
             <small className="text-muted">
-              {" "}— from {data.operating_income.sources.map((source) => `${source.label} ${money(source.amount)}`).join(" · ")}
+              {" "}- from {data.operating_income.sources.map((source) => `${source.label} ${money(source.amount)}`).join(" · ")}
             </small>
           </p>
         )}
@@ -313,7 +315,7 @@ function GeneralDashboard() {
                   <td colSpan={2}><small className="text-muted">Unmatched is money received but not yet matched to a loan, and Savings belong to the customers who deposited them, so neither is HQ&apos;s. Profit and Dividends are shares of Operation Income. None of these four is added to the total.</small></td>
                 </tr>
               )}
-              {/* Memo lines, as on the live account modal: not part of the total — what the money owes or is still to collect. */}
+              {/* Memo lines, as on the live account modal: not part of the total - what the money owes or is still to collect. */}
               {(data.account_memos ?? []).map((memo) => (
                 <tr key={memo.label} className={`text-${memo.tone}`}>
                   <td className="font-weight-bold">{memo.label}</td>

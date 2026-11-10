@@ -48,7 +48,7 @@ export function LoanTransactionsCard({ loanId, transactions }: { loanId: number;
                 {row.reversed && (
                   <div>
                     <Badge tone="danger">REVERSED</Badge>{" "}
-                    <small>{row.reversed_at} · {row.reversed_by ?? "—"} · {row.reversal_reason}{row.reversal_reference ? ` · ${row.reversal_reference}` : ""}</small>
+                    <small>{row.reversed_at} · {row.reversed_by ?? "-"} · {row.reversal_reason}{row.reversal_reference ? ` · ${row.reversal_reference}` : ""}</small>
                   </div>
                 )}
                 {row.reversal_request && (
@@ -63,7 +63,7 @@ export function LoanTransactionsCard({ loanId, transactions }: { loanId: number;
             ),
           },
           { key: "method", header: "Method" },
-          { key: "receipt_number", header: "Receipt", render: (row) => row.receipt_number ?? "—" },
+          { key: "receipt_number", header: "Receipt", render: (row) => row.receipt_number ?? "-" },
           { key: "amount", header: "Amount", render: (row) => struck(row, money(row.amount)) },
           { key: "principal", header: "Principal", render: (row) => struck(row, money(row.principal)) },
           { key: "penalty", header: "Penalty", render: (row) => struck(row, money(row.penalty)) },

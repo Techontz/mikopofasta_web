@@ -122,7 +122,7 @@ export default function PeriodClosePage() {
 
       {activeId && (
         <Card
-          title={period ? `Branch Profit & Loss — ${period.month} (${period.status.toUpperCase()})` : "Branch Profit & Loss"}
+          title={period ? `Branch Profit & Loss - ${period.month} (${period.status.toUpperCase()})` : "Branch Profit & Loss"}
           actions={period?.status === "closed" ? <Badge tone="danger"><i className="icon-lock" /> LOCKED</Badge> : undefined}
         >
           {loadingPeriod || !period ? (

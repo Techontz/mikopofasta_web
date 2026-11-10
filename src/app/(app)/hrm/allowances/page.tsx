@@ -61,7 +61,7 @@ const emptyForm = () => ({ blanch_id: "", empl_id: "", new_amount: "", reason: "
 
 /**
  * HRM → Staff Allowance (spec §24 / §58): HR records an allowance with its reason and payroll period → Finance approves
- * (Approved / Awaiting Payroll — no money moves) or rejects with a reason → the payroll of that period pays it. The HR creator
+ * (Approved / Awaiting Payroll - no money moves) or rejects with a reason → the payroll of that period pays it. The HR creator
  * and the receiving employee cannot approve it.
  */
 export default function StaffAllowancePage() {
@@ -128,8 +128,8 @@ export default function StaffAllowancePage() {
             { key: "branch", header: "Branch" },
             { key: "employee", header: "Staff name" },
             { key: "amount", header: "Amount", render: (row) => money(row.amount), value: (row) => row.amount },
-            { key: "reason", header: "Reason", render: (row) => (row.reason ? row.reason.toUpperCase() : "—") },
-            { key: "payroll_period", header: "Payroll Period", render: (row) => (row.recurring ? "Every payroll" : row.payroll_period ?? "—") },
+            { key: "reason", header: "Reason", render: (row) => (row.reason ? row.reason.toUpperCase() : "-") },
+            { key: "payroll_period", header: "Payroll Period", render: (row) => (row.recurring ? "Every payroll" : row.payroll_period ?? "-") },
             { key: "description", header: "Description" },
             {
               key: "status",
@@ -144,7 +144,7 @@ export default function StaffAllowancePage() {
                 </span>
               ),
             },
-            { key: "created_by", header: "Created By", render: (row) => row.created_by ?? "—" },
+            { key: "created_by", header: "Created By", render: (row) => row.created_by ?? "-" },
             { key: "created_at", header: "Date" },
             {
               key: "action",

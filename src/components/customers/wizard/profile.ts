@@ -1,6 +1,6 @@
 /**
  * Requirement profile used by the wizard: the baseline (isDefault / no account type), merged with a row for the
- * chosen customer type when the API returns one (flags OR-ed, minimums maxed) — the same merge the server does.
+ * chosen customer type when the API returns one (flags OR-ed, minimums maxed) - the same merge the server does.
  */
 import type { RequirementProfile } from "../types";
 

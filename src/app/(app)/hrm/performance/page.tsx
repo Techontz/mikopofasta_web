@@ -115,7 +115,7 @@ export default function PerformancePage() {
         />
       </Card>
 
-      <Modal open={goals !== null} onClose={() => setGoals(null)} title={`Targets vs achievement — ${goals?.employee ?? ""}`} size="lg">
+      <Modal open={goals !== null} onClose={() => setGoals(null)} title={`Targets vs achievement - ${goals?.employee ?? ""}`} size="lg">
         <DataTable
           rows={goals?.goals}
           searchable={false}

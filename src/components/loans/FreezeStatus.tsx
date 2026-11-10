@@ -48,7 +48,7 @@ function FreezeDetails({ freeze, eligible, showPrevious }: { freeze: CustomerFre
       {showPrevious && previous && (
         <dl className="mf-dl mt-2 mb-0">
           {settlementRows(previous).map(([label, value]) => (
-            <div key={label}><dt>{label}</dt><dd>{value || "—"}</dd></div>
+            <div key={label}><dt>{label}</dt><dd>{value || "-"}</dd></div>
           ))}
         </dl>
       )}

@@ -66,7 +66,7 @@ export function AgreementActions({ loan, compact = false, showPrint = true }: { 
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title={`Upload Signed Loan Agreement${loan.customer_name ? ` — ${loan.customer_name}` : ""}`}
+        title={`Upload Signed Loan Agreement${loan.customer_name ? ` - ${loan.customer_name}` : ""}`}
         submitLabel="Upload"
         submitting={upload.isPending}
         onSubmit={() => {

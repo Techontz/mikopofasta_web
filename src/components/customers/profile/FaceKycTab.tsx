@@ -22,7 +22,7 @@ function Meter({ label, score, passed }: { label: string; score: number | null; 
       <div className="mf-meter-head">
         <span className="mf-meter-label">{label}</span>
         <span className="mf-meter-value">
-          {score === null ? "—" : `${score}/100`}
+          {score === null ? "-" : `${score}/100`}
           {passed !== undefined && (
             <span className={`mf-pass ${passed === null ? "is-unknown" : passed ? "is-pass" : "is-fail"}`} title={passed === null ? "Not recorded" : passed ? "Passed" : "Not met"}>
               <i className={`fa ${passed === null ? "fa-minus" : passed ? "fa-check" : "fa-times"}`} aria-hidden="true" />

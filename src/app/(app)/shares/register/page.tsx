@@ -66,7 +66,7 @@ export default function ShareRegisterPage() {
             { key: "ownership_percent", header: "Ownership %", className: "text-right", render: (row) => percent(row.ownership_percent) },
             { key: "share_value", header: asOf ? "Share Value" : "Current Share Value", className: "text-right", render: (row) => money(row.share_value) },
             { key: "holding_value", header: "Total Holding Value", className: "text-right", render: (row) => money(row.holding_value) },
-            { key: "date_acquired", header: "Date Acquired", render: (row) => row.date_acquired ?? "—" },
+            { key: "date_acquired", header: "Date Acquired", render: (row) => row.date_acquired ?? "-" },
             { key: "status", header: "Status", render: (row) => <Badge tone={row.status === "active" ? "success" : "default"}>{row.status === "active" ? "ACTIVE" : "NO SHARES"}</Badge> },
           ]}
           footer={

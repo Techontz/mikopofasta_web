@@ -154,7 +154,7 @@ export default function MasterDataPage() {
           </Field>
           {list.parent && (
             <Field label={`${labelOf(list.parent)}:`} className="col-md-5">
-              <ParentPicker list={list} value={parentId} onChange={setParentId} placeholder={`All — or select ${labelOf(list.parent)}`} />
+              <ParentPicker list={list} value={parentId} onChange={setParentId} placeholder={`All - or select ${labelOf(list.parent)}`} />
             </Field>
           )}
           <div className="col-md-2 mb-2 d-flex align-items-end">

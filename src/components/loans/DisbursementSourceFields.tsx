@@ -11,7 +11,7 @@ interface DisbursementSourceFieldsProps {
 }
 
 /**
- * Every loan is paid from the HQ PRINCIPAL A/C — there is nothing to choose. Shows the account's ledger balance and
+ * Every loan is paid from the HQ PRINCIPAL A/C - there is nothing to choose. Shows the account's ledger balance and
  * what this loan takes from it.
  */
 export function DisbursementSourceFields({ loanId, fieldError }: DisbursementSourceFieldsProps) {
@@ -27,7 +27,7 @@ export function DisbursementSourceFields({ loanId, fieldError }: DisbursementSou
         <>
           <p className={`mb-0 ${hasSufficientBalance(cash) ? "text-success" : "text-danger"}`}>
             Balance <b>{money(cash.balance)}</b> · this loan takes <b>{money(cash.required)}</b>
-            {hasSufficientBalance(cash) ? "" : " — insufficient balance"}
+            {hasSufficientBalance(cash) ? "" : " - insufficient balance"}
           </p>
           <small className="text-muted">Posting: Dr LOAN RECEIVABLE (customer loan account) / Cr {cash.label}.</small>
         </>

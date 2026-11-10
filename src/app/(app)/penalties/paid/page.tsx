@@ -73,13 +73,13 @@ export default function PaidPenaltyPage() {
                   {row.reversed ? (
                     <>
                       <Badge tone="danger">REVERSED</Badge>{" "}
-                      <small>{row.reversed_at} · {row.reversed_by ?? "—"} · {row.reversal_reason}{row.reversal_reference ? ` · ${row.reversal_reference}` : ""}</small>
+                      <small>{row.reversed_at} · {row.reversed_by ?? "-"} · {row.reversal_reason}{row.reversal_reference ? ` · ${row.reversal_reference}` : ""}</small>
                     </>
                   ) : row.reversal_request ? (
                     <>
                       <Badge tone="warning">REVERSAL PENDING APPROVAL</Badge> <small>{pendingNote(row.reversal_request)}</small>
                       <div className="mt-1">
-                        <ApprovalActions row={row.reversal_request} approvePath={approvePath(row.reversal_request)} rejectPath={rejectPath(row.reversal_request)} description={`reversal of the penalty payment of ${row.customer ?? "—"}`} />
+                        <ApprovalActions row={row.reversal_request} approvePath={approvePath(row.reversal_request)} rejectPath={rejectPath(row.reversal_request)} description={`reversal of the penalty payment of ${row.customer ?? "-"}`} />
                       </div>
                     </>
                   ) : (
@@ -137,7 +137,7 @@ export default function PaidPenaltyPage() {
         onSubmit={(reason) => target && reverse.mutate({ id: target.id, reason }, { onSuccess: () => setTarget(null) })}
         summary={target && (
           <>
-            On approval, reverse the penalty payment of <b>TZS {money(target.amount)}</b> dated {target.paid_on} ({target.customer ?? "—"}{target.loan_number ? `, loan ${target.loan_number}` : ""}):
+            On approval, reverse the penalty payment of <b>TZS {money(target.amount)}</b> dated {target.paid_on} ({target.customer ?? "-"}{target.loan_number ? `, loan ${target.loan_number}` : ""}):
             the money leaves the PENALTY A/C, PENALTY INCOME is reduced and the amount is owed on the penalty again.
           </>
         )}

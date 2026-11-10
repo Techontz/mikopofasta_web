@@ -29,7 +29,7 @@ function ReserveForm({ reserve }: { reserve: number }) {
   );
 }
 
-/** Live admin/reserve_setting — Documents: reserve is cut from interest on every repayment. */
+/** Live admin/reserve_setting - Documents: reserve is cut from interest on every repayment. */
 export default function ReserveSettingPage() {
   const { data } = useApi<{ reserve: number }>("settings/reserve");
 

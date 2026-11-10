@@ -138,12 +138,12 @@ function AdditionalRolesCard({ data }: { data: StaffPrivileges }) {
 
 function StaffInfo({ employee }: { employee: StaffPrivileges["employee"] }) {
   const rows: [string, string][] = [
-    ["Employee ID", employee.employee_number ?? "—"],
+    ["Employee ID", employee.employee_number ?? "-"],
     ["Name", employee.full_name],
-    ["Username", employee.username || "—"],
+    ["Username", employee.username || "-"],
     ["Phone", employee.phone],
-    ["Role", employee.role?.name ?? "—"],
-    ["Branch", employee.branch ?? "—"],
+    ["Role", employee.role?.name ?? "-"],
+    ["Branch", employee.branch ?? "-"],
     ["Position", employee.position],
   ];
 

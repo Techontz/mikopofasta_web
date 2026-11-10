@@ -14,7 +14,7 @@ export interface RecoveryComponentPosition {
 
 /**
  * How the split at write-off is known: stored when the write-off was posted (snapshot), reproduced from the loan's own records
- * (derived), or unknown (ambiguous — no recovery can be recorded until the snapshot is set).
+ * (derived), or unknown (ambiguous - no recovery can be recorded until the snapshot is set).
  */
 export type ComponentsStatus = "snapshot" | "derived" | "ambiguous";
 

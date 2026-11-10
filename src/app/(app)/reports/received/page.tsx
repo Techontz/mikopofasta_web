@@ -41,7 +41,7 @@ const PANES: Record<Tab, [string, string | null, string]> = {
 };
 
 /**
- * Report → Today Received (live admin/today_receved_loan): every loan payment with its status — COMPLETED repayments with their
+ * Report → Today Received (live admin/today_receved_loan): every loan payment with its status - COMPLETED repayments with their
  * Principal / Interest split and reserve, money still pending (not yet verified / approved) and reversed repayments. Totals count
  * completed repayments only. Today by default; choosing a branch shows that branch's whole history.
  */

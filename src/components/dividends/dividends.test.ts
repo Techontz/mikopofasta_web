@@ -114,7 +114,7 @@ describe("profitChain", () => {
 
   it("deducts nothing while commission is not calculated and says it must be calculated first (C1)", () => {
     const chain = profitChain({ period_closed: true, distributable_profit: 10000000, commission_amount: 0, commission_calculated: false, base_amount: 10000000, reinvestment_amount: 7000000, dividend_pool: 3000000, reinvest_percent: 70, dividend_percent: 30 });
-    expect(chain[1]).toEqual({ label: "Commission — not calculated (calculate it before declaring)", value: "TZS 0", tone: "out" });
+    expect(chain[1]).toEqual({ label: "Commission - not calculated (calculate it before declaring)", value: "TZS 0", tone: "out" });
     expect(chain[2].value).toBe("TZS 10,000,000");
   });
 

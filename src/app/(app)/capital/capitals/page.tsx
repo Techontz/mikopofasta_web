@@ -224,7 +224,7 @@ export default function CapitalsPage() {
               </>)}
             </div>
             {isAsset && <AssetContributionFields config={assetConfig} form={assetForm} onChange={setAssetForm} fieldError={createAsset.fieldError} />}
-            {!isAsset && <p className="mb-0"><small className="text-muted">Recorded as PENDING; another authorised user approves it, which posts Dr receiving account (COMPANY ACCOUNT or the bank) / Cr CAPITAL ACCOUNT. Pending contributions do not count in totals, ownership or dividends. Contributions are financial records — ownership comes from shares in the share register (Shares → Issue Shares can record a paid issuance in one step).</small></p>}
+            {!isAsset && <p className="mb-0"><small className="text-muted">Recorded as PENDING; another authorised user approves it, which posts Dr receiving account (COMPANY ACCOUNT or the bank) / Cr CAPITAL ACCOUNT. Pending contributions do not count in totals, ownership or dividends. Contributions are financial records - ownership comes from shares in the share register (Shares → Issue Shares can record a paid issuance in one step).</small></p>}
             <div className="text-center m-t-20">
               <button type="submit" className="btn btn-primary" disabled={create.isPending || createAsset.isPending}><i className="icon-drawer" />Save</button>
             </div>
@@ -252,23 +252,23 @@ export default function CapitalsPage() {
                   {holder.capitals.map((capital) => (
                     <tr key={capital.id}>
                       <td /><td />
-                      <td>{capital.reversed || capital.status === "rejected" || capital.status === "cancelled" ? <s title={capital.reversed ? `Reversed: ${capital.reversal_reason ?? ""}` : capital.status === "cancelled" ? "Cancelled by the shareholder" : `Rejected: ${capital.rejection_reason ?? ""}`}>{money(capital.amount)}</s> : capital.status === "pending" ? <span className="text-muted" title="Pending approval — not counted">{money(capital.amount)}</span> : money(capital.amount)}</td>
+                      <td>{capital.reversed || capital.status === "rejected" || capital.status === "cancelled" ? <s title={capital.reversed ? `Reversed: ${capital.reversal_reason ?? ""}` : capital.status === "cancelled" ? "Cancelled by the shareholder" : `Rejected: ${capital.rejection_reason ?? ""}`}>{money(capital.amount)}</s> : capital.status === "pending" ? <span className="text-muted" title="Pending approval - not counted">{money(capital.amount)}</span> : money(capital.amount)}</td>
                       <td>
                         <Badge tone={payMethodTone(capital.pay_method)}>{capital.pay_method}</Badge>
                         {capital.asset_id && <><br /><Link href={`/capital/assets/${capital.asset_id}`} title={capital.asset_name ?? ""}>{capital.asset_code}</Link></>}
                         {capital.reversed && <><br /><ReversedStatus row={{ ...capital, status: "reversed" }} /></>}
                         {(capital.status === "pending" || capital.status === "rejected") && <><br /><ApprovalStatus row={{ ...capital, status: capital.status }} /></>}
                       </td>
-                      <td>{capital.receiving_account_label ?? "—"}</td>
+                      <td>{capital.receiving_account_label ?? "-"}</td>
                       <td>{capital.receipt_number || "-"}</td>
                       <td>{capital.cheque_number || "-"}</td>
                       <td>{capital.contributed_at}</td>
                       <td>
-                        {capital.recorded_by ?? "—"}
+                        {capital.recorded_by ?? "-"}
                         {capital.source === "shareholder_portal" && <><br /><Badge tone="info">{capital.source_label ?? "Submitted by shareholder"}</Badge></>}
                         {capital.status === "cancelled" && <><br /><Badge tone="default">CANCELLED BY SHAREHOLDER</Badge></>}
                       </td>
-                      <td>{capital.journal_reference ?? "—"}{capital.share_transaction_reference && <><br /><small className="text-muted">Shares: {capital.share_transaction_reference}</small></>}</td>
+                      <td>{capital.journal_reference ?? "-"}{capital.share_transaction_reference && <><br /><small className="text-muted">Shares: {capital.share_transaction_reference}</small></>}</td>
                       <td className="text-nowrap">
                         {capital.receipt_endpoint ? (
                           <a href={backendUrl(capital.receipt_endpoint)} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-icon btn-info mr-1" title={`View receipt: ${capital.receipt_file_name ?? ""}`}>
@@ -330,15 +330,15 @@ export default function CapitalsPage() {
             <tbody>
               <tr className="thead-info"><th colSpan={2}>Shareholder capital</th></tr>
               <tr><td>Historical shareholder contributions</td><td className="text-right"><b>{money(position?.shareholder_contributions.total ?? data?.share_holder_capital)}</b></td></tr>
-              <tr><td>CAPITAL ACCOUNT (ledger balance — includes bank opening balances and reinvested profit)</td><td className="text-right">{money(position?.capital_account_ledger ?? data?.capital_account)}</td></tr>
+              <tr><td>CAPITAL ACCOUNT (ledger balance - includes bank opening balances and reinvested profit)</td><td className="text-right">{money(position?.capital_account_ledger ?? data?.capital_account)}</td></tr>
               <tr className="thead-info"><th colSpan={2}>Company cash &amp; bank (current balances)</th></tr>
-              <tr><td>Company Cash — COMPANY ACCOUNT</td><td className="text-right"><b>{money(position?.balances.company_cash ?? data?.company_cash_balance)}</b></td></tr>
+              <tr><td>Company Cash - COMPANY ACCOUNT</td><td className="text-right"><b>{money(position?.balances.company_cash ?? data?.company_cash_balance)}</b></td></tr>
               {(position?.balances.banks ?? data?.bank_balances ?? []).map((bank) => (
-                <tr key={bank.id}><td>Bank — {bank.name}</td><td className="text-right">{money(bank.balance)}</td></tr>
+                <tr key={bank.id}><td>Bank - {bank.name}</td><td className="text-right">{money(bank.balance)}</td></tr>
               ))}
               <tr><td>Total bank balances</td><td className="text-right"><b>{money(position?.balances.bank_total ?? data?.bank_balance_total)}</b></td></tr>
-              <tr><td>Lending cash — PRINCIPAL A/C (HQ funds every loan)</td><td className="text-right">{money(position?.balances.lending_cash)}</td></tr>
-              <tr><td><b>Total cash &amp; bank</b> — {position?.balances.total_cash_and_bank_label}</td><td className="text-right"><b>{money(position?.balances.total_cash_and_bank)}</b></td></tr>
+              <tr><td>Lending cash - PRINCIPAL A/C (HQ funds every loan)</td><td className="text-right">{money(position?.balances.lending_cash)}</td></tr>
+              <tr><td><b>Total cash &amp; bank</b> - {position?.balances.total_cash_and_bank_label}</td><td className="text-right"><b>{money(position?.balances.total_cash_and_bank)}</b></td></tr>
               <tr className="thead-info"><th colSpan={2}>All money accounts by group (current balances)</th></tr>
               {(position?.balances.money_groups ?? []).map((group) => (
                 <tr key={group.key}><td>{group.label}</td><td className="text-right">{money(group.amount)}</td></tr>
@@ -348,7 +348,7 @@ export default function CapitalsPage() {
               {(position?.income_breakdown ?? []).map((line) => (
                 <tr key={line.key}><td className="pl-4">{line.label}</td><td className="text-right">{money(line.amount)}</td></tr>
               ))}
-              <tr><td>Company income — gross ledger income (interest before reserve, fees, penalties, insurance, recoveries)</td><td className="text-right">{money(position?.income)}</td></tr>
+              <tr><td>Company income - gross ledger income (interest before reserve, fees, penalties, insurance, recoveries)</td><td className="text-right">{money(position?.income)}</td></tr>
               <tr><td className="pl-4">of which reserve set aside from interest</td><td className="text-right">{money(position?.reserve_from_interest)}</td></tr>
               {(position?.expense_breakdown ?? []).map((line) => (
                 <tr key={line.key}><td className="pl-4">{line.label}</td><td className="text-right">{money(line.amount)}</td></tr>
@@ -356,7 +356,7 @@ export default function CapitalsPage() {
               <tr><td>Company expenses</td><td className="text-right">{money(position?.expenses)}</td></tr>
               <tr><td>Net income (gross income − expenses)</td><td className="text-right"><b>{money(position?.net_income)}</b></td></tr>
               <tr><td>Loans disbursed ({position?.loans.disbursed_count ?? 0})</td><td className="text-right">{money(position?.loans.disbursed_total)}</td></tr>
-              <tr><td>Loans outstanding — LOAN RECEIVABLE</td><td className="text-right"><b>{money(position?.loans.outstanding_principal)}</b></td></tr>
+              <tr><td>Loans outstanding - LOAN RECEIVABLE</td><td className="text-right"><b>{money(position?.loans.outstanding_principal)}</b></td></tr>
             </tbody>
           </table>
         </div>
@@ -364,7 +364,7 @@ export default function CapitalsPage() {
 
       <ContributionHistoryModal shareHolderId={historyOf} onClose={() => setHistoryOf(null)} />
 
-      <Modal open={createdAsset !== null} onClose={() => setCreatedAsset(null)} title={`Asset Capital Recorded — ${createdAsset?.asset_code ?? ""}`}>
+      <Modal open={createdAsset !== null} onClose={() => setCreatedAsset(null)} title={`Asset Capital Recorded - ${createdAsset?.asset_code ?? ""}`}>
         {createdAsset && (
           <div className="text-center">
             {/* eslint-disable-next-line @next/next/no-img-element -- authorised API image stream */}

@@ -97,7 +97,7 @@ export default function CashTransactionPage() {
               header: "Loan",
               render: (row) => (
                 <>
-                  <Link href={`/loans/${row.loan_id}`}>{row.loan_number ?? "—"}</Link>
+                  <Link href={`/loans/${row.loan_id}`}>{row.loan_number ?? "-"}</Link>
                   {row.method && <div className="text-muted small">{row.method}</div>}
                 </>
               ),
@@ -165,7 +165,7 @@ function ReversalSummary({ row }: { row: CashRow }) {
   if (row.reversal_type === "loan_repayment") {
     return (
       <>
-        On approval, reverse the repayment of <b>TZS {money(row.deposit ?? 0)}</b> by {row.customer ?? "—"} dated {row.date} (loan {row.loan_number}): principal,
+        On approval, reverse the repayment of <b>TZS {money(row.deposit ?? 0)}</b> by {row.customer ?? "-"} dated {row.date} (loan {row.loan_number}): principal,
         penalty, interest and insurance are mirrored out exactly, the money returns to <b>SUSPENSE</b> (unallocated) for re-allocation or refund, and a loan
         closed by it reopens.
       </>
@@ -183,7 +183,7 @@ function ReversalSummary({ row }: { row: CashRow }) {
 
   return (
     <>
-      On approval, reverse the disbursement of <b>TZS {money(row.target_amount)}</b> to {row.customer ?? "—"} (loan {row.target_loan_number}): it is mirrored back
+      On approval, reverse the disbursement of <b>TZS {money(row.target_amount)}</b> to {row.customer ?? "-"} (loan {row.target_loan_number}): it is mirrored back
       to the PRINCIPAL A/C (a deducted fee out of FEE INCOME) and the loan is cancelled.
     </>
   );

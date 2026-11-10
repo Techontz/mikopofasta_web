@@ -197,7 +197,7 @@ export default function StaffProfilePage() {
             searchable={false}
             columns={[
               { key: "account_name", header: "Account Name" },
-              { key: "bank_name", header: "Bank", render: (row) => row.bank_name ?? "—" },
+              { key: "bank_name", header: "Bank", render: (row) => row.bank_name ?? "-" },
               { key: "account_number", header: "Account Number" },
               { key: "salary", header: "Amount", render: (row) => money(row.salary) },
               { key: "fee", header: "Fee", render: (row) => money(row.fee) },

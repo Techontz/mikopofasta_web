@@ -14,14 +14,14 @@ describe("commission report helpers", () => {
   it("shows PERIOD NOT CLOSED for an open month and CALCULATED + LOCKED for an approved one", () => {
     expect(periodBadges({ period_closed: false, calculated: false, locked: false }).map((badge) => badge.label)).toEqual(["PERIOD NOT CLOSED"]);
     expect(periodBadges({ period_closed: true, calculated: true, locked: true }).map((badge) => badge.label)).toEqual(["CALCULATED", "LOCKED (IN APPROVED PAYROLL)"]);
-    expect(periodBadges({ period_closed: true, calculated: false, locked: false }).map((badge) => badge.label)).toEqual(["PREVIEW — NOT CALCULATED"]);
+    expect(periodBadges({ period_closed: true, calculated: false, locked: false }).map((badge) => badge.label)).toEqual(["PREVIEW - NOT CALCULATED"]);
   });
 
   it("shows the profit-allocation status and the dividend lock", () => {
     expect(periodBadges({ period_closed: true, calculated: true, locked: false, allocation_status: "ALLOCATED", rule: "profit_allocation" }).map((badge) => badge.label)).toEqual(["CALCULATED", "ALLOCATED FROM PROFIT"]);
     expect(periodBadges({ period_closed: true, calculated: true, locked: true, allocation_status: "LOCKED_BY_DIVIDEND_DECLARATION", rule: "profit_allocation" }).map((badge) => badge.label)).toEqual(["CALCULATED", "LOCKED BY DIVIDEND DECLARATION", "ALLOCATED FROM PROFIT"]);
     expect(periodBadges({ period_closed: true, calculated: true, locked: true, allocation_status: "LOCKED_IN_PAYROLL", rule: "legacy_expense" }).map((badge) => badge.label)).toEqual(["CALCULATED", "LOCKED (IN APPROVED PAYROLL)", "LEGACY (COMMISSION EXPENSE)"]);
-    expect(periodBadges({ period_closed: true, calculated: false, locked: true, allocation_status: "LOCKED_BY_DIVIDEND_DECLARATION", rule: null }).map((badge) => badge.label)).toEqual(["NOT CALCULATED — DIVIDENDS DECLARED FIRST", "LOCKED BY DIVIDEND DECLARATION"]);
+    expect(periodBadges({ period_closed: true, calculated: false, locked: true, allocation_status: "LOCKED_BY_DIVIDEND_DECLARATION", rule: null }).map((badge) => badge.label)).toEqual(["NOT CALCULATED - DIVIDENDS DECLARED FIRST", "LOCKED BY DIVIDEND DECLARATION"]);
     expect(allocationStatusLabel("LOCKED_IN_PAYROLL")).toBe("LOCKED IN PAYROLL");
     expect(allocationStatusLabel(undefined)).toBe("NOT CALCULATED");
   });

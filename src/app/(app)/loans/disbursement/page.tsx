@@ -166,9 +166,9 @@ export default function DisbursementPage() {
             { key: "loan_number", header: "Loan Ac" },
             { key: "reference_number", header: "Reference No." },
             { key: "amount_approved", header: "Approved Loan", render: (row) => money(row.amount_approved) },
-            { key: "amount", header: "Amount to Send", value: (row) => row.latest_disbursement?.amount ?? 0, render: (row) => (row.latest_disbursement ? money(row.latest_disbursement.amount) : "—") },
-            { key: "batch", header: "Batch", value: (row) => row.latest_disbursement?.batch_id ?? "", render: (row) => row.latest_disbursement ? <>{row.latest_disbursement.batch_id}<br /><small>{row.latest_disbursement.channel.toUpperCase()} · {row.latest_disbursement.status}</small></> : "—" },
-            { key: "source", header: "Disbursement Source", value: (row) => row.latest_disbursement?.source_label ?? "", render: (row) => row.latest_disbursement?.source_label ?? "—" },
+            { key: "amount", header: "Amount to Send", value: (row) => row.latest_disbursement?.amount ?? 0, render: (row) => (row.latest_disbursement ? money(row.latest_disbursement.amount) : "-") },
+            { key: "batch", header: "Batch", value: (row) => row.latest_disbursement?.batch_id ?? "", render: (row) => row.latest_disbursement ? <>{row.latest_disbursement.batch_id}<br /><small>{row.latest_disbursement.channel.toUpperCase()} · {row.latest_disbursement.status}</small></> : "-" },
+            { key: "source", header: "Disbursement Source", value: (row) => row.latest_disbursement?.source_label ?? "", render: (row) => row.latest_disbursement?.source_label ?? "-" },
             { key: "attempts", header: "Attempts", value: (row) => row.disbursement_attempts, render: (row) => `${row.disbursement_attempts} / 3` },
             { key: "failure", header: "Reason", value: (row) => row.latest_disbursement?.failure_reason ?? "", render: (row) => row.latest_disbursement?.failure_reason ?? "" },
             { key: "status_label", header: "Status", render: (row) => <LoanStatusBadge loan={row} /> },
@@ -180,7 +180,7 @@ export default function DisbursementPage() {
       <Modal
         open={escalated !== null}
         onClose={() => setEscalated(null)}
-        title={`Escalated disbursement — ${escalated?.customer_name ?? ""}`}
+        title={`Escalated disbursement - ${escalated?.customer_name ?? ""}`}
         submitLabel="Submit"
         submitting={resolve.isPending}
         onSubmit={() => escalated && resolve.mutate({ id: escalated.id, ...decision }, { onSuccess: () => setEscalated(null) })}
@@ -214,7 +214,7 @@ export default function DisbursementPage() {
       <Modal
         open={preparing !== null}
         onClose={() => setPreparing(null)}
-        title={`Prepare Disbursement — ${preparing?.customer_name ?? ""}`}
+        title={`Prepare Disbursement - ${preparing?.customer_name ?? ""}`}
         submitLabel="Prepare"
         submitting={prepare.isPending}
         onSubmit={() => preparing && prepare.mutate({ id: preparing.id }, { onSuccess: () => setPreparing(null) })}
@@ -222,7 +222,7 @@ export default function DisbursementPage() {
         {preparing && (
           <>
             <p>
-              Loan <b>{preparing.loan_number}</b> · Reference <b>{preparing.reference_number ?? "—"}</b> · Approved <b>{money(preparing.amount_approved)}</b>
+              Loan <b>{preparing.loan_number}</b> · Reference <b>{preparing.reference_number ?? "-"}</b> · Approved <b>{money(preparing.amount_approved)}</b>
               <br />Destination: <b>LOAN RECEIVABLE - {preparing.loan_number}</b> (customer loan account)
             </p>
             <DisbursementSourceFields loanId={preparing.id} fieldError={prepare.fieldError} />

@@ -71,7 +71,7 @@ function formFromDetail(detail: LoanDetail): LoanForm {
   const { loan } = detail;
   return {
     category_id: String(loan.loan_category_id), group_id: loan.group_id ? String(loan.group_id) : "", how_loan: String(loan.amount_applied),
-    day: loan.duration ?? "", session: String(loan.sessions), rate: loan.formula, fee_status: loan.fee_deduct ? "YES" : "NO", reason: loan.reason, instalment: String(loan.instalment), start_date: loan.start_date ?? "",
+    day: loan.duration ?? "", session: String(loan.sessions), rate: loan.formula, fee_status: loan.fee_deduct ? "YES" : "NO", reason: loan.reason, instalment: String(loan.instalment), start_date: loan.start_date ?? "", loan_method: loan.loan_method ?? "normal",
   };
 }
 
@@ -158,7 +158,7 @@ function LoanDetailView({ detail, openEditInitially }: { detail: LoanDetail; ope
             <div className="col-md-4">
               <b>Phone number:</b> {customer.phone}<br />
               <b>Branch:</b> {customer.branch}<br />
-              <b>Customer Type:</b> {customer.customer_type ?? "—"}<br />
+              <b>Customer Type:</b> {customer.customer_type ?? "-"}<br />
               <b>Customer status:</b> {customer.status_label}<br />
               <b>KYC:</b> {customer.kyc_status === "completed" ? "Completed" : "Incomplete"}
             </div>
@@ -173,7 +173,7 @@ function LoanDetailView({ detail, openEditInitially }: { detail: LoanDetail; ope
           <p className="mb-2">
             {loan.agreement_file
               ? <>Signed agreement uploaded <b>{loan.agreement_uploaded_at}</b>.</>
-              : <>Generated after branch manager approval. Print it for the customer to fill and sign, then upload the signed PDF — the credit officer cannot approve without it.</>}
+              : <>Generated after branch manager approval. Print it for the customer to fill and sign, then upload the signed PDF - the credit officer cannot approve without it.</>}
           </p>
           <AgreementActions loan={{ ...loan, customer_name: customer.full_name }} />
         </Card>
@@ -227,7 +227,7 @@ function LoanDetailView({ detail, openEditInitially }: { detail: LoanDetail; ope
                 frozen_until_label: detail.loan.frozen_until_label,
                 freeze_status: detail.loan.freeze_status,
               }, "Loan").map(([label, value]) => (
-                <div key={label}><dt>{label}</dt><dd>{value || "—"}</dd></div>
+                <div key={label}><dt>{label}</dt><dd>{value || "-"}</dd></div>
               ))}
             </dl>
           </>
@@ -248,7 +248,7 @@ function LoanDetailView({ detail, openEditInitially }: { detail: LoanDetail; ope
         </div>
         {detail.loan_fee && detail.loan_fee.amount > 0 && (
           <p className="mt-2 mb-0" data-testid="loan-fee-memo">
-            Loan fee <b>TZS {money(detail.loan_fee.amount)}</b> — {detail.loan_fee.deducted ? detail.loan_fee.note : <b>{detail.loan_fee.note}</b>}
+            Loan fee <b>TZS {money(detail.loan_fee.amount)}</b> - {detail.loan_fee.deducted ? detail.loan_fee.note : <b>{detail.loan_fee.note}</b>}
           </p>
         )}
         {detail.topup_of && <p className="mt-2 mb-0">Top-up of loan <Link href={`/loans/${detail.topup_of.id}`}>{detail.topup_of.loan_number}</Link> ({detail.topup_of.status_label}). Amount to send: <b>{money(detail.net_disbursement)}</b></p>}
@@ -286,7 +286,7 @@ function LoanDetailView({ detail, openEditInitially }: { detail: LoanDetail; ope
 
       {detail.mandate && (
         <Card title="Bank E-Mandate">
-          <p className="mb-0">{detail.mandate.bank_name} · {detail.mandate.account_number} · {detail.mandate.account_name} · Ref {detail.mandate.mandate_reference ?? "—"} · <b>{detail.mandate.status.toUpperCase()}</b> · OTP attempts {detail.mandate.otp_attempts}{detail.mandate.failure_reason ? ` · ${detail.mandate.failure_reason}` : ""}</p>
+          <p className="mb-0">{detail.mandate.bank_name} · {detail.mandate.account_number} · {detail.mandate.account_name} · Ref {detail.mandate.mandate_reference ?? "-"} · <b>{detail.mandate.status.toUpperCase()}</b> · OTP attempts {detail.mandate.otp_attempts}{detail.mandate.failure_reason ? ` · ${detail.mandate.failure_reason}` : ""}</p>
         </Card>
       )}
 
@@ -305,7 +305,7 @@ function LoanDetailView({ detail, openEditInitially }: { detail: LoanDetail; ope
               { key: "phone", header: "Phone" },
               { key: "amount", header: "Amount", render: (row) => money(row.amount) },
               { key: "source_label", header: "Source Account" },
-              { key: "journal", header: "Journal Ref", value: (row) => row.journal_entry?.reference ?? "", render: (row) => row.journal_entry?.reference ?? "—" },
+              { key: "journal", header: "Journal Ref", value: (row) => row.journal_entry?.reference ?? "", render: (row) => row.journal_entry?.reference ?? "-" },
               { key: "status", header: "Status", render: (row) => <span className={`badge badge-${row.status === "success" ? "success" : row.status === "failed" || row.status === "cancelled" ? "danger" : "info"}`}>{row.status.toUpperCase()}</span> },
               { key: "provider_reference", header: "Reference" },
               { key: "failure_reason", header: "Reason" },

@@ -57,7 +57,7 @@ export default function ExpenseReportPage() {
               { label: "HQ Expenses", value: data.hq_total },
               { label: "HQ-Paid, Branch-Tagged", value: data.hq_paid_branch_tagged_total },
               { label: `Mis-tagged (${data.mis_tagged_count})`, value: data.mis_tagged_total, tone: data.mis_tagged_count ? "out" : undefined },
-              { label: `Reversed — not counted (${data.reversed_count})`, value: data.reversed_total },
+              { label: `Reversed - not counted (${data.reversed_count})`, value: data.reversed_total },
             ]}
           />
 

@@ -55,7 +55,7 @@ function PendingIssuances() {
   const { data: rows, isLoading } = useApi<IssuanceRequestRow[]>("shares/issuance-requests", { status: "all" });
 
   return (
-    <Card title="Paid Share Issuances — Approval">
+    <Card title="Paid Share Issuances - Approval">
       <DataTable
         rows={rows}
         loading={isLoading}
@@ -67,7 +67,7 @@ function PendingIssuances() {
           { key: "shares", header: "Shares", render: (row) => sharesLabel(row.shares) },
           { key: "price_per_share", header: "Price / Share", render: (row) => money(row.price_per_share) },
           { key: "amount", header: "Amount", render: (row) => money(row.amount) },
-          { key: "pay_method", header: "Pay Method", render: (row) => `${row.pay_method}${row.bank_account ? ` — ${row.bank_account}` : ""}` },
+          { key: "pay_method", header: "Pay Method", render: (row) => `${row.pay_method}${row.bank_account ? ` - ${row.bank_account}` : ""}` },
           { key: "status", header: "Status", render: (row) => <><ApprovalStatus row={row} />{row.share_transaction_reference && <div className="small text-muted">{row.share_transaction_reference}</div>}</> },
           {
             key: "action",

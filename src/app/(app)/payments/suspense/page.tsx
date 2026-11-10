@@ -151,7 +151,7 @@ export default function SuspensePage() {
       <Modal
         open={allocating !== null}
         onClose={() => setAllocating(null)}
-        title={allocating && `Allocate ${allocating.receipt_number} — ${money(allocating.unallocated_amount)}`}
+        title={allocating && `Allocate ${allocating.receipt_number} - ${money(allocating.unallocated_amount)}`}
         size="lg"
         submitLabel="Allocate"
         submitting={allocate.isPending}

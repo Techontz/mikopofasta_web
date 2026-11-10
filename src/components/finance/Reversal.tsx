@@ -90,7 +90,7 @@ export function ReverseButton({ row, path, description }: ReverseButtonProps) {
         onSubmit={() => reverse.mutate({ reason }, { onSuccess: () => setOpen(false) })}
       >
         <p className="mb-2">
-          Reverse <b>{money(row.amount)}</b> — {description}? The original stays listed as REVERSED and an opposite journal entry is posted today.
+          Reverse <b>{money(row.amount)}</b> - {description}? The original stays listed as REVERSED and an opposite journal entry is posted today.
         </p>
         <Field label="Reason:" required error={reverse.fieldError("reason")}>
           <textarea className="form-control" rows={3} maxLength={255} minLength={3} value={reason} onChange={(event) => setReason(event.target.value)} required />

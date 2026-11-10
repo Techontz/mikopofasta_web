@@ -63,7 +63,7 @@ function ExportModal({ module, onClose }: { module: LegacyModule; onClose: () =>
     <Modal
       open
       onClose={onClose}
-      title={`Export File — ${MODULE_LABELS[module]}`}
+      title={`Export File - ${MODULE_LABELS[module]}`}
       submitLabel="Export"
       onSubmit={() => {
         const query = new URLSearchParams({ module, loan_status: status, year });
@@ -102,7 +102,7 @@ function ImportModal({ module, onClose }: { module: LegacyModule; onClose: () =>
     <Modal
       open
       onClose={onClose}
-      title={`Import File — ${MODULE_LABELS[module]}`}
+      title={`Import File - ${MODULE_LABELS[module]}`}
       submitLabel="Upload & Check"
       submitting={upload.isPending}
       onSubmit={() => {

@@ -1,6 +1,6 @@
 /**
  * Customer Type options. The only source of the types is the API (GET /customer-types, backed by the configured
- * customer_categories rows) — no screen keeps its own list of type names.
+ * customer_categories rows) - no screen keeps its own list of type names.
  */
 import type { CustomerType } from "./types";
 

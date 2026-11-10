@@ -121,7 +121,7 @@ export function RegisterShareHolderModal({ open, onClose, onRegistered }: { open
               if (entries) {
                 setCredentials(entries);
               } else {
-                notifySuccess(`${result.message} — ${result.account?.message ?? ""}`);
+                notifySuccess(`${result.message} - ${result.account?.message ?? ""}`);
               }
               onRegistered({ id: result.data.id, name: result.data.name });
               close();
