@@ -26,7 +26,6 @@ export const LOAN_CATEGORY_COLUMNS = [
   "Top-up %",
   "Freeze Time",
   "Take Home %",
-  "E-Mandate",
   "Action",
 ] as const;
 

@@ -84,9 +84,17 @@ export function LoanFormFields({ form, setForm, categories: apiCategories, group
           min={todayIso()}
           value={form.start_date}
           onChange={(e) => setForm({ ...form, start_date: e.target.value })}
-          title="First repayment date: today or later. The repayment schedule and SMS reminders follow it."
+          title="Loan start date: today or later. The first repayment is due one period after it; the schedule and SMS reminders follow it."
           required
         />
+      </Field>
+      <Field label="Loan Method:" required className={col} error={fieldError("loan_method")}>
+        <select className="form-control" value={form.loan_method} onChange={(e) => setForm({ ...form, loan_method: e.target.value })} required>
+          <option value="">Select</option>
+          <option value="normal">Normal</option>
+          <option value="e_mandate">E-Mandate (bank deduction)</option>
+          <option value="phone_bond">Phone Bond (Linda device)</option>
+        </select>
       </Field>
       <Field label="Deducted Fee:" required className={col} error={fieldError("fee_status")}>
         <select className="form-control" value={form.fee_status} onChange={(e) => setForm({ ...form, fee_status: e.target.value })} required>
@@ -106,7 +114,6 @@ export function LoanFormFields({ form, setForm, categories: apiCategories, group
       {category && (
         <div className="col-12 text-muted small">
           {category.label} · {category.interest_rate}% · {category.duration_label} · repayments {category.repayment_from} - {category.repayment_to}
-          {category.requires_mandate ? " · E-MANDATE LOAN" : ""}
         </div>
       )}
     </div>

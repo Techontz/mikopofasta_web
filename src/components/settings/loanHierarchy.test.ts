@@ -74,7 +74,6 @@ describe("loan category form and list", () => {
       "Top-up Percent (%)",
       "Freeze Time (Days)",
       "Take Home Percent (%)",
-      "Loan Method",
     ]);
   });
 
@@ -101,12 +100,11 @@ describe("loan category form and list", () => {
       "Top-up %",
       "Freeze Time",
       "Take Home %",
-      "E-Mandate",
       "Action",
     ]);
     expect(LOAN_CATEGORY_COLUMNS).not.toContain("Customer Types");
     const page = read("app/(app)/settings/loan-categories/page.tsx");
-    expect(page).toContain("LOAN_CATEGORY_COLUMNS[15]");
+    expect(page).toContain("LOAN_CATEGORY_COLUMNS[14]");
     expect(page).not.toContain("LOAN_CATEGORY_COLUMNS[16]");
     expect(page).toContain("{ customer_type_id: customerType }");
     expect(page).toContain("row.customer_type?.name");

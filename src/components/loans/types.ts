@@ -42,6 +42,8 @@ export interface Loan {
   /** Customer type of the loan category (loan detail only). */
   category_customer_type?: string | null;
   requires_mandate?: boolean;
+  loan_method?: string;
+  loan_method_label?: string;
   group_id: number | null;
   amount_applied: number;
   amount_approved: number;
@@ -146,7 +148,6 @@ export interface CategoryOption {
   repayment_from: number;
   repayment_to: number;
   fee_deduct: boolean;
-  requires_mandate: boolean;
   topup_percent: number;
   freeze_time_days?: number;
 }
@@ -306,8 +307,10 @@ export interface LoanForm {
   fee_status: string;
   reason: string;
   instalment?: string;
-  /** First repayment date, today or later (enhancement §3.2). */
+  /** Loan start date, today or later: the first repayment is due one period after it. */
   start_date: string;
+  /** normal | e_mandate | phone_bond, for any loan category. */
+  loan_method: string;
 }
 
-export const EMPTY_LOAN_FORM: LoanForm = { category_id: "", group_id: "", how_loan: "", day: "", session: "", rate: "", fee_status: "", reason: "", start_date: "" };
+export const EMPTY_LOAN_FORM: LoanForm = { category_id: "", group_id: "", how_loan: "", day: "", session: "", rate: "", fee_status: "", reason: "", start_date: "", loan_method: "" };

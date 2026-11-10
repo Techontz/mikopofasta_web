@@ -85,14 +85,8 @@ function LoanCategoriesList() {
               },
               { key: "take_home_percent", header: LOAN_CATEGORY_COLUMNS[13], className: "mf-num", render: (row) => percent(row.take_home_percent) },
               {
-                key: "requires_mandate",
-                header: LOAN_CATEGORY_COLUMNS[14],
-                value: (row) => (row.requires_mandate ? "YES" : "NO"),
-                render: (row) => <Badge tone={row.requires_mandate ? "info" : "default"}>{row.requires_mandate ? "YES" : "NO"}</Badge>,
-              },
-              {
                 key: "action",
-                header: LOAN_CATEGORY_COLUMNS[15],
+                header: LOAN_CATEGORY_COLUMNS[14],
                 sortable: false,
                 render: (row) => (
                   <div className="mf-row-actions">
