@@ -289,3 +289,17 @@ div.dataTables_wrapper div.dataTables_length select.custom-select {
     border: 1px solid var(--mf-input-border);
     border-radius: 0;
 }
+
+/* Header bell and message counts */
+#navbar-menu .icon-menu { position: relative; }
+#navbar-menu .mf-icon-badge { position: absolute; top: 6px; right: 0; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--mf-dark); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
+body.theme-brand #navbar-menu .mf-icon-badge { background: #fff; color: var(--mf-dark); }
+.mf-notifications { position: relative; }
+.mf-notifications-menu { width: 360px; max-width: calc(100vw - 32px); max-height: 70vh; overflow-y: auto; padding: 0; }
+.mf-notifications-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid rgba(128, 128, 128, 0.25); }
+.mf-notifications-empty { padding: 16px 14px; margin: 0; color: #888; }
+.mf-notification { display: block; width: 100%; padding: 10px 14px; border: 0; border-bottom: 1px solid rgba(128, 128, 128, 0.15); background: transparent; color: inherit; text-align: left; }
+.mf-notification:hover { background: rgba(128, 128, 128, 0.1); }
+.mf-notification.unread { border-left: 3px solid var(--mf-dark); }
+.mf-notification-title { display: block; font-weight: 700; }
+.mf-notification-message { display: block; font-size: 13px; white-space: normal; }
