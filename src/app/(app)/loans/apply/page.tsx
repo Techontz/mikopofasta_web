@@ -63,6 +63,8 @@ export default function LoanApplicationPage() {
   const resetCustomer = (value: string) => { setCustomerId(value); setForm(EMPTY_LOAN_FORM); setGuarantors([]); };
 
   const eligibility = options?.eligibility;
+  // eSIMU: a top-up keeps the phone securing the current loan; any other application needs an enrolled phone first.
+  const esimuWaiting = form.loan_method === "phone_bond" && !form.device_id && !eligibility?.topup;
   const emptyMessage = options ? applicationCategoryEmptyState(options.customer_type, options.data.length) : null;
 
   return (
@@ -148,9 +150,10 @@ export default function LoanApplicationPage() {
             {isLoading ? <p>Loading...</p> : (
               <form onSubmit={(e) => { e.preventDefault(); create.mutate({ ...form, customer_id: customerId, guarantors: guarantors.map((g) => g.entry) }, { onSuccess: (result) => setLoanId(result.data.id) }); }}>
                 {emptyMessage && options?.customer_type && <div className="alert alert-warning py-1">{emptyMessage}</div>}
-                <LoanFormFields form={form} setForm={setForm} categories={options?.data ?? []} emptyMessage={emptyMessage} groups={options?.groups ?? []} fieldError={(field) => create.fieldError(field) ?? (field === "category_id" ? create.fieldError("customer_id") : undefined)} />
+                <LoanFormFields form={form} setForm={setForm} customerId={customerId} categories={options?.data ?? []} emptyMessage={emptyMessage} groups={options?.groups ?? []} fieldError={(field) => create.fieldError(field) ?? (field === "category_id" ? create.fieldError("customer_id") : undefined)} />
                 <div className="text-center m-t-20">
-                  <button type="submit" className="btn btn-primary mr-1" disabled={create.isPending || eligibility?.allowed === false}>Next</button>
+                  {esimuWaiting && <div className="text-warning small mb-2">eSIMU: register the phone and confirm its Linda enrollment (or continue with an inspected existing phone) before submitting.</div>}
+                  <button type="submit" className="btn btn-primary mr-1" disabled={create.isPending || eligibility?.allowed === false || esimuWaiting}>Next</button>
                   <button type="button" className="btn btn-danger" onClick={() => resetCustomer("")}>Cancel</button>
                 </div>
               </form>

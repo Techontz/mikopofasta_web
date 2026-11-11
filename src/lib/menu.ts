@@ -31,6 +31,9 @@ export interface MenuTab {
   items: MenuItem[];
 }
 
+/** eSIMU (Linda Device Lock): anyone who may register, lock, release or replace devices, or view loans. */
+const ESIMU_PERMISSIONS = ["phone_bond.manage", "phone_bond.lock", "phone_bond.release", "phone_bond.replace_request", "phone_bond.replace_approve", "loans.view"];
+
 export const menu: MenuTab[] = [
   {
     key: "menu",
@@ -169,10 +172,17 @@ export const menu: MenuTab[] = [
           { label: "Credit Assessment", href: "/loans/credit-assessments", permission: ["loans.credit_review", "loans.approve_manager"] },
           { label: "Ready to Pay Out", href: "/loans/disbursement", permission: ["loans.prepare_disbursement", "loans.disburse"] },
           { label: "E-Mandate", href: "/loans/mandates", permission: "loans.view" },
-          { label: "Phone Bond", href: "/phone-bond", permission: ["phone_bond.manage", "phone_bond.lock", "loans.view"] },
           { label: "Disbursement", href: "/loans/withdrawal", permission: "loans.view" },
           { label: "Active Loans", href: "/loans/disbursed", permission: "loans.view" },
           { label: "Rejected Loans", href: "/loans/rejected", permission: "loans.view" },
+        ],
+      },
+      {
+        label: "eSIMU",
+        icon: "icon-screen-smartphone",
+        children: [
+          { label: "Devices", href: "/esimu/devices", permission: ESIMU_PERMISSIONS },
+          { label: "Payments", href: "/esimu/payments", permission: ESIMU_PERMISSIONS },
         ],
       },
       {

@@ -67,7 +67,7 @@ export interface LoanAgreementData {
   /** Due dates are null until the loan is disbursed; the printed page leaves them blank. */
   schedule: { number: number; due_date: string | null; amount: number }[];
   guarantors: { full_name: string; phone: string | null; id_number: string | null; relationship: string | null; gender: string | null; marital_status: string | null; photo_url: string | null; occupation: string | null; address: string | null }[];
-  collaterals: { name: string | null; type: string | null; location: string | null; value: number }[];
+  collaterals: { name: string | null; type: string | null; location: string | null; value: number | null }[];
   next_of_kin: { full_name: string; phone: string | null; relationship: string | null; address: string | null }[];
 }
 

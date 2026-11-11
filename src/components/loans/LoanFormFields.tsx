@@ -4,6 +4,7 @@ import { Field } from "@/components/ui/Field";
 import { todayIso } from "@/lib/format";
 import { SelectBox, type Option } from "@/components/ui/SelectBox";
 
+import { EsimuDeviceStep } from "@/components/esimu/EsimuDeviceStep";
 import { applicationCategoryOptions } from "@/components/settings/loanHierarchy";
 
 import type { CategoryOption, LoanForm } from "./types";
@@ -17,10 +18,12 @@ interface Props {
   showInstalment?: boolean;
   /** Shown instead of the placeholder when the customer has no loan category to choose (no customer type / none active). */
   emptyMessage?: string | null;
+  /** The applicant: needed for the eSIMU device step. */
+  customerId?: string;
 }
 
 /** Live "Loan Application Form" fields (4 columns): category, group, amount, duration, repayments, formula, fee, reason. */
-export function LoanFormFields({ form, setForm, categories: apiCategories, groups, fieldError, showInstalment, emptyMessage }: Props) {
+export function LoanFormFields({ form, setForm, categories: apiCategories, groups, fieldError, showInstalment, emptyMessage, customerId }: Props) {
   const categories = applicationCategoryOptions(apiCategories);
   const category = categories.find((item) => item.value === form.category_id);
   const col = "col-xl-3 col-lg-4 col-md-6";
@@ -89,11 +92,16 @@ export function LoanFormFields({ form, setForm, categories: apiCategories, group
         />
       </Field>
       <Field label="Loan Method:" required className={col} error={fieldError("loan_method")}>
-        <select className="form-control" value={form.loan_method} onChange={(e) => setForm({ ...form, loan_method: e.target.value })} required>
+        <select
+          className="form-control"
+          value={form.loan_method}
+          onChange={(e) => setForm({ ...form, loan_method: e.target.value, ...(e.target.value !== "phone_bond" ? { device_id: "", device_inspected: false } : {}) })}
+          required
+        >
           <option value="">Select</option>
           <option value="normal">Normal</option>
           <option value="e_mandate">E-Mandate (bank deduction)</option>
-          <option value="phone_bond">Phone Bond (Linda device)</option>
+          <option value="phone_bond">eSIMU</option>
         </select>
       </Field>
       <Field label="Deducted Fee:" required className={col} error={fieldError("fee_status")}>
@@ -110,6 +118,15 @@ export function LoanFormFields({ form, setForm, categories: apiCategories, group
         <Field label="Instalment:" className={col} error={fieldError("instalment")}>
           <input type="number" className="form-control" placeholder="Enter Instalment" value={form.instalment ?? ""} onChange={(e) => setForm({ ...form, instalment: e.target.value })} />
         </Field>
+      )}
+      {form.loan_method === "phone_bond" && customerId && (
+        <EsimuDeviceStep
+          customerId={customerId}
+          selection={form}
+          onSelect={(selection) => setForm({ ...form, ...selection })}
+          application={form as unknown as Record<string, unknown>}
+          error={fieldError("device_id")}
+        />
       )}
       {category && (
         <div className="col-12 text-muted small">
