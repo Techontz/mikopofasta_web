@@ -303,3 +303,9 @@ body.theme-brand #navbar-menu .mf-icon-badge { background: #fff; color: var(--mf
 .mf-notification.unread { border-left: 3px solid var(--mf-dark); }
 .mf-notification-title { display: block; font-weight: 700; }
 .mf-notification-message { display: block; font-size: 13px; white-space: normal; }
+
+/* Header alerts: unread messages show in red and pulse when a new one arrives. */
+#navbar-menu .mf-icon-badge.mf-badge-alert, body.theme-brand #navbar-menu .mf-icon-badge.mf-badge-alert { background: #dc3545; color: #fff; }
+@keyframes mf-badge-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.35); } }
+#navbar-menu .mf-icon-badge.mf-badge-pulse { animation: mf-badge-pulse 0.8s ease-in-out 4; }
+@media (prefers-reduced-motion: reduce) { #navbar-menu .mf-icon-badge.mf-badge-pulse { animation: none; } }

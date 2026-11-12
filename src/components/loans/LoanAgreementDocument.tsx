@@ -168,7 +168,7 @@ export function LoanAgreementDocument({ data }: { data: LoanAgreementData }) {
           <tbody>
             <tr><th>Jina la Dhamana</th><th>Aina ya Dhamana</th><th>Sehemu ilipo</th><th>Thamani ya Dhamana</th></tr>
             {collaterals.map((collateral, index) => (
-              <tr key={index}><td>{collateral.name}</td><td>{collateral.type}</td><td>{collateral.location}</td><td>{Math.round(collateral.value)}</td></tr>
+              <tr key={index}><td>{collateral.name}</td><td>{collateral.type}</td><td>{collateral.location}</td><td>{collateral.value == null ? "" : Math.round(collateral.value)}</td></tr>
             ))}
             {collaterals.length === 0 && <tr className={styles.blankRow}><td /><td /><td /><td /></tr>}
           </tbody>

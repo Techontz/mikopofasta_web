@@ -360,7 +360,8 @@ function LoanDetailView({ detail, openEditInitially }: { detail: LoanDetail; ope
       )}
 
       <Modal open={editing} onClose={() => setEditing(false)} title="Edit loan" size="xl" submitLabel={loan.status === "returned" ? "Update & Resubmit" : "Update"} submitting={update.isPending} onSubmit={() => update.mutate(form, { onSuccess: () => setEditing(false) })}>
-        <LoanFormFields form={form} setForm={setForm} categories={options?.data ?? []} groups={options?.groups ?? []} fieldError={update.fieldError} showInstalment />
+        {/* eSIMU: an application already on eSIMU keeps its enrolled phone; switching to eSIMU asks for one. */}
+        <LoanFormFields form={form} setForm={setForm} customerId={loan.loan_method === "phone_bond" ? undefined : String(detail.customer.id)} categories={options?.data ?? []} groups={options?.groups ?? []} fieldError={update.fieldError} showInstalment />
       </Modal>
 
       <Modal open={allLoans} onClose={() => setAllLoans(false)} title="All Loans" size="xl">

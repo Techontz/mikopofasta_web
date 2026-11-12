@@ -309,8 +309,12 @@ export interface LoanForm {
   instalment?: string;
   /** Loan start date, today or later: the first repayment is due one period after it. */
   start_date: string;
-  /** normal | e_mandate | phone_bond, for any loan category. */
+  /** normal | e_mandate | phone_bond (eSIMU), for any loan category. */
   loan_method: string;
+  /** eSIMU: the enrolled phone securing the loan. */
+  device_id?: string;
+  /** eSIMU: the Loan Officer inspected a phone that secured an earlier loan and found it in good condition. */
+  device_inspected?: boolean;
 }
 
 export const EMPTY_LOAN_FORM: LoanForm = { category_id: "", group_id: "", how_loan: "", day: "", session: "", rate: "", fee_status: "", reason: "", start_date: "", loan_method: "" };
