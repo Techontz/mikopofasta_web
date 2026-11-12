@@ -1,9 +1,11 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { toastInfo } from "@/components/customers/toast";
+import { armAlertSound, playAlertSound } from "@/lib/alertSound";
 import { api } from "@/lib/api";
 
 interface NotificationItem {
@@ -21,8 +23,51 @@ interface NotificationFeed {
   items: NotificationItem[];
 }
 
+interface UnreadMessages {
+  count: number;
+  latest: { id: number; conversation_id: number; from: string; preview: string; sent_at: string | null } | null;
+}
+
 const FEED_KEY = ["notifications"];
+/** Under ["messages"] so the Messages page refreshes the header count as soon as a conversation is read. */
+export const UNREAD_MESSAGES_KEY = ["messages", "unread"];
 const POLL_MS = 30_000;
+const MESSAGES_POLL_MS = 15_000;
+const PULSE_MS = 3_500;
+
+/**
+ * Remembers the newest item already seen and reports whether a newer one just arrived (never on the first load, so
+ * opening the app does not chime for old items).
+ */
+function useArrival(newest: string | number | null | undefined, ready: boolean): boolean {
+  const seen = useRef<string | number | null | undefined>(undefined);
+  const [pulse, setPulse] = useState(false);
+
+  useEffect(() => {
+    armAlertSound();
+  }, []);
+
+  useEffect(() => {
+    if (!ready) {
+      return;
+    }
+    const first = seen.current === undefined;
+    const isNew = !first && newest !== null && newest !== undefined && (seen.current === null || newest > (seen.current as typeof newest));
+    seen.current = newest ?? seen.current ?? null;
+    if (!isNew) {
+      return;
+    }
+    playAlertSound();
+    const start = setTimeout(() => setPulse(true), 0);
+    const stop = setTimeout(() => setPulse(false), PULSE_MS);
+    return () => {
+      clearTimeout(start);
+      clearTimeout(stop);
+    };
+  }, [newest, ready]);
+
+  return pulse;
+}
 
 /** "5 min ago" style age of a notification. */
 function age(iso: string | null): string {
@@ -55,6 +100,8 @@ export function NotificationBell() {
     refetchInterval: POLL_MS,
   });
   const unread = data?.unread_count ?? 0;
+  const newestUnread = data?.items.find((item) => !item.read_at)?.created_at ?? null;
+  const pulse = useArrival(newestUnread, data !== undefined);
 
   useEffect(() => {
     if (!open) {
@@ -104,7 +151,7 @@ export function NotificationBell() {
         }}
       >
         <i className="icon-bell" />
-        {unread > 0 && <span className="mf-icon-badge">{unread > 99 ? "99+" : unread}</span>}
+        {unread > 0 && <span className={`mf-icon-badge ${pulse ? "mf-badge-pulse" : ""}`}>{unread > 99 ? "99+" : unread}</span>}
       </a>
       <div className={`dropdown-menu dropdown-menu-right mf-notifications-menu ${open ? "show" : ""}`}>
         <div className="mf-notifications-head">
@@ -132,28 +179,48 @@ export function NotificationBell() {
   );
 }
 
-/** Chat icon with the number of unread messages (checked every 30 seconds). */
+/**
+ * Chat icon with the number of unread messages, checked every 15 seconds and whenever the window regains focus. A new
+ * message turns the badge red, makes it pulse, plays a short chime, shows who wrote it and adds the count to the tab
+ * title. Reading the conversation on the Messages page clears the badge at once.
+ */
 export function MessagesIcon() {
   const router = useRouter();
+  const pathname = usePathname();
   const { data } = useQuery({
-    queryKey: ["messages/unread"],
-    queryFn: () => api.get<{ data: { count: number } }>("messages/unread").then((response) => response.data.count),
-    refetchInterval: POLL_MS,
+    queryKey: UNREAD_MESSAGES_KEY,
+    queryFn: () => api.get<{ data: UnreadMessages }>("messages/unread").then((response) => response.data),
+    refetchInterval: MESSAGES_POLL_MS,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
   });
-  const unread = data ?? 0;
+  const unread = data?.count ?? 0;
+  const latest = data?.latest ?? null;
+  const pulse = useArrival(latest?.id ?? null, data !== undefined);
+
+  useEffect(() => {
+    if (pulse && latest && !pathname.startsWith("/messages")) {
+      toastInfo(`New message from ${latest.from}: ${latest.preview}`);
+    }
+  }, [pulse, latest, pathname]);
+
+  useEffect(() => {
+    const base = document.title.replace(/^\(\d+\+?\) /, "");
+    document.title = unread > 0 ? `(${unread > 99 ? "99+" : unread}) ${base}` : base;
+  }, [unread, pathname]);
 
   return (
     <a
       href="/messages"
       className="icon-menu d-none d-sm-block"
-      title={unread > 0 ? `${unread} unread message${unread === 1 ? "" : "s"}` : "Messages"}
+      title={unread > 0 ? `${unread} unread message${unread === 1 ? "" : "s"}${latest ? ` - latest from ${latest.from}` : ""}` : "Messages"}
       onClick={(event) => {
         event.preventDefault();
         router.push("/messages");
       }}
     >
       <i className="icon-bubbles" />
-      {unread > 0 && <span className="mf-icon-badge">{unread > 99 ? "99+" : unread}</span>}
+      {unread > 0 && <span className={`mf-icon-badge mf-badge-alert ${pulse ? "mf-badge-pulse" : ""}`}>{unread > 99 ? "99+" : unread}</span>}
     </a>
   );
 }

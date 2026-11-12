@@ -16,20 +16,37 @@ import { confirmAction, promptReason } from "@/components/ui/notify";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
-/** Customer registration approvals (customers.approve): approve or reject registrations awaiting a decision. */
+const TABS = [
+  { value: "pending", label: "All Pending", tone: "warning" },
+  { value: "awaiting", label: "Ready (KYC Complete)", tone: "success" },
+  { value: "kyc_incomplete", label: "KYC Incomplete", tone: "danger" },
+  { value: "returned", label: "Returned", tone: "secondary" },
+  { value: "approved", label: "Approved", tone: "info" },
+  { value: "all", label: "All", tone: "dark" },
+] as const;
+
+type Tab = (typeof TABS)[number]["value"];
+
+/**
+ * KYC Approval (customers.approve): registrations by status tab - awaiting a decision (KYC complete or not), returned to
+ * the officer, approved, or all - each tab with its count. Only a registration awaiting a decision can be approved or
+ * rejected.
+ */
 export default function CustomerApprovalsPage() {
   const { can } = useAuth();
   const client = useQueryClient();
   const allowed = can("customers.approve");
   const [page, setPage] = useState(1);
+  const [tab, setTab] = useState<Tab>("pending");
   const [branchId, setBranchId] = useState("");
   const [busyId, setBusyId] = useState<number | null>(null);
-  const { data, isLoading } = usePaged<Customer>(allowed ? "customers/pending-approval" : null, { page, per_page: 20, branch_id: branchId || undefined });
+  const { data, isLoading } = usePaged<Customer>(allowed ? "customers/pending-approval" : null, { page, per_page: 20, status: tab, branch_id: branchId || undefined });
+  const counts = (data as { counts?: Partial<Record<Tab, number>> } | undefined)?.counts;
 
   if (!allowed) {
     return (
       <>
-        <PageHeader crumbs={["Customer", "Registration approvals"]} />
+        <PageHeader crumbs={["Customer", "KYC Approval"]} />
         <AccessDenied />
       </>
     );
@@ -64,8 +81,17 @@ export default function CustomerApprovalsPage() {
 
   return (
     <>
-      <PageHeader crumbs={["Customer", "Registration approvals"]} right={<Link href="/customers" className="btn btn-sm btn-outline-primary"><i className="icon-arrow-left" /> All Customer</Link>} />
-      <Card title="Registration approvals">
+      <PageHeader crumbs={["Customer", "KYC Approval"]} right={<Link href="/customers" className="btn btn-sm btn-outline-primary"><i className="icon-arrow-left" /> All Customer</Link>} />
+      <Card title="KYC Approval">
+        <ul className="nav nav-tabs mb-3 flex-wrap">
+          {TABS.map((item) => (
+            <li className="nav-item" key={item.value}>
+              <button type="button" className={`nav-link btn btn-link ${tab === item.value ? "active" : ""}`} onClick={() => { setTab(item.value); setPage(1); }}>
+                {item.label} <span className={`badge badge-${item.tone} ml-1`}>{counts?.[item.value] ?? 0}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
         <div className="mf-filters">
           <SelectBox inputId="approvals-branch" placeholder="Branch: all" optionsUrl="options/branches" value={branchId} isClearable onChange={(value) => { setBranchId(value ?? ""); setPage(1); }} />
         </div>
@@ -86,7 +112,7 @@ export default function CustomerApprovalsPage() {
               {isLoading ? (
                 <tr><td colSpan={7} className="mf-loading"><Loading inline /></td></tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan={7} className="text-center">No registrations are waiting for approval.</td></tr>
+                <tr><td colSpan={7} className="text-center">{tab === "pending" ? "No registrations are waiting for approval." : "No registrations in this tab."}</td></tr>
               ) : (
                 rows.map((customer) => (
                   <tr key={customer.id}>
@@ -105,12 +131,21 @@ export default function CustomerApprovalsPage() {
                     <td className="text-nowrap">{formatDateTime(customer.createdAt)}</td>
                     <td><CustomerStatusBadges customer={customer} showAccount={false} /></td>
                     <td className="text-nowrap">
-                      <button type="button" className="btn btn-sm btn-success mr-1" disabled={busyId === customer.id} onClick={() => void decide(customer, "approve")}>
-                        <i className="icon-check" /> Approve
-                      </button>
-                      <button type="button" className="btn btn-sm btn-outline-danger" disabled={busyId === customer.id} onClick={() => void decide(customer, "reject")}>
-                        <i className="icon-close" /> Reject
-                      </button>
+                      {customer.approvalStatus === "pending" ? (
+                        <>
+                          <button type="button" className="btn btn-sm btn-success mr-1" disabled={busyId === customer.id} onClick={() => void decide(customer, "approve")}>
+                            <i className="icon-check" /> Approve
+                          </button>
+                          <button type="button" className="btn btn-sm btn-outline-danger" disabled={busyId === customer.id} onClick={() => void decide(customer, "reject")}>
+                            <i className="icon-close" /> Reject
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <Link href={`/customers/${customer.id}`} className="btn btn-sm btn-outline-primary"><i className="icon-eye" /> View</Link>
+                          {customer.approvalStatus === "rejected" && customer.rejectionReason && <small className="d-block text-muted text-wrap" style={{ maxWidth: 260 }}>Reason: {customer.rejectionReason}</small>}
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))

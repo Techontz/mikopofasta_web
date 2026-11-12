@@ -51,7 +51,9 @@ export default function MessagesPage() {
 
   useEffect(() => {
     if (thread.data) {
+      // Opening a thread marks it read: refresh the list and the header's unread count.
       void client.invalidateQueries({ queryKey: ["messages", "conversations"] });
+      void client.invalidateQueries({ queryKey: ["messages", "unread"] });
     }
   }, [lastMessageId, client, thread.data]);
 
