@@ -1,6 +1,5 @@
 "use client";
 
-import { localToday } from "@/components/ui/PeriodFilter";
 import { useState } from "react";
 
 import { PaymentFilterModal, SearchButton, type PaymentFilters } from "@/components/payments/PaymentFilterModal";
@@ -30,8 +29,9 @@ interface PenaltyRow {
 
 /** Penalty → Penalty List (live admin/get_penart_list). */
 export default function PenaltyListPage() {
-  // Opens on today's penalties (§16.1); the filter's branch and dates reach every earlier one.
-  const [filters, setFilters] = useState<PaymentFilters>(() => ({ branch_id: "all", from: localToday(), to: localToday() }));
+  // Opens on every penalty still owed: automatic penalties are dated on the missed instalment's due date, so a "today"
+  // window would hide them. The filter's branch and dates narrow the list.
+  const [filters, setFilters] = useState<PaymentFilters>(() => ({ branch_id: "all", from: "", to: "" }));
   const [filtering, setFiltering] = useState(false);
   const [paying, setPaying] = useState<PenaltyRow | null>(null);
   const [amount, setAmount] = useState("");
