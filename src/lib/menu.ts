@@ -183,6 +183,7 @@ export const menu: MenuTab[] = [
         children: [
           { label: "Devices", href: "/esimu/devices", permission: ESIMU_PERMISSIONS },
           { label: "Payments", href: "/esimu/payments", permission: ESIMU_PERMISSIONS },
+          { label: "Company Devices", href: "/esimu/company-devices", permission: ["register_company_device", "manage_company_device_lock_unlock"] },
         ],
       },
       {

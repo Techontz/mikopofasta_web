@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { AccessDenied } from "@/components/customers/AccessDenied";
 import { EsimuDeviceStep, type DeviceSelection } from "@/components/esimu/EsimuDeviceStep";
+import { RepaymentHistoryButton } from "@/components/loans/RepaymentHistory";
 import { ENROLLMENT_LABEL, LOCK_BADGE, LOCK_LABEL, deviceName, type DeviceDetail, type EsimuDevice, type LockRequest, type Replacement } from "@/components/esimu/types";
 import { Card } from "@/components/ui/Card";
 import { DataTable } from "@/components/ui/DataTable";
@@ -151,6 +152,7 @@ export default function EsimuDevicesPage() {
     return (
       <span className="d-inline-flex flex-wrap" style={{ gap: 4 }}>
         <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => setOpenId(row.id)}>View</button>
+        {row.loan_id && <RepaymentHistoryButton loanId={row.loan_id} label={`Repayment history of loan ${row.loan_number}`} />}
         {can("phone_bond.lock") && managed && row.enrollment_status === "enrolled" && (row.lock_state === "locked"
           ? <button type="button" className="btn btn-sm btn-success" disabled={busy} onClick={() => void lock(row, "unlock")}>Unlock</button>
           : <button type="button" className="btn btn-sm btn-danger" disabled={busy || pendingLock} onClick={() => void lock(row, "lock")}>Lock</button>)}

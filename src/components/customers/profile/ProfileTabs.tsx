@@ -2,6 +2,8 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+
+import { RepaymentHistoryButton } from "@/components/loans/RepaymentHistory";
 import { useState } from "react";
 
 import { FreezeStatus } from "@/components/loans/FreezeStatus";
@@ -111,11 +113,11 @@ export function OverviewTab({ customer, overview }: { customer: Customer; overvi
           <div className="table-responsive">
             <table className="table table-hover table-custom mf-table">
               <thead className="thead-info">
-                <tr><th>Loan Ac</th><th>Loan Product</th><th>Applied</th><th>Approved</th><th>Principal + interest</th><th>Status</th><th>Withdrawal Date</th><th>End Date</th></tr>
+                <tr><th>Loan Ac</th><th>Loan Product</th><th>Applied</th><th>Approved</th><th>Principal + interest</th><th>Status</th><th>Withdrawal Date</th><th>End Date</th><th>Action</th></tr>
               </thead>
               <tbody>
                 {overview.recentLoans.length === 0 ? (
-                  <tr><td colSpan={8} className="text-center">No loans yet.</td></tr>
+                  <tr><td colSpan={9} className="text-center">No loans yet.</td></tr>
                 ) : (
                   overview.recentLoans.map((loan) => (
                     <tr key={loan.id}>
@@ -127,6 +129,7 @@ export function OverviewTab({ customer, overview }: { customer: Customer; overvi
                       <td><Badge tone={(loan.statusBadge ?? "default") as BadgeTone}>{loan.statusLabel}</Badge></td>
                       <td>{loan.withdrawnAt}</td>
                       <td>{loan.endDate}</td>
+                      <td><RepaymentHistoryButton loanId={loan.id} label={`Repayment history of ${loan.loanNumber}`} /></td>
                     </tr>
                   ))
                 )}
