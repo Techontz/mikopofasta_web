@@ -10,6 +10,7 @@ import { AgreementActions } from "@/components/loans/AgreementActions";
 import { DisbursementChainCard } from "@/components/loans/DisbursementChainCard";
 import { FreezeStatus } from "@/components/loans/FreezeStatus";
 import { LoanActions } from "@/components/loans/LoanActions";
+import { DebtClearanceTable } from "@/components/loans/DebtClearanceTable";
 import { LoanFormFields } from "@/components/loans/LoanFormFields";
 import { LoanRecoveryCard } from "@/components/loans/LoanRecoveryCard";
 import { LoanSecurities } from "@/components/loans/LoanSecurities";
@@ -66,6 +67,9 @@ const ACTION_LABELS: Record<string, string> = {
   COMMENT: "Comment",
   DELETED: "Deleted",
 };
+
+/** Application stages before the money is paid out: debts are only deducted at payout. */
+const PRE_PAYOUT = ["pending_manager_approval", "returned", "mandate_pending_otp", "mandate_failed", "pending_credit_review", "pending_finance", "awaiting_disbursement", "disbursement_failed", "escalated", "disbursement_suspense"];
 
 function formFromDetail(detail: LoanDetail): LoanForm {
   const { loan } = detail;
@@ -237,15 +241,18 @@ function LoanDetailView({ detail, openEditInitially }: { detail: LoanDetail; ope
       <LoanSecurities detail={detail} editable={editable} />
 
       <Card>
-        <div className="table-responsive">
-          <table className="table mb-0">
-            <thead><tr><th>Remain Loan Amount</th><th>Salary Advance</th><th>Penalty Amount</th><th>Loan Fee</th><th>Total Deduction</th><th>Remain Cash</th></tr></thead>
-            <tbody><tr>
-              <td>{money(detail.deductions.remain_loan)}</td><td>{money(detail.deductions.salary_advance)}</td><td>{money(detail.deductions.penalty)}</td>
-              <td>{money(detail.deductions.loan_fee)}</td><td>{money(detail.deductions.total)}</td><td>{money(detail.deductions.remain_cash)}</td>
-            </tr></tbody>
-          </table>
-        </div>
+        {/* Before payout: the existing debts this loan will deduct and settle. After it: the deductions as before. */}
+        {detail.debt_clearance && PRE_PAYOUT.includes(loan.status) ? <DebtClearanceTable clearance={detail.debt_clearance} /> : (
+          <div className="table-responsive">
+            <table className="table mb-0">
+              <thead><tr><th>Remain Loan Amount</th><th>Salary Advance</th><th>Penalty Amount</th><th>Loan Fee</th><th>Total Deduction</th><th>Remain Cash</th></tr></thead>
+              <tbody><tr>
+                <td>{money(detail.deductions.remain_loan)}</td><td>{money(detail.deductions.salary_advance)}</td><td>{money(detail.deductions.penalty)}</td>
+                <td>{money(detail.deductions.loan_fee)}</td><td>{money(detail.deductions.total)}</td><td>{money(detail.deductions.remain_cash)}</td>
+              </tr></tbody>
+            </table>
+          </div>
+        )}
         {detail.loan_fee && detail.loan_fee.amount > 0 && (
           <p className="mt-2 mb-0" data-testid="loan-fee-memo">
             Loan fee <b>TZS {money(detail.loan_fee.amount)}</b> - {detail.loan_fee.deducted ? detail.loan_fee.note : <b>{detail.loan_fee.note}</b>}

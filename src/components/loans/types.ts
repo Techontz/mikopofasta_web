@@ -183,6 +183,8 @@ export interface LoanDetail {
   collaterals: { id: number; name: string; type: string; location: string; value: number }[];
   collateral_attachment: string | null;
   deductions: { remain_loan: number; salary_advance: number; penalty: number; loan_fee: number; total: number; remain_cash: number };
+  /** Existing debts of the customer that this loan's payout deducts and settles (recalculated right before payout). */
+  debt_clearance?: DebtClearance;
   net_disbursement: number;
   outstanding: { principal: number; penalty: number; interest: number; insurance: number; total: number } | null;
   paid_amount: number;
@@ -318,3 +320,14 @@ export interface LoanForm {
 }
 
 export const EMPTY_LOAN_FORM: LoanForm = { category_id: "", group_id: "", how_loan: "", day: "", session: "", rate: "", fee_status: "", reason: "", start_date: "", loan_method: "" };
+
+export interface DebtClearance {
+  loans: { id: number; loan_number: string; legacy: boolean; amount: number; penalty: number }[];
+  salary_advances: { id: number; reference: string; legacy: boolean; amount: number }[];
+  penalties: { id: number; date: string | null; legacy: boolean; amount: number }[];
+  totals: { previous_loans: number; salary_advance: number; penalties: number; other: number; total_debts: number };
+  approved: number;
+  loan_fee: number;
+  net: number;
+  exceeds: boolean;
+}

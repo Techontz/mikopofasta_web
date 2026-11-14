@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
 
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { RepaymentHistoryButton } from "@/components/loans/RepaymentHistory";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { Loading } from "@/components/ui/Loading";
 import { money } from "@/lib/format";
@@ -255,6 +256,7 @@ export function CreditHistoryTab({ customerId }: { customerId: number }) {
     { key: "status", header: "Status", render: (row) => <Badge tone={row.status_badge as BadgeTone}>{row.status_label}</Badge>, value: (row) => row.status_label },
     { key: "withdrawn_at", header: "Withdrawal Date", className: "text-nowrap", render: (row) => row.withdrawn_at ?? NA },
     { key: "end", header: "Completion/End Date", className: "text-nowrap", render: (row) => row.closed_at ?? row.end_date ?? NA, value: (row) => row.closed_at ?? row.end_date },
+    { key: "repayments", header: "Action", sortable: false, render: (row) => (row.source === "legacy" ? NA : <RepaymentHistoryButton loanId={row.id} label={`Repayment history of ${row.loan_number}`} />) },
     { key: "source", header: "Source", render: (row) => <SourceBadge source={row.source} />, value: (row) => (row.source === "legacy" ? "Legacy System" : "Current System") },
   ];
 
